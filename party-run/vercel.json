@@ -1,6 +1,0 @@
-{
-  "cleanUrls": true,
-  "functions": {
-    "api/plan.js": { "maxDuration": 60 }
-  }
-}
