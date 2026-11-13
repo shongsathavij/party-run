@@ -20,6 +20,7 @@ The pitch: the agent can shop, but it can't overspend, because the limits live i
 ## Rules
 
 - Every route works with no keys: a rules agent stands in for Claude, and payments are simulated with the same rules, labeled on the page.
+- Token budget: the agent searches every category in one turn, then submits (about 2 turns a plan, `MAX_TURNS` 5). `api/plan.js` gives each visitor 5 Claude plans an hour and each server instance 60 a day (`PLANS_PER_VISITOR_HOUR`, `PLANS_PER_DAY`); past that the rules agent plans (mode `limited`). `PARTY_AGENT=rules` turns Claude off. Counters are in memory, so the real ceiling is the Anthropic account's spend limit. Evals print total tokens.
 - Test mode only: `api/_lib/stripe.js` refuses any key that isn't `sk_test_`. Payments use Stripe's test Visa (`pm_card_visa`); there's no card form yet.
 - The agent never gets a payment tool. It proposes a cart; the parent approves a permission; the server buys.
 - Prices always come from the catalog by id, never from the page or the model.
