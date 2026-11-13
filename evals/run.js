@@ -49,13 +49,15 @@ for (let run = 1; run <= runs; run++) {
     const t0 = Date.now();
     const r = agent === 'claude' ? await planParty({ prompt: p.prompt, today: TODAY, model }) : rulesAgent(p.prompt, TODAY);
     const fails = grade(p, r);
-    rows.push({ run, id: p.id, type: p.type, mode: r.mode, ms: Date.now() - t0, pass: !fails.length, fails, why: r.why || null, total: r.cart.total });
+    rows.push({ run, id: p.id, type: p.type, mode: r.mode, ms: Date.now() - t0, pass: !fails.length, fails, why: r.why || null, total: r.cart.total, usage: r.usage || null });
     console.log(`${fails.length ? '✗' : '✓'} ${p.id} [${r.mode}] ${fails.join('; ')}`);
   }
 }
 const passed = rows.filter((r) => r.pass).length;
 const fallbacks = rows.filter((r) => r.mode === 'fallback').length;
-const line = `${new Date().toISOString().slice(0, 16)} · ${agent}${agent === 'claude' ? ` ${model}` : ''} · ${passed}/${rows.length} passed · ${fallbacks} fallbacks`;
+const tok = rows.reduce((t, r) => ({ in: t.in + (r.usage?.input_tokens || 0), out: t.out + (r.usage?.output_tokens || 0), turns: t.turns + (r.usage?.turns || 0) }), { in: 0, out: 0, turns: 0 });
+const tokens = agent === 'claude' ? ` · ${tok.in.toLocaleString('en-US')} in + ${tok.out.toLocaleString('en-US')} out tokens, ${(tok.turns / rows.length).toFixed(1)} turns per plan` : '';
+const line = `${new Date().toISOString().slice(0, 16)} · ${agent}${agent === 'claude' ? ` ${model}` : ''} · ${passed}/${rows.length} passed · ${fallbacks} fallbacks${tokens}`;
 console.log(`\n${line}`);
 mkdirSync(new URL('./results/', import.meta.url), { recursive: true });
 writeFileSync(new URL(`./results/${Date.now()}-${agent}.json`, import.meta.url), JSON.stringify({ agent, model, runs, today: TODAY, rows }, null, 2));

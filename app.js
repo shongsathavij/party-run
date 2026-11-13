@@ -107,7 +107,7 @@ function renderCart() {
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
-  $('#cartHow').textContent = state.mode === 'fallback' ? "Claude's cart didn't pass our checks, so this one is from the rules-based agent." : 'Sample agent: rules, not AI.';
+  $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? "Claude's cart didn't pass our checks, so this one is from the rules-based agent." : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
   $('#startOver').hidden = false;
 }
