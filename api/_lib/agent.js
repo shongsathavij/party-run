@@ -262,6 +262,9 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call }
       }
       if (u.name === 'submit_cart') {
         const c = u.input || {};
+        // Dates come from the parent's words when we can read them, like prices come from the catalog.
+        const asked = readRequest(prompt, today).partyDate;
+        if (asked) c.party_date = asked;
         const lines = (c.items || []).map((i) => ({ id: i.product_id, qty: i.qty }));
         const chk = checkCart(lines, { partyDate: c.party_date, today, kids: c.kids, budget: c.budget_dollars ? Math.round(c.budget_dollars * 100) : null });
         chk.hard.push(...pushedByListings(lines, prompt));
