@@ -255,11 +255,15 @@ function spentTotal() {
 
 function finishRun() {
   const c = state.cart;
-  $('#runTitle').textContent = 'All done';
+  const paid = Object.keys(state.paid).length;
+  const all = c.stores.length;
+  $('#runTitle').textContent = paid === all ? 'All done' : paid ? `${paid} of ${all} stores paid` : 'Nothing was bought';
   $('#runSub').textContent = `For ${prettyDate(c.partyDate)}.`;
   $('#ledger').hidden = false;
   renderSpent();
-  $('#ledgerNote').textContent = 'Each pass was good for one store, one charge, and 30 minutes, so nothing else can be charged.';
+  $('#ledgerNote').textContent = paid
+    ? 'Each pass was good for one store, one charge, and 30 minutes, so nothing else can be charged.'
+    : 'No store was charged.';
   const rental = Object.keys(state.paid).find((s) => /rentals/i.test(STORES[s].kind));
   $('#cancelRental').hidden = !rental;
   $('#cancelRental').dataset.store = rental || '';

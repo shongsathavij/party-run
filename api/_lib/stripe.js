@@ -61,7 +61,9 @@ export async function mint({ store, cap, ref }) {
   const t = await previewCall('/v1/test_helpers/shared_payment/granted_tokens', {
     payment_method: 'pm_card_visa',
     usage_limits: { currency: 'usd', max_amount: cap, expires_at: expiresAt },
-    seller_details: { network_id: 'internal', external_id: `${store}:${ref}` },
+    // The test helper takes payment_method, usage_limits, customer and shared_metadata
+    // only (no seller_details), so the store and run go in shared_metadata.
+    shared_metadata: { app: 'party-run', store, ref },
   });
   return { id: t.id, cap: t.usage_limits?.max_amount ?? cap, expiresAt: t.usage_limits?.expires_at ?? expiresAt, sample: false };
 }
