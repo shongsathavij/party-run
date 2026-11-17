@@ -4,7 +4,7 @@ export function post(handler) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'POST only.' });
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {};
-      return res.status(200).json(await handler(body));
+      return res.status(200).json(await handler(body, req));
     } catch (e) {
       return res.status(e.status || 400).json({ error: e.message || 'Something went wrong.' });
     }

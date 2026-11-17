@@ -17,7 +17,7 @@ on:
         type: choice
         options: [claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5]
       runs:
-        description: How many runs (2 = a pass/fail run)
+        description: How many runs (each run plans all 15 prompts; 1 is cheapest, 2 checks consistency)
         default: '2'
 
 permissions:

@@ -6,7 +6,9 @@ import { CATEGORIES, PRODUCTS, STORES, byId, listing } from '../../lib/catalog.j
 import { checkCart, totals, dollars, daysBetween } from '../../lib/rules.js';
 
 export const DEFAULT_MODEL = process.env.PARTY_MODEL || 'claude-haiku-5-5';
-const MAX_TURNS = 8;
+// Each turn resends the whole conversation, so fewer turns means fewer tokens.
+// A normal plan takes 2 (all searches at once, then the cart); 5 leaves room for one fix.
+const MAX_TURNS = 5;
 
 // ---------- reading the request (the rules agent, and defaults for Claude) ----------
 
@@ -213,7 +215,7 @@ function systemPrompt(today) {
   return `You are Party Run, an agent that shops for a kid's birthday party from a few small stores, then hands the cart to the parent to approve. Today is ${today}.
 
 How to work:
-- Search each category the request needs (search_catalog), then call submit_cart once. Don't answer in plain text.
+- In your first turn, call search_catalog for every category the request needs, all at once. Then call submit_cart once. Don't answer in plain text, and don't search the same category twice.
 - Plan the basics (cake, decorations, favors, and snacks) plus whatever they ask for. Add a bounce house or piñata only if asked. If they say "just" or "only", buy only what they named.
 - Party date: from the request (YYYY-MM-DD, the next one after today). Kids: from the request; with a range, plan for the top of it; if none, 10.
 - Never pick an item that is booked on the party date or needs more notice than the days left. If a themed item is booked, pick the closest alternative and explain the swap in notes.
@@ -240,7 +242,7 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call }
   const usage = { input_tokens: 0, output_tokens: 0, turns: 0 };
   let retried = false, nudged = false;
   for (let turn = 0; turn < MAX_TURNS; turn++) {
-    const res = await call({ model, max_tokens: 2000, system: systemPrompt(today), tools: TOOLS, tool_choice: { type: 'auto' }, messages });
+    const res = await call({ model, max_tokens: 1500, system: systemPrompt(today), tools: TOOLS, tool_choice: { type: 'auto' }, messages });
     usage.turns++;
     usage.input_tokens += res.usage?.input_tokens || 0;
     usage.output_tokens += res.usage?.output_tokens || 0;
