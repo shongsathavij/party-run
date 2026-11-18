@@ -9,7 +9,7 @@ import { open } from './_lib/permit.js';
 import { mint, charge } from './_lib/stripe.js';
 import { post, fail, serverToday } from './_lib/http.js';
 
-const PRICE_UP = 2000; // the curveball: a $20 "weekend delivery fee" added at the store's checkout
+const PRICE_UP = 2000; // the what-if: a made-up $20 added at the rental's checkout. Simulated; no real store did this.
 
 export default post(async ({ permission, signature, store, approved = false, curveball = null }) => {
   const perm = open(permission, signature);
@@ -20,11 +20,11 @@ export default post(async ({ permission, signature, store, approved = false, cur
   if (!d.ok) return { status: d.ask ? 'ask' : 'refused', why: d.why, amount: quoted };
 
   // What the store's checkout actually asks for.
-  const isRental = /rentals/i.test(STORES[store].kind);
+  const isRental = /rental/i.test(STORES[store].kind);
   const asked = curveball === 'price_up' && isRental ? quoted + PRICE_UP : quoted;
 
   const token = await mint({ store, cap: s.cap, ref: perm.id });
-  const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Party Run: ${STORES[store].name}` });
+  const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Party Run test, simulated order: ${STORES[store].name}` });
   const pass = { id: token.id, cap: token.cap, expiresAt: token.expiresAt, sample: token.sample };
   if (r.blocked) {
     return {
@@ -32,7 +32,7 @@ export default post(async ({ permission, signature, store, approved = false, cur
       asked,
       cap: s.cap,
       pass,
-      why: asked > s.cap ? `${STORES[store].name} asked for ${dollars(asked)} at checkout, ${dollars(asked - s.cap)} more than you approved. The pass refused it.` : r.why,
+      why: asked > s.cap ? `What-if: the checkout came to ${dollars(asked)}, ${dollars(asked - s.cap)} more than you approved (a made-up fee, not a real one from this store). The pass refused it.` : r.why,
       railsMissed: Boolean(r.railsMissed),
     };
   }

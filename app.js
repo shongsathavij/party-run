@@ -1,7 +1,7 @@
 // Party Run: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
-import { STORES } from './lib/catalog.js';
+import { STORES, SNAPSHOT } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER } from './lib/rules.js';
 
 const $ = (s) => document.querySelector(s);
@@ -17,7 +17,7 @@ const REAL = "Lego-themed 5th birthday in our backyard on Dec 5, 10am to noon, f
 
 const ASK_CHOICES = [
   { v: 5000, label: '$50' },
-  { v: 15000, label: '$150' },
+  { v: 10000, label: '$100' },
   { v: 30000, label: '$300' },
   { v: 0, label: 'Ask every time' },
   { v: null, label: 'Never ask' },
@@ -59,7 +59,7 @@ async function plan(e) {
   if (text.length < 3) {
     err.textContent = 'Tell the agent about the party: when, how many kids, what you want.';
     err.hidden = false;
-    return $('#askText').focus();
+    return;
   }
   $('#ask').hidden = true;
   $('#chat').hidden = false;
@@ -91,19 +91,20 @@ function renderCart() {
   $('#cartNotes').innerHTML = c.notes.map((n) => `<li>${esc(n)}</li>`).join('');
   $('#shield').hidden = !c.ignored.length;
   $('#shieldText').innerHTML = c.ignored
-    .map((x) => `A listing from ${esc(x.store)} tried to give me orders. I didn't follow them, and you approve everything anyway: <q>${esc(x.text)}</q>`)
+    .map((x) => `A listing from ${esc(x.store)} (our made-up test store) tried to give me orders. I didn't follow them, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
   $('#cartStores').innerHTML = c.stores
     .map((s) => {
       const items = c.items.filter((i) => i.store === s.store);
       return `<section class="store">
-        <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}</div></div><span class="store-amt">${money(s.amount)}</span></div>
+        <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
         <ul class="items">${items
-          .map((i) => `<li><span>${i.qty > 1 ? `${i.qty} × ` : ''}${esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
+          .map((i) => `<li><span>${i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
           .join('')}</ul>
       </section>`;
     })
     .join('');
+  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Tap an item to see it at the store. Nothing is ordered.`;
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
@@ -264,7 +265,7 @@ function finishRun() {
   $('#ledgerNote').textContent = paid
     ? 'Each pass was good for one store, one charge, and 30 minutes, so nothing else can be charged.'
     : 'No store was charged.';
-  const rental = Object.keys(state.paid).find((s) => /rentals/i.test(STORES[s].kind));
+  const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind));
   $('#cancelRental').hidden = !rental;
   $('#cancelRental').dataset.store = rental || '';
 }
@@ -284,7 +285,7 @@ async function cancelRental() {
   try {
     const r = await api('/api/refund', { permission: state.permission, signature: state.signature, payment: p.payment });
     p.refunded = true;
-    paint(store, { cls: 'refunded', amount: p.amount, status: `${esc(STORES[store].name)} cancelled (rain in the forecast). ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
+    paint(store, { cls: 'refunded', amount: p.amount, status: `What-if: the rental cancels. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
     renderSpent();
     b.hidden = true;
   } catch (ex) {
@@ -302,15 +303,11 @@ function startOver() {
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
-  $('#askText').focus();
+  $('#askBtn').focus();
 }
 
 function bind() {
   $('#askForm').addEventListener('submit', plan);
-  $('#useReal').addEventListener('click', () => {
-    $('#askText').value = REAL;
-    $('#askText').focus();
-  });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
     if (!b) return;
@@ -325,6 +322,8 @@ function bind() {
 
 async function init() {
   bind();
+  $('#askText').value = REAL;
+  $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {
     state.config = await api('/api/config');
   } catch {

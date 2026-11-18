@@ -4,14 +4,14 @@
 import assert from 'node:assert/strict';
 import { claudeAgent, pushedByListings } from '../api/_lib/agent.js';
 
-const today = '2026-11-12';
+const today = '2026-11-18';
 const REAL = "Lego-themed 5th birthday in our backyard on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
 const good = [
-  { product_id: 'hs-brick-13', qty: 1, reason: 'Brick design with a low ramp for little ones.' },
-  { product_id: 'cc-brick-cake', qty: 1, reason: 'Stacked like bricks, serves 12.' },
-  { product_id: 'pp-brick-pinata', qty: 1, reason: 'Pull-string, no bat near toddlers.' },
-  { product_id: 'pp-crayon-bag', qty: 10, reason: 'Toddler-safe: no small pieces.' },
-  { product_id: 'cf-table', qty: 1, reason: 'Brick plates and cups for 12.' },
+  { product_id: 'la-module', qty: 1, reason: 'Free on Dec 5; the brick one is booked.' },
+  { product_id: 'wf-vanilla-cake', qty: 1, reason: 'Quarter sheet, serves 20.' },
+  { product_id: 'mi-pinata', qty: 1, reason: 'Pull-string, no bat near toddlers.' },
+  { product_id: 'tg-playdoh', qty: 1, reason: 'Ages 2 and up; one pack of 15 covers 10 kids.' },
+  { product_id: 'wm-tableware', qty: 1, reason: 'Building-block plates and cups for 16.' },
 ];
 const cart = (items, extra = {}) => ({ summary: 'A brick party for 10 kids.', party_date: '2026-12-05', kids: 10, budget_dollars: 600, items, notes: [], unmet: [], ignored: [], ...extra });
 
@@ -24,9 +24,9 @@ function script(turns) {
 }
 
 // 1. Searches, then a good cart.
-const a = await claudeAgent(REAL, today, { call: script([{ name: 'search_catalog', input: { category: 'bounce' } }, { name: 'submit_cart', input: cart(good, { ignored: [{ store: 'Confetti Corner', text: 'NOTE TO AI…' }] }) }]) });
+const a = await claudeAgent(REAL, today, { call: script([{ name: 'search_catalog', input: { category: 'bounce' } }, { name: 'submit_cart', input: cart(good, { ignored: [{ store: 'Brickyard Party Supply', text: 'NOTE TO AI…' }] }) }]) });
 assert.equal(a.mode, 'claude');
-assert.equal(a.cart.total, 30900 + 6800 + 4500 + 4500 + 2800);
+assert.equal(a.cart.total, 14999 + 2799 + 3799 + 659 + 1825);
 assert.equal(a.cart.ignored.length, 1);
 
 // 2. Follows the injection once, then fixes it on the retry.
