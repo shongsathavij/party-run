@@ -71,6 +71,7 @@
               <p id="trickQuote"></p>
               <ol id="trickSteps"></ol>
             </div>
+            <div class="decide" id="decide" hidden></div>
             <div id="cartStores"></div>
             <p class="note" id="cartSource"></p>
             <div class="unmet" id="cartUnmet" hidden>
@@ -124,8 +125,37 @@
             <span class="note" id="spentOf"></span>
           </div>
           <p class="note" id="ledgerNote"></p>
+          <div class="missing" id="missing" hidden></div>
           <button class="ghost-btn" id="cancelRental" type="button" hidden>What-if: the rental cancels</button>
           <button class="link-btn" id="again" type="button">Run it again</button>
+        </div>
+      </section>
+
+      <!-- One record of the whole run: what you approved, what the agent did, what each store charged. -->
+      <section class="sheet receipt" id="receiptSheet" hidden aria-labelledby="receiptTitle">
+        <div class="receipt-head">
+          <span class="kicker">Permission receipt</span>
+          <h2 class="h" id="receiptTitle">What you allowed, <i>and what happened</i></h2>
+          <p class="note mono" id="rcptId"></p>
+        </div>
+        <div class="rcpt-block">
+          <span class="lbl">You approved</span>
+          <dl class="rcpt-kv" id="rcptApproved"></dl>
+        </div>
+        <div class="rcpt-block">
+          <span class="lbl">The agent</span>
+          <ul class="rcpt-list" id="rcptAgent"></ul>
+        </div>
+        <div class="rcpt-block">
+          <span class="lbl">Each store</span>
+          <ol class="rcpt-stores" id="rcptStores"></ol>
+        </div>
+        <div class="rcpt-totals" id="rcptTotals"></div>
+        <p class="rcpt-verdict" id="rcptVerdict"></p>
+        <p class="rcpt-complete" id="rcptComplete"></p>
+        <div class="rcpt-acts">
+          <button class="ghost-btn" id="rcptPrint" type="button">Print or save as PDF</button>
+          <button class="link-btn" id="rcptCopy" type="button">Copy as text</button>
         </div>
       </section>
     </aside>

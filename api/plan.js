@@ -1,7 +1,7 @@
 // "Plan it": the agent turns the request into a cart. Nothing is bought here.
-import { planParty, rulesAgent } from './_lib/agent.js';
+import { planParty, rulesAgent, readRequest } from './_lib/agent.js';
 import { post, fail, isoDate, serverToday } from './_lib/http.js';
-import { cleanPlant } from '../lib/catalog.js';
+import { cleanPlant, byId, offTheme } from '../lib/catalog.js';
 
 // Spend guard for the public demo: each visitor gets a few Claude plans an hour, and each
 // server instance a daily ceiling. Past either, the rules agent plans instead (free).
@@ -39,6 +39,14 @@ export default post(async ({ prompt, today: day, plant: rawPlant }, req) => {
     : { ...rulesAgent(text.slice(0, 1200), date, { plant }), mode: 'limited' };
   const u = r.usage ? ` ${r.usage.turns} turns, ${r.usage.input_tokens}+${r.usage.output_tokens} tokens` : '';
   console.log(`[plan] ${r.mode} ${Date.now() - t0}ms${u}${r.why ? ` (${String(r.why[0]).slice(0, 80)})` : ''}`);
+  // Off-theme items are flagged. If the parent asked for that thing by name (a bounce house,
+  // a piñata), it needs their OK before anything can be approved.
+  const asked = readRequest(text, date);
+  r.cart.theme = asked.theme;
+  for (const i of r.cart.items) {
+    i.offTheme = offTheme(byId[i.id], asked.theme);
+    i.needsOk = i.offTheme && asked.named.includes(i.category);
+  }
   // How the visitor's planted text fared, layer by layer.
   const trick = plant
     ? { text: plant, ai: r.mode === 'claude' || (r.mode === 'fallback' && r.fallback !== 'error'), reported: r.cart.ignored.length > 0, sentBack: Boolean(r.retried), tookOver: r.mode === 'fallback' && Boolean(r.retried) }

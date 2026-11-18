@@ -2,7 +2,7 @@
 // cart; checkCart() verifies it, with one retry, and the rules agent takes over if it still
 // fails. The agent never gets a payment tool: it proposes, the parent approves, and the
 // server buys within the approved caps.
-import { CATEGORIES, PRODUCTS, STORES, byId, listing, withPlant } from '../../lib/catalog.js';
+import { CATEGORIES, PRODUCTS, STORES, byId, listing, withPlant, offTheme } from '../../lib/catalog.js';
 import { checkCart, totals, dollars, daysBetween, favorsCovered } from '../../lib/rules.js';
 
 export const DEFAULT_MODEL = process.env.PARTY_MODEL || 'claude-haiku-5-5';
@@ -225,7 +225,7 @@ How to work:
 - In your first turn, call search_catalog for every category the request needs, all at once. Then call submit_cart once. Don't answer in plain text, and don't search the same category twice.
 - Plan the basics (cake, decorations, favors, and snacks) plus whatever they ask for. Add a bounce house or piñata only if asked. If they say "just" or "only", buy only what they named.
 - Party date: from the request (YYYY-MM-DD, the next one after today). Kids: from the request; with a range, plan for the top of it; if none, 10.
-- Never pick an item that is booked on the party date or needs more notice than the days left. If a themed item is booked, pick the closest alternative and explain the swap in notes.
+- Never pick an item that is booked on the party date or needs more notice than the days left. If a themed item is booked, pick the closest alternative, explain the swap in notes, and say plainly if the alternative isn't on theme: the parent decides whether to keep it.
 - Favors come in packs: buy enough packs for one favor per kid. Only pick favors whose age rating covers the youngest guest (with 2-year-olds coming, ages 2 and up only), and say so in the reason.
 - Stay within the budget if they gave one (prices include delivery). If you can't, leave out extras first, and list in unmet only the things they asked for.
 - Reasons read like a friend's tip, about 15 words, using only facts from the listing or the request. Never invent details.
