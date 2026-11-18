@@ -71,8 +71,8 @@ export async function mint({ store, cap, ref }) {
 // What happened when the store tried to charge. `blocked` means the token refused it.
 export async function charge({ token, amount, store, permId, description }) {
   if (!stripeKey() || token.sample) {
-    if (amount > token.cap) return { blocked: true, why: 'The pass refused it: more than its limit.' };
-    return { id: `pi_sample_${randomUUID().slice(0, 10)}`, amount, sample: true };
+    if (amount > token.cap) return { blocked: true, why: 'The pass refused it: more than its limit.', by: 'simulator' };
+    return { id: `pi_sample_${randomUUID().slice(0, 10)}`, amount, sample: true, piStatus: 'succeeded' };
   }
   try {
     const pi = await previewCall('/v1/payment_intents', {
@@ -84,15 +84,16 @@ export async function charge({ token, amount, store, permId, description }) {
       description,
       metadata: { app: 'party-run', store, permission: permId, token: token.id },
     }, { idem: `${token.id}:${amount}` });
-    if (pi.status !== 'succeeded' && pi.status !== 'requires_capture') return { blocked: true, why: `Stripe left it ${pi.status}.` };
+    if (pi.status !== 'succeeded' && pi.status !== 'requires_capture') return { blocked: true, why: `Stripe left it ${pi.status}.`, by: 'stripe', pi: pi.id, piStatus: pi.status };
     // Defense in depth: if the rails ever let an over-cap charge through, undo it at once.
     if (amount > token.cap) {
       await call('/v1/refunds', { payment_intent: pi.id });
-      return { blocked: true, why: 'Stripe accepted a charge over the limit, so we refunded it right away.', railsMissed: true };
+      return { blocked: true, why: 'Stripe accepted a charge over the limit, so we refunded it right away.', railsMissed: true, by: 'refund', pi: pi.id, piStatus: 'refunded' };
     }
-    return { id: pi.id, amount: pi.amount, sample: false };
+    return { id: pi.id, amount: pi.amount, sample: false, piStatus: pi.status };
   } catch (e) {
-    return { blocked: true, why: e.message, code: e.stripe?.code || e.stripe?.decline_code || null };
+    // Stripe said no. Keep its own words: the code, the decline code, and the PaymentIntent if it made one.
+    return { blocked: true, why: e.message, by: 'stripe', code: e.stripe?.code || null, declineCode: e.stripe?.decline_code || null, type: e.stripe?.type || null, pi: e.stripe?.payment_intent?.id || null, piStatus: e.stripe?.payment_intent?.status || null };
   }
 }
 

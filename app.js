@@ -23,7 +23,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { config: null, cart: null, mode: null, trick: null, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -68,10 +68,11 @@ async function plan(e) {
   $('#startOver').hidden = true;
   thinking(true);
   try {
-    const r = await api('/api/plan', { prompt: text, today: localISO() });
+    const r = await api('/api/plan', { prompt: text, today: localISO(), plant: $('#trickText').value.trim() || undefined });
     thinking(false);
     state.cart = r.cart;
     state.mode = r.mode;
+    state.trick = r.trick || null;
     renderCart();
     renderPermit();
   } catch (ex) {
@@ -89,6 +90,7 @@ function renderCart() {
   const c = state.cart;
   $('#cartSummary').textContent = c.summary || `A party for ${c.kids} kids.`;
   $('#cartNotes').innerHTML = c.notes.map((n) => `<li>${esc(n)}</li>`).join('');
+  renderTrick();
   $('#shield').hidden = !c.ignored.length;
   $('#shieldText').innerHTML = c.ignored
     .map((x) => `A listing from ${esc(x.store)} (our made-up test store) tried to give me orders. I didn't follow them, and you approve everything anyway: <q>${esc(x.text)}</q>`)
@@ -111,6 +113,31 @@ function renderCart() {
   $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? "Claude's cart didn't pass our checks, so this one is from the rules-based agent." : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
   $('#startOver').hidden = false;
+}
+
+// What happened to the visitor's planted text, one layer at a time.
+function renderTrick() {
+  const t = state.trick;
+  $('#trickResult').hidden = !t;
+  if (!t) return;
+  const c = state.cart;
+  const fromTest = c.items.filter((i) => STORES[i.store].test);
+  $('#trickQuote').innerHTML = `You hid this in the test store's listing: <q>${esc(t.text)}</q>`;
+  const steps = [];
+  if (!t.ai) {
+    steps.push(['skip', 'The AI agent is off right now, so a rules-based agent planned this. It reads listings as data and can\'t be talked into anything. Try again when the AI agent is on.']);
+  } else if (t.tookOver) {
+    steps.push(['held', 'The agent followed your text twice. Our code check sent the cart back both times, then handed the job to the rules-based agent.']);
+  } else if (t.sentBack) {
+    steps.push(['held', 'The agent followed your text at first. Our code check caught it and sent the cart back, and the agent fixed it.']);
+  } else if (t.reported) {
+    steps.push(['held', 'The agent read it as store text, not as orders, and reported it.']);
+  } else {
+    steps.push(['open', 'The agent didn\'t flag your text as an instruction. Check the cart for anything it changed.']);
+  }
+  steps.push([fromTest.length ? 'open' : 'held', fromTest.length ? `In the cart from the test store: ${fromTest.map((i) => esc(i.name)).join(', ')}. It is only a proposal.` : 'Nothing from the test store is in the cart.']);
+  steps.push(['held', `Whatever the agent proposes, it can't pay. You approve the cart, each store's pass is capped at its approved amount, and the total can't pass ${money(budgetOf(c))}.`]);
+  $('#trickSteps').innerHTML = steps.map(([k, s]) => `<li class="${k}">${s}</li>`).join('');
 }
 
 // ---------- what the agent may spend ----------
@@ -149,12 +176,32 @@ function row(store) {
   return li;
 }
 
-function paint(store, { cls = '', amount, status, pass, acts = '' }) {
+function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }) {
   const li = row(store);
   li.className = cls;
   li.innerHTML = `<div class="row">${cls === 'working' ? '<span class="spin" aria-hidden="true"></span>' : brick(store)}<b>${esc(STORES[store].name)}</b><span class="amt">${amount != null ? money(amount) : ''}</span></div>
-    <span class="status">${status}</span>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${acts ? `<div class="acts">${acts}</div>` : ''}`;
+    <span class="status">${status}</span>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? hoodHtml(store, hood) : ''}${acts ? `<div class="acts">${acts}</div>` : ''}`;
   return li;
+}
+
+// "Under the hood": the objects behind a row. Real Stripe ids in test mode, labeled when simulated.
+function hoodHtml(store, h) {
+  const time = new Date(h.expiresAt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const over = h.asked > h.cap;
+  let result;
+  if (h.decidedBy === 'simulator') result = `Refused by our simulator: ${money(h.asked)} is over the ${money(h.cap)} limit. With a Stripe key, Stripe makes this call.`;
+  else if (h.decidedBy === 'refund') result = `Stripe accepted ${money(h.asked)}, over the limit. Our code refunded it at once. The limit held in our code this time, not at Stripe.`;
+  else if (h.message) result = `Refused by Stripe: ${esc(h.message)}`;
+  else result = h.sample ? 'Simulated charge succeeded.' : `Stripe confirmed the charge (${esc(h.piStatus || 'succeeded')}).`;
+  const rows = [
+    ['Pass', `<code>${esc(h.token)}</code>${h.sample ? ' (simulated)' : ' (Stripe shared payment token, test mode)'}`],
+    ['Limit', `${money(h.cap)}, made for ${esc(STORES[store].name)} only, expires ${time}`],
+    ['Store charged', `${money(h.asked)}${over ? `, ${money(h.asked - h.cap)} over the limit` : ''}`],
+    ['Result', result],
+    h.paymentIntent && ['PaymentIntent', `<code>${esc(h.paymentIntent)}</code>${h.piStatus ? ` (${esc(h.piStatus)})` : ''}`],
+    (h.code || h.declineCode) && ['Stripe code', `<code>${esc([h.code, h.declineCode].filter(Boolean).join(' / '))}</code>`],
+  ].filter(Boolean);
+  return `<details class="hood"><summary>Under the hood</summary><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></details>`;
 }
 
 const passLine = (p, used) => `Pass ${p.id.slice(0, 18)}… · limit ${money(p.cap)} · ${used}`;
@@ -208,7 +255,7 @@ async function buy(store, amount, { approved = false } = {}) {
 
   if (r.status === 'paid') {
     state.paid[store] = { amount: r.amount, payment: r.payment };
-    paint(store, { cls: 'paid', amount: r.amount, status: `Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}`, pass: passLine(r.pass, 'used once, now closed') });
+    paint(store, { cls: 'paid', amount: r.amount, status: `Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}`, pass: passLine(r.pass, 'used once, now closed'), hood: r.hood });
     return;
   }
 
@@ -231,6 +278,7 @@ async function buy(store, amount, { approved = false } = {}) {
       amount: r.asked,
       status: esc(r.why),
       pass: passLine(r.pass, `refused ${money(r.asked)}${r.railsMissed ? ' (refunded at once)' : ''}`),
+      hood: r.hood,
       acts: more > 0 ? `<button class="go" data-choice="raise">Approve ${money(more)} more</button><button class="ghost-btn" data-choice="no">Skip this store</button>` : '<button class="ghost-btn" data-choice="no">OK</button>',
     });
     if ((await choice(li)) === 'raise') {
@@ -299,7 +347,7 @@ async function cancelRental() {
 
 function startOver() {
   if (state.busy) return;
-  Object.assign(state, { cart: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
