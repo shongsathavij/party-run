@@ -227,7 +227,7 @@ async function shop() {
   $('#permitErr').hidden = true;
   try {
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, rows: {}, paid: {} });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {} });
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
     $('#permitErr').hidden = false;
@@ -264,6 +264,7 @@ async function buy(store, amount, { approved = false } = {}) {
 
   if (r.status === 'paid') {
     state.paid[store] = { amount: r.amount, payment: r.payment };
+    logEvent(store, { kind: 'paid', amount: r.amount, hood: r.hood });
     paint(store, { cls: 'paid', amount: r.amount, status: `Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}`, pass: passLine(r.pass, 'used once, now closed'), hood: r.hood });
     return;
   }
@@ -275,13 +276,18 @@ async function buy(store, amount, { approved = false } = {}) {
       status: `${money(amount)} is over your ask-me rule, so the agent is waiting for you.`,
       acts: `<button class="go" data-choice="yes">Approve ${money(amount)}</button><button class="ghost-btn" data-choice="no">Skip</button>`,
     });
-    if ((await choice(li)) === 'yes') return buy(store, amount, { approved: true });
+    if ((await choice(li)) === 'yes') {
+      logEvent(store, { kind: 'asked', amount });
+      return buy(store, amount, { approved: true });
+    }
+    logEvent(store, { kind: 'skipped', why: 'You chose Skip at the ask-me step.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
   }
 
   if (r.status === 'blocked') {
     const more = r.asked - r.cap;
+    logEvent(store, { kind: 'refused', amount: r.asked, cap: r.cap, hood: r.hood, railsMissed: r.railsMissed });
     const li = paint(store, {
       cls: 'blocked',
       amount: r.asked,
@@ -294,16 +300,19 @@ async function buy(store, amount, { approved = false } = {}) {
       try {
         const up = await api('/api/raise', { permission: state.permission, signature: state.signature, store, newCap: r.asked });
         Object.assign(state, { permission: up.permission, signature: up.signature, perm: up.perm });
+        logEvent(store, { kind: 'raised', from: r.cap, to: r.asked });
         return buy(store, r.asked, { approved: true });
       } catch (ex) {
         paint(store, { cls: 'blocked', amount: null, status: `${esc(ex.message)} Skipped. Nothing charged.` });
         return;
       }
     }
+    logEvent(store, { kind: 'skipped', why: 'You chose not to approve the higher price.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
   }
 
+  logEvent(store, { kind: 'skipped', why: r.why || 'Not bought.' });
   paint(store, { cls: 'blocked', amount, status: esc(r.why || 'Not bought.') });
 }
 
@@ -325,6 +334,7 @@ function finishRun() {
   const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind));
   $('#cancelRental').hidden = !rental;
   $('#cancelRental').dataset.store = rental || '';
+  renderReceipt();
 }
 
 function renderSpent() {
@@ -342,6 +352,8 @@ async function cancelRental() {
   try {
     const r = await api('/api/refund', { permission: state.permission, signature: state.signature, payment: p.payment });
     p.refunded = true;
+    logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id });
+    renderReceipt();
     paint(store, { cls: 'refunded', amount: p.amount, status: `What-if: the rental cancels. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
     renderSpent();
     b.hidden = true;
@@ -352,11 +364,116 @@ async function cancelRental() {
   }
 }
 
+// ---------- the permission receipt ----------
+
+function logEvent(store, e) {
+  (state.log[store] ||= []).push({ ...e, at: Date.now() });
+}
+
+const shortId = (id) => (id ? `${id.slice(0, 14)}…` : '');
+const WHO = { stripe: 'Stripe refused it', simulator: 'Our simulator refused it (no Stripe key)', refund: 'Stripe accepted it, so our code refunded it at once' };
+
+// One store's story, in order, in plain words.
+function storeStory(store) {
+  const ev = state.log[store] || [];
+  const lines = [];
+  for (const e of ev) {
+    if (e.kind === 'refused') {
+      const code = [e.hood?.code, e.hood?.declineCode].filter(Boolean).join(' / ');
+      lines.push(`Checkout came to ${money(e.amount)}, ${money(e.amount - e.cap)} over the pass. ${WHO[e.hood?.decidedBy] || 'Refused'}${code ? ` (${code})` : ''}.`);
+    }
+    if (e.kind === 'raised') lines.push(`You approved ${money(e.to - e.from)} more. New limit ${money(e.to)}.`);
+    if (e.kind === 'asked') lines.push(`${money(e.amount)} is over your ask-me rule, so it asked you first. You said yes.`);
+    if (e.kind === 'paid') lines.push(`Paid ${money(e.amount)}.`);
+    if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (what-if: the rental cancels).`);
+    if (e.kind === 'skipped') lines.push(`Skipped. ${e.why}`);
+  }
+  const ids = ev.filter((e) => e.hood).map((e) => [e.hood.token && `pass ${shortId(e.hood.token)}`, e.hood.paymentIntent && `${shortId(e.hood.paymentIntent)}`].filter(Boolean).join(' · '));
+  return { lines, ids: [...new Set(ids)].filter(Boolean) };
+}
+
+function receiptData() {
+  const c = state.cart, perm = state.approvedPerm || state.perm;
+  const ask = perm.askOver === 0 ? 'every purchase' : perm.askOver == null ? 'never' : `any purchase over ${money(perm.askOver)}`;
+  const charged = Object.values(state.log).flat().filter((e) => e.kind === 'paid').reduce((a, e) => a + e.amount, 0);
+  const refunded = Object.values(state.log).flat().filter((e) => e.kind === 'refunded').reduce((a, e) => a + e.amount, 0);
+  const refusals = Object.values(state.log).flat().filter((e) => e.kind === 'refused');
+  const finalCaps = Object.values(state.perm.stores).reduce((a, s) => a + s.cap, 0);
+  const net = charged - refunded;
+  return { c, perm, ask, charged, refunded, refusals, finalCaps, net };
+}
+
+function renderReceipt() {
+  if (!state.cart || !state.perm) return;
+  const { c, perm, ask, charged, refunded, refusals, finalCaps, net } = receiptData();
+  const budget = budgetOf(c);
+  $('#rcptId').textContent = `${perm.id} · signed by the server · ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
+  $('#rcptApproved').innerHTML = [
+    ['Budget', `${money(budget)}${c.budget ? '' : ' (the cart total; no budget given)'}`],
+    ['Agent may spend', `${money(perm.total)} across ${Object.keys(perm.stores).length} stores, each with its own limit`],
+    ['Ask me before', ask],
+    ['Ends', `${prettyDate(perm.ends)}. Nothing can be bought after the party.`],
+    ['Each pass', 'One store, one charge, up to its limit, for 30 minutes'],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+  const agent = [
+    state.mode === 'claude' ? 'Claude planned the cart from the store listings.' : 'The rules-based agent planned the cart (Claude didn’t this time).',
+    ...c.notes,
+    ...c.ignored.map((x) => `Ignored an instruction hidden in a listing from ${x.store}${STORES.brickyard && x.store === STORES.brickyard.name ? ' (our made-up test store)' : ''}, and bought nothing because of it.`),
+    'It never held a payment method. The server made each pass after you approved.',
+  ];
+  $('#rcptAgent').innerHTML = agent.map((a) => `<li>${esc(a)}</li>`).join('');
+  $('#rcptStores').innerHTML = c.stores
+    .map((s) => {
+      const st = storeStory(s.store);
+      const cap = perm.stores[s.store]?.cap ?? s.amount;
+      const finalCap = state.perm.stores[s.store]?.cap ?? cap;
+      const refundedHere = (state.log[s.store] || []).some((e) => e.kind === 'refunded');
+      const got = (state.log[s.store] || []).filter((e) => e.kind === 'paid').reduce((a, e) => a + e.amount, 0) - (state.log[s.store] || []).filter((e) => e.kind === 'refunded').reduce((a, e) => a + e.amount, 0);
+      return `<li>
+        <div class="rcpt-row">${brick(s.store)}<b>${esc(s.name)}</b><span class="rcpt-nums"><span class="rcpt-net">${money(got)}${refundedHere ? ' <small>refunded</small>' : ''}</span></span></div>
+        <p class="rcpt-limit">Limit ${money(cap)}${finalCap !== cap ? `, raised to ${money(finalCap)} with your OK` : ''}</p>
+        ${st.lines.length ? `<p>${st.lines.map(esc).join(' ')}</p>` : '<p>Not reached.</p>'}
+        ${st.ids.length ? `<p class="mono">${st.ids.map(esc).join('<br>')}</p>` : ''}
+      </li>`;
+    })
+    .join('');
+  $('#rcptTotals').innerHTML = [
+    ['Charged', money(charged)],
+    refunded ? ['Refunded', `−${money(refunded)}`] : null,
+    ['You spent', money(net), 'big'],
+    ['Budget left', money(Math.max(0, budget - net))],
+  ].filter(Boolean).map(([k, v, cls]) => `<div class="${cls || ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+  const held = net <= finalCaps && net <= budget;
+  const missed = refusals.some((e) => e.railsMissed);
+  $('#rcptVerdict').className = `rcpt-verdict ${held ? 'ok' : 'bad'}`;
+  $('#rcptVerdict').textContent = !held
+    ? 'Something went past what you approved. This should never happen; please report it.'
+    : refusals.length
+      ? `Never more than you approved. ${refusals.length} charge${refusals.length > 1 ? 's' : ''} went over a pass and ${refusals.length > 1 ? 'were' : 'was'} stopped${missed ? ' (one by our refund, not by Stripe)' : ''}.`
+      : 'Never more than you approved. Every charge fit its pass.';
+  $('#receiptSheet').hidden = false;
+}
+
+function copyReceipt() {
+  const { c, perm, ask, charged, refunded, net } = receiptData();
+  const out = [
+    `Party Run permission receipt (${perm.id}), test mode`,
+    `Party: ${prettyDate(c.partyDate)}. Budget ${money(budgetOf(c))}. Ask before ${ask}.`,
+    '',
+    ...c.stores.map((s) => `${s.name}: ${storeStory(s.store).lines.join(' ') || 'Not reached.'}`),
+    '',
+    `Charged ${money(charged)}${refunded ? `, refunded ${money(refunded)}` : ''}, spent ${money(net)}.`,
+    $('#rcptVerdict').textContent,
+  ].join('\n');
+  navigator.clipboard?.writeText(out).then(() => ($('#rcptCopy').textContent = 'Copied'), () => {});
+}
+
 // ---------- wiring ----------
 
 function startOver() {
   if (state.busy) return;
-  Object.assign(state, { cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  $('#receiptSheet').hidden = true;
+  Object.assign(state, { log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -375,6 +492,8 @@ function bind() {
   $('#cancelRental').addEventListener('click', cancelRental);
   $('#startOver').addEventListener('click', startOver);
   $('#again').addEventListener('click', startOver);
+  $('#rcptPrint').addEventListener('click', () => window.print());
+  $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
 async function init() {
