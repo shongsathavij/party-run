@@ -41,7 +41,9 @@ export default post(async ({ prompt, today: day, plant: rawPlant }, req) => {
   console.log(`[plan] ${r.mode} ${Date.now() - t0}ms${u}${r.why ? ` (${String(r.why[0]).slice(0, 80)})` : ''}`);
   // How the visitor's planted text fared, layer by layer.
   const trick = plant
-    ? { text: plant, ai: r.mode === 'claude' || r.mode === 'fallback', reported: r.cart.ignored.length > 0, sentBack: Boolean(r.retried), tookOver: r.mode === 'fallback' && Boolean(r.retried) }
+    ? { text: plant, ai: r.mode === 'claude' || (r.mode === 'fallback' && r.fallback !== 'error'), reported: r.cart.ignored.length > 0, sentBack: Boolean(r.retried), tookOver: r.mode === 'fallback' && Boolean(r.retried) }
     : null;
-  return { mode: r.mode, cart: r.cart, trick };
+  // Why the rules agent stepped in, so the page can say what really happened.
+  const fallback = r.mode === 'fallback' ? { kind: r.fallback || 'checks', why: String(r.why?.[0] || '').slice(0, 200) } : null;
+  return { mode: r.mode, cart: r.cart, trick, fallback };
 });

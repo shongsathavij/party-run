@@ -80,4 +80,30 @@ assert.ok(!e.cart.items.some((i) => i.id === 'cc-deluxe'));
 assert.equal(e.cart.ignored[0]?.text, PLANT, 'the rules agent reports the planted text');
 assert.equal(pushedByListings([{ id: 'cc-deluxe', qty: 1 }], REAL, PLANT).length, 1);
 assert.equal(pushedByListings([{ id: 'wm-tableware', qty: 1 }], REAL, PLANT).length, 0);
+
+// 7. A model that keeps searching is made to submit on its third turn.
+const choices = [];
+const f = await claudeAgent(REAL, today, {
+  call: async (body) => {
+    choices.push(body.tool_choice.type);
+    return { content: [{ type: 'tool_use', id: `s${choices.length}`, ...(body.tool_choice.type === 'tool' ? { name: 'submit_cart', input: cart(good) } : { name: 'search_catalog', input: { category: 'cake' } }) }], usage: {} };
+  },
+});
+assert.deepEqual(choices, ['auto', 'auto', 'tool']);
+assert.equal(f.mode, 'claude');
+
+// 8. A buyable first cart with a caveat (too few favors) is kept if the fix comes back unbuyable.
+const few = good.map((i) => (i.product_id === 'tg-playdoh' ? { ...i, product_id: 'tg-keychain' } : i)); // 6 favors for 10 kids
+let n = 0;
+const g = await claudeAgent(REAL, today, { call: async () => ({ content: [{ type: 'tool_use', id: `k${++n}`, name: 'submit_cart', input: cart(n === 1 ? few : [{ product_id: 'bb-brick-13', qty: 1, reason: 'x' }]) }], usage: {} }) });
+assert.equal(g.mode, 'claude');
+assert.ok(g.cart.items.some((i) => i.id === 'tg-keychain'));
+assert.ok(g.cart.unmet.some((u) => /6 for 10 kids/.test(u)));
+
+// 9. Fallbacks say which thing happened.
+assert.equal(c.fallback, 'checks');
+const { planParty } = await import('../api/_lib/agent.js');
+const down = await planParty({ prompt: REAL, today, call: async () => { throw new Error('Your credit balance is too low'); } });
+assert.equal(down.fallback, 'error');
+assert.match(down.why[0], /credit balance/);
 console.log('Agent tool-loop checks passed.');

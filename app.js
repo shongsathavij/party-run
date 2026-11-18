@@ -73,6 +73,7 @@ async function plan(e) {
     state.cart = r.cart;
     state.mode = r.mode;
     state.trick = r.trick || null;
+    state.fallback = r.fallback || null;
     renderCart();
     renderPermit();
   } catch (ex) {
@@ -110,9 +111,17 @@ function renderCart() {
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
-  $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? "Claude's cart didn't pass our checks, so this one is from the rules-based agent." : 'Sample agent: rules, not AI.';
+  $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? fallbackLine(state.fallback) : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
   $('#startOver').hidden = false;
+}
+
+// Why the rules-based agent planned this cart instead of Claude: say which thing happened.
+function fallbackLine(f) {
+  const why = f?.why ? ` (${f.why.replace(/\.$/, '')})` : '';
+  if (f?.kind === 'error') return `The AI agent couldn't be reached${why}, so this cart is from the rules-based agent.`;
+  if (f?.kind === 'no_cart') return 'The AI agent never handed in a cart, so this one is from the rules-based agent.';
+  return `Claude's cart didn't pass our checks twice${why}, so this one is from the rules-based agent.`;
 }
 
 // What happened to the visitor's planted text, one layer at a time.
