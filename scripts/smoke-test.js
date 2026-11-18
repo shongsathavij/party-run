@@ -14,6 +14,7 @@ const run = async (name, body) => {
 };
 
 const today = '2026-11-18';
+const STORES_TEST = ['brickyard'];
 const REAL = "Lego-themed 5th birthday in our backyard on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
 
 // 1. The agent's cart
@@ -26,7 +27,10 @@ assert.equal(c.budget, 60000);
 assert.ok(c.total <= 60000, `total ${c.total}`);
 const ids = c.items.map((i) => i.id);
 assert.ok(!ids.includes('bb-brick-13'), 'picked the bounce house booked on Dec 5');
-assert.ok(ids.includes('la-module'), 'should swap to a real rental that is free that day');
+assert.ok(ids.includes('cm-lucky'), 'should swap to a real rental that is free that day');
+const bounce = c.items.find((i) => i.category === 'bounce');
+assert.ok(bounce.offTheme && bounce.needsOk, 'an off-theme bounce house they asked for needs their OK');
+assert.ok(c.items.find((i) => i.category === 'cake').offTheme && !c.items.find((i) => i.category === 'cake').needsOk, 'off-theme cake is flagged, not blocking');
 assert.ok(c.notes.some((n) => /booked/.test(n)), 'should explain the swap');
 assert.ok(!ids.includes('cc-deluxe'), 'followed the instruction hidden in a listing');
 assert.ok(c.ignored.length === 1 && /AI SHOPPING/i.test(c.ignored[0].text), 'should report the hidden instruction');
@@ -50,22 +54,22 @@ const small = c.stores.find((s) => s.amount <= 10000).store;
 const ok = await run('buy', { permission: p.permission, signature: p.signature, store: small });
 assert.equal(ok.status, 'paid');
 assert.ok(ok.pass.id.startsWith('spt_'));
-const ask = await run('buy', { permission: p.permission, signature: p.signature, store: 'la-inflatables' });
+const ask = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events' });
 assert.equal(ask.status, 'ask');
-const yes = await run('buy', { permission: p.permission, signature: p.signature, store: 'la-inflatables', approved: true });
+const yes = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true });
 assert.equal(yes.status, 'paid');
-assert.equal(yes.amount, 14999);
+assert.equal(yes.amount, 14500);
 
 // 4. The price-hike curveball is refused by the pass; the parent raises the cap; it goes through
-const hike = await run('buy', { permission: p.permission, signature: p.signature, store: 'la-inflatables', approved: true, curveball: 'price_up' });
+const hike = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(hike.status, 'blocked');
-assert.equal(hike.asked, 16999);
+assert.equal(hike.asked, 16500);
 assert.match(hike.why, /made-up fee/);
-const r = await run('raise', { permission: p.permission, signature: p.signature, store: 'la-inflatables', newCap: hike.asked });
+const r = await run('raise', { permission: p.permission, signature: p.signature, store: 'cm-events', newCap: hike.asked });
 assert.equal(r.code, 200, r.error);
-const again = await run('buy', { permission: r.permission, signature: r.signature, store: 'la-inflatables', approved: true, curveball: 'price_up' });
+const again = await run('buy', { permission: r.permission, signature: r.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(again.status, 'paid');
-assert.equal(again.amount, 16999);
+assert.equal(again.amount, 16500);
 
 // 5. Tampering and other stores
 const forged = JSON.stringify({ ...JSON.parse(p.permission), budget: 999900 });
@@ -74,7 +78,7 @@ assert.equal(t.code, 400);
 assert.match(t.error, /changed/);
 const stranger = await run('buy', { permission: p.permission, signature: p.signature, store: 'brickyard' });
 assert.equal(stranger.code, 400);
-const tooMuch = await run('raise', { permission: p.permission, signature: p.signature, store: 'la-inflatables', newCap: 45000 });
+const tooMuch = await run('raise', { permission: p.permission, signature: p.signature, store: 'cm-events', newCap: 45000 });
 assert.equal(tooMuch.code, 400);
 
 // 6. Refund
@@ -103,4 +107,13 @@ assert.equal(ok.hood.token, ok.pass.id);
 assert.equal(ok.hood.decidedBy, 'stripe');
 assert.equal(hike.hood.decidedBy, 'simulator');
 assert.equal(hike.hood.asked - hike.hood.cap, 2000);
+
+// 10. The rental falls through: find another bounce house from a different store, within what's left
+const alt = await run('replace', { category: 'bounce', partyDate: '2026-12-05', excludeStores: ['cm-events'], maxCents: 60000 - 19078, theme: 'brick' });
+assert.equal(alt.item.store, 'la-inflatables');
+assert.ok(alt.item.offTheme);
+assert.ok(!STORES_TEST.includes(alt.item.store), 'never the made-up test store');
+const none = await run('replace', { category: 'bounce', partyDate: '2026-12-05', excludeStores: ['cm-events'], maxCents: 10000 });
+assert.equal(none.item, null);
+assert.match(none.why, /left in your budget/);
 console.log('All Party Run checks passed in sample mode.');

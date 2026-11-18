@@ -223,3 +223,16 @@ button { font: inherit; color: inherit; }
   #receiptSheet { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; box-shadow: none; }
   .rcpt-acts { display: none; }
 }
+
+/* Off-theme flags and the questions they raise. */
+.items .flag { grid-column: 1 / -1; justify-self: start; font-size: 12px; font-weight: 700; color: #8A4B00; background: #FFE7C2; border: 1.5px solid #8A4B00; border-radius: 999px; padding: 1px 8px; }
+.decide, .missing { background: var(--paper); border: 2px solid var(--ink); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.decide p, .missing p { margin: 0; font-size: 15px; }
+.decide .kicker, .missing .kicker { color: #8A4B00; }
+.decide .acts, .missing .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.decide .go, .missing .go { padding: 10px 16px; }
+.missing { margin-top: 4px; }
+.rcpt-complete { margin: 0; font-weight: 700; font-size: 15px; padding: 10px 12px; border-radius: 12px; }
+.rcpt-complete.ok { background: #E2F2E8; color: var(--ok); }
+.rcpt-complete.bad { background: #FFE7C2; color: #8A4B00; }
+.run .status a { color: inherit; }

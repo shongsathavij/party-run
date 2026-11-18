@@ -23,7 +23,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, trick: null, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { config: null, cart: null, mode: null, trick: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -102,18 +102,58 @@ function renderCart() {
       return `<section class="store">
         <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
         <ul class="items">${items
-          .map((i) => `<li><span>${i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
+          .map((i) => `<li><span>${i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
           .join('')}</ul>
       </section>`;
     })
     .join('');
   $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Tap an item to see it at the store. Nothing is ordered.`;
+  renderDecide();
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
   $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? fallbackLine(state.fallback) : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
   $('#startOver').hidden = false;
+}
+
+const themeWord = (t) => (t === 'brick' ? 'brick' : t || 'party');
+const WHAT = { bounce: 'bounce house', cake: 'cake', pinata: 'piñata', decor: 'decorations', favors: 'favors', food: 'snacks' };
+
+// The cart's totals, regrouped by store after the parent drops something.
+function regroup(c) {
+  const stores = {};
+  for (const i of c.items) (stores[i.store] ||= { store: i.store, name: i.storeName, amount: 0 }).amount += i.amount;
+  c.stores = Object.values(stores);
+  c.total = c.items.reduce((a, i) => a + i.amount, 0);
+}
+
+// Something they asked for by name came back off-theme: they decide before anything is approved.
+const pending = () => (state.cart?.items || []).filter((i) => i.needsOk && !state.decided[i.id]);
+function renderDecide() {
+  const asks = pending();
+  $('#decide').hidden = !asks.length;
+  $('#decide').innerHTML = asks
+    .map((i) => `<span class="kicker">Needs your OK</span>
+      <p>You asked for a ${esc(themeWord(state.cart.theme))}-themed party, and the ${esc(WHAT[i.category])} I found isn't: <b>${esc(i.name)}</b> from ${esc(i.storeName)}, ${money(i.amount)}. ${state.cart.notes.find((n) => /booked/i.test(n)) ? 'The themed one is booked that day.' : ''}</p>
+      <div class="acts"><button class="go" data-keep="${esc(i.id)}">Keep it</button><button class="ghost-btn" data-drop="${esc(i.id)}">No ${esc(WHAT[i.category])}</button></div>`)
+    .join('');
+}
+function decide(e) {
+  const keep = e.target.closest('[data-keep]')?.dataset.keep;
+  const drop = e.target.closest('[data-drop]')?.dataset.drop;
+  if (!keep && !drop) return;
+  const c = state.cart;
+  if (keep) state.decided[keep] = 'kept';
+  if (drop) {
+    const gone = c.items.find((i) => i.id === drop);
+    state.decided[drop] = 'dropped';
+    c.items = c.items.filter((i) => i.id !== drop);
+    c.notes.push(`You chose no ${WHAT[gone.category]} rather than one that isn't ${themeWord(c.theme)}-themed.`);
+    regroup(c);
+  }
+  renderCart();
+  renderPermit();
 }
 
 // Why the rules-based agent planned this cart instead of Claude: say which thing happened.
@@ -170,7 +210,9 @@ function renderPermit() {
   $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" class="chip" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
   $('#passNote').textContent = `Each store gets its own pass: good at that store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
   $('#permitErr').hidden = true;
-  $('#shopBtn').disabled = false;
+  const waiting = pending().length;
+  $('#shopBtn').disabled = Boolean(waiting);
+  $('#shopBtn').textContent = waiting ? 'Answer the question in the cart first' : 'Let the agent shop';
 }
 
 // ---------- the shopping run ----------
@@ -219,7 +261,7 @@ const passLine = (p, used) => `Pass ${p.id.slice(0, 18)}… · limit ${money(p.c
 const choice = (li) => new Promise((res) => li.querySelectorAll('[data-choice]').forEach((b) => b.addEventListener('click', () => res(b.dataset.choice), { once: true })));
 
 async function shop() {
-  if (state.busy) return;
+  if (state.busy || pending().length) return;
   state.busy = true;
   const c = state.cart;
   const btn = $('#shopBtn');
@@ -227,7 +269,8 @@ async function shop() {
   $('#permitErr').hidden = true;
   try {
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {} });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null });
+    state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
     $('#permitErr').hidden = false;
@@ -256,7 +299,7 @@ async function buy(store, amount, { approved = false } = {}) {
   await wait(calm() ? 0 : 650);
   let r;
   try {
-    r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: $('#cbPrice').checked ? 'price_up' : null });
+    r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: $('#cbPrice').checked && (!state.priceUpStore || state.priceUpStore === store) ? 'price_up' : null });
   } catch (ex) {
     paint(store, { cls: 'blocked', amount, status: esc(ex.message) });
     return;
@@ -288,6 +331,8 @@ async function buy(store, amount, { approved = false } = {}) {
   if (r.status === 'blocked') {
     const more = r.asked - r.cap;
     logEvent(store, { kind: 'refused', amount: r.asked, cap: r.cap, hood: r.hood, railsMissed: r.railsMissed });
+    // The what-if happens at one rental only, not again at a replacement.
+    if (more > 0) state.priceUpStore ||= store;
     const li = paint(store, {
       cls: 'blocked',
       amount: r.asked,
@@ -301,6 +346,7 @@ async function buy(store, amount, { approved = false } = {}) {
         const up = await api('/api/raise', { permission: state.permission, signature: state.signature, store, newCap: r.asked });
         Object.assign(state, { permission: up.permission, signature: up.signature, perm: up.perm });
         logEvent(store, { kind: 'raised', from: r.cap, to: r.asked });
+        if (state.caps[store]) state.caps[store].final = r.asked;
         return buy(store, r.asked, { approved: true });
       } catch (ex) {
         paint(store, { cls: 'blocked', amount: null, status: `${esc(ex.message)} Skipped. Nothing charged.` });
@@ -331,8 +377,9 @@ function finishRun() {
   $('#ledgerNote').textContent = paid
     ? 'Each pass was good for one store, one charge, and 30 minutes, so nothing else can be charged.'
     : 'No store was charged.';
-  const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind));
-  $('#cancelRental').hidden = !rental;
+  const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind) && !state.paid[s].refunded);
+  $('#cancelRental').hidden = !rental || state.cancelUsed;
+  renderMissing();
   $('#cancelRental').dataset.store = rental || '';
   renderReceipt();
 }
@@ -352,15 +399,84 @@ async function cancelRental() {
   try {
     const r = await api('/api/refund', { permission: state.permission, signature: state.signature, payment: p.payment });
     p.refunded = true;
+    state.cancelUsed = true;
     logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id });
     renderReceipt();
     paint(store, { cls: 'refunded', amount: p.amount, status: `What-if: the rental cancels. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
     renderSpent();
     b.hidden = true;
+    finishRun();
   } catch (ex) {
     $('#ledgerNote').textContent = ex.message;
   } finally {
     b.removeAttribute('aria-busy');
+  }
+}
+
+// ---------- when something falls through ----------
+
+// What the party should have (everything that was in the approved cart) but doesn't now.
+function missingNow() {
+  const got = (store) => state.paid[store] && !state.paid[store].refunded;
+  const cats = [...new Set(state.cart.items.map((i) => i.category))];
+  return cats.filter((cat) => !state.cart.items.some((i) => i.category === cat && got(i.store)));
+}
+
+function renderMissing() {
+  const miss = missingNow();
+  const box = $('#missing');
+  box.hidden = !miss.length;
+  if (!miss.length) return;
+  const spent = spentTotal();
+  box.innerHTML = `<span class="kicker">The party isn't complete</span>
+    <p>No ${miss.map((m) => WHAT[m]).join(', no ')}. ${money(Math.max(0, budgetOf(state.cart) - spent))} of your budget is left.</p>
+    <div class="acts">${miss.map((m) => `<button class="go" data-find="${m}">Find another ${esc(WHAT[m])}</button>`).join('')}</div>`;
+}
+
+async function findAnother(e) {
+  const cat = e.target.closest('[data-find]')?.dataset.find;
+  if (!cat || state.busy) return;
+  state.busy = true;
+  const c = state.cart;
+  const tried = [...new Set(c.items.filter((i) => i.category === cat).map((i) => i.store))];
+  const room = budgetOf(c) - spentTotal();
+  const key = `find-${cat}`;
+  const li = row(key);
+  li.className = 'working';
+  li.innerHTML = `<div class="row"><span class="spin" aria-hidden="true"></span><b>Looking for another ${esc(WHAT[cat])}…</b></div>`;
+  try {
+    const r = await api('/api/replace', { category: cat, partyDate: c.partyDate, excludeStores: tried, maxCents: room, theme: c.theme });
+    if (!r.item) {
+      li.className = 'blocked';
+      li.innerHTML = `<div class="row">${brick(tried[0])}<b>No other ${esc(WHAT[cat])}</b></div><span class="status">${esc(r.why)}</span>`;
+      return;
+    }
+    const it = r.item;
+    li.className = 'asking';
+    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(it.amount)}</span></div>
+      <span class="status">Found <a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name)}</a>, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${esc(themeWord(c.theme))}-themed.` : ''} This needs a new permission: ${money(it.amount)} for ${esc(it.storeName)} only.</span>
+      <div class="acts"><button class="go" data-choice="yes">Approve ${money(it.amount)}</button><button class="ghost-btn" data-choice="no">Not now</button></div>`;
+    if ((await choice(li)) !== 'yes') {
+      li.className = '';
+      li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b></div><span class="status">You passed on it. Nothing charged.</span>`;
+      return;
+    }
+    li.remove();
+    delete state.rows[key];
+    // A second, separate permission: this store only, this amount only, within what's left.
+    const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm });
+    state.caps[it.store] = { approved: it.amount, final: it.amount };
+    state.extraPermits.push({ id: p.perm.id, amount: it.amount, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
+    c.items.push(it);
+    regroup(c);
+    await buy(it.store, it.amount, { approved: true });
+  } catch (ex) {
+    li.className = 'blocked';
+    li.innerHTML = `<div class="row"><b>Couldn't find another ${esc(WHAT[cat])}</b></div><span class="status">${esc(ex.message)}</span>`;
+  } finally {
+    state.busy = false;
+    finishRun();
   }
 }
 
@@ -398,14 +514,14 @@ function receiptData() {
   const charged = Object.values(state.log).flat().filter((e) => e.kind === 'paid').reduce((a, e) => a + e.amount, 0);
   const refunded = Object.values(state.log).flat().filter((e) => e.kind === 'refunded').reduce((a, e) => a + e.amount, 0);
   const refusals = Object.values(state.log).flat().filter((e) => e.kind === 'refused');
-  const finalCaps = Object.values(state.perm.stores).reduce((a, s) => a + s.cap, 0);
+  const overPass = Object.values(state.log).flat().some((e) => e.kind === 'paid' && e.hood && e.amount > e.hood.cap);
   const net = charged - refunded;
-  return { c, perm, ask, charged, refunded, refusals, finalCaps, net };
+  return { c, perm, ask, charged, refunded, refusals, overPass, net };
 }
 
 function renderReceipt() {
   if (!state.cart || !state.perm) return;
-  const { c, perm, ask, charged, refunded, refusals, finalCaps, net } = receiptData();
+  const { c, perm, ask, charged, refunded, refusals, overPass, net } = receiptData();
   const budget = budgetOf(c);
   $('#rcptId').textContent = `${perm.id} · signed by the server · ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`;
   $('#rcptApproved').innerHTML = [
@@ -419,14 +535,16 @@ function renderReceipt() {
     state.mode === 'claude' ? 'Claude planned the cart from the store listings.' : 'The rules-based agent planned the cart (Claude didn’t this time).',
     ...c.notes,
     ...c.ignored.map((x) => `Ignored an instruction hidden in a listing from ${x.store}${STORES.brickyard && x.store === STORES.brickyard.name ? ' (our made-up test store)' : ''}, and bought nothing because of it.`),
+    ...c.items.filter((i) => state.decided[i.id] === 'kept').map((i) => `You kept the ${i.name}, knowing it isn't ${themeWord(c.theme)}-themed.`),
+    ...state.extraPermits.map((x) => `After the ${x.reason}, you approved a second permission: ${money(x.amount)} for ${x.storeName} only.`),
     'It never held a payment method. The server made each pass after you approved.',
   ];
   $('#rcptAgent').innerHTML = agent.map((a) => `<li>${esc(a)}</li>`).join('');
   $('#rcptStores').innerHTML = c.stores
     .map((s) => {
       const st = storeStory(s.store);
-      const cap = perm.stores[s.store]?.cap ?? s.amount;
-      const finalCap = state.perm.stores[s.store]?.cap ?? cap;
+      const cap = state.caps[s.store]?.approved ?? s.amount;
+      const finalCap = state.caps[s.store]?.final ?? cap;
       const refundedHere = (state.log[s.store] || []).some((e) => e.kind === 'refunded');
       const got = (state.log[s.store] || []).filter((e) => e.kind === 'paid').reduce((a, e) => a + e.amount, 0) - (state.log[s.store] || []).filter((e) => e.kind === 'refunded').reduce((a, e) => a + e.amount, 0);
       return `<li>
@@ -443,7 +561,7 @@ function renderReceipt() {
     ['You spent', money(net), 'big'],
     ['Budget left', money(Math.max(0, budget - net))],
   ].filter(Boolean).map(([k, v, cls]) => `<div class="${cls || ''}"><span>${k}</span><b>${v}</b></div>`).join('');
-  const held = net <= finalCaps && net <= budget;
+  const held = !overPass && net <= budget;
   const missed = refusals.some((e) => e.railsMissed);
   $('#rcptVerdict').className = `rcpt-verdict ${held ? 'ok' : 'bad'}`;
   $('#rcptVerdict').textContent = !held
@@ -451,6 +569,9 @@ function renderReceipt() {
     : refusals.length
       ? `Never more than you approved. ${refusals.length} charge${refusals.length > 1 ? 's' : ''} went over a pass and ${refusals.length > 1 ? 'were' : 'was'} stopped${missed ? ' (one by our refund, not by Stripe)' : ''}.`
       : 'Never more than you approved. Every charge fit its pass.';
+  const miss = missingNow();
+  $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
+  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : 'The party is complete: every part of it is paid for.';
   $('#receiptSheet').hidden = false;
 }
 
@@ -473,7 +594,7 @@ function copyReceipt() {
 function startOver() {
   if (state.busy) return;
   $('#receiptSheet').hidden = true;
-  Object.assign(state, { log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -493,6 +614,8 @@ function bind() {
   $('#startOver').addEventListener('click', startOver);
   $('#again').addEventListener('click', startOver);
   $('#rcptPrint').addEventListener('click', () => window.print());
+  $('#decide').addEventListener('click', decide);
+  $('#missing').addEventListener('click', findAnother);
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
