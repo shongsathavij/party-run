@@ -32,11 +32,11 @@
             <rect x="64" y="46" width="10" height="7" rx="2" fill="#FF8A80" stroke="#161412" stroke-width="2"/>
           </svg>
           <label for="askText" class="ask-title" id="askTitle">What's the <span class="ul"><i>party?</i><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 Q30 2 58 7 T114 7 T170 6 T198 5" fill="none" stroke="#5B35D5" stroke-width="3.5" stroke-linecap="round"/></svg></span></label>
-          <p class="ask-sub">Tell the agent what you're planning. It shops a few stores and shows you the cart, and it can only spend what you approve.</p>
+          <p class="ask-sub">This demo plans one real party: ours. The agent shops real store listings and shows you the cart, and it can only spend what you approve. Nothing is actually ordered.</p>
           <div class="ask-box">
-            <textarea id="askText" rows="4" maxlength="1200" placeholder="Dino-themed 4th birthday at the park on Jan 16 for 12 kids. Cake, favors, and snacks. Under $400."></textarea>
+            <textarea id="askText" rows="4" maxlength="1200" readonly aria-describedby="askFixed"></textarea>
             <div class="ask-row">
-              <button type="button" class="real-chip" id="useReal"><svg class="chip-ic" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15.5" fill="#FFD23F" stroke="#161412" stroke-width="2"/><rect x="9" y="16" width="16" height="9" rx="1.5" fill="#FFFFFF" stroke="#161412" stroke-width="2"/><rect x="11.5" y="12.5" width="4" height="3.5" rx="1" fill="#FFFFFF" stroke="#161412" stroke-width="1.6"/><rect x="18.5" y="12.5" width="4" height="3.5" rx="1" fill="#FFFFFF" stroke="#161412" stroke-width="1.6"/></svg>Use our real party</button>
+              <span class="note" id="askFixed">Our real party. The request is fixed for this demo.</span>
               <button class="go" id="askBtn" type="submit">Plan it <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </div>
           </div>
@@ -62,6 +62,7 @@
               <p id="shieldText"></p>
             </div>
             <div id="cartStores"></div>
+            <p class="note" id="cartSource"></p>
             <div class="unmet" id="cartUnmet" hidden>
               <span class="kicker">What I couldn't do</span>
               <ul id="cartUnmetList"></ul>
@@ -92,9 +93,9 @@
         </div>
         <p class="note" id="passNote"></p>
         <details class="curve">
-          <summary>Curveballs for the demo</summary>
-          <label class="check"><input type="checkbox" id="cbPrice"> <span><b>A store adds a fee at checkout.</b> The bounce house asks for $20 more than you approved.</span></label>
-          <p class="note">After the run, you can also have the rental cancel and see the refund.</p>
+          <summary>What-ifs for the demo (simulated)</summary>
+          <label class="check"><input type="checkbox" id="cbPrice"> <span><b>What if the checkout comes to more?</b> We add a made-up $20 to the rental’s charge to test the pass. No real store did this.</span></label>
+          <p class="note">After the run, you can also simulate the rental cancelling and see the refund.</p>
         </details>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
@@ -113,15 +114,16 @@
             <span class="note" id="spentOf"></span>
           </div>
           <p class="note" id="ledgerNote"></p>
-          <button class="ghost-btn" id="cancelRental" type="button" hidden>Curveball: the bounce house cancels</button>
-          <button class="link-btn" id="again" type="button">Plan another party</button>
+          <button class="ghost-btn" id="cancelRental" type="button" hidden>What-if: the rental cancels</button>
+          <button class="link-btn" id="again" type="button">Run it again</button>
         </div>
       </section>
     </aside>
   </main>
 
   <footer class="foot">
-    Made-up stores and Stripe test mode: nothing is bought and no real money moves.<br>
+    Real store listings, saved <span id="footDate"></span>; prices and stock change. Stripe test mode: nothing is ordered, no store is contacted or charged, and no real money moves.<br>
+    Party Run isn’t affiliated with the stores shown. Brickyard Party Supply is a made-up test store that carries two planted traps.<br>
     Party Run, a portfolio project. Payments use Stripe shared payment tokens.
   </footer>
 

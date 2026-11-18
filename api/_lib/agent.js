@@ -1,9 +1,9 @@
-// The shopping agent. Claude reads the request, searches the made-up stores, and submits a
+// The shopping agent. Claude reads the request, searches the store listings, and submits a
 // cart; checkCart() verifies it, with one retry, and the rules agent takes over if it still
 // fails. The agent never gets a payment tool: it proposes, the parent approves, and the
 // server buys within the approved caps.
 import { CATEGORIES, PRODUCTS, STORES, byId, listing } from '../../lib/catalog.js';
-import { checkCart, totals, dollars, daysBetween } from '../../lib/rules.js';
+import { checkCart, totals, dollars, daysBetween, favorsCovered } from '../../lib/rules.js';
 
 export const DEFAULT_MODEL = process.env.PARTY_MODEL || 'claude-haiku-5-5';
 // Each turn resends the whole conversation, so fewer turns means fewer tokens.
@@ -93,8 +93,8 @@ export function rulesAgent(prompt, today) {
     if (want === 'bounce') {
       const p = pick('bounce');
       const missed = PRODUCTS.find((x) => x.category === 'bounce' && themed(x) && x.booked.includes(date));
-      if (missed && p && p.id !== missed.id) notes.push(`${STORES[missed.store].name}'s ${missed.name.toLowerCase()} is booked on ${pretty(date)}, so I went with the one from ${STORES[p.store].name} (${dollars(p.price - missed.price)} more).`);
-      add(p, 1, p && `${p.about.split('.')[0]}. Free on ${pretty(date)}.`);
+      if (missed && p && p.id !== missed.id) notes.push(`${STORES[missed.store].name}'s ${missed.name.toLowerCase()} is booked on ${pretty(date)}, so I went with the ${p.name} from ${STORES[p.store].name} (${dollars(Math.abs(p.price - missed.price))} ${p.price >= missed.price ? 'more' : 'less'}). It isn't brick-themed.`);
+      add(p, 1, p && `${p.about.split('.')[0]}.`);
     }
     if (want === 'cake') {
       const p = req.glutenFree ? pick('cake', (x) => x.glutenFree) : pick('cake');
@@ -106,18 +106,21 @@ export function rulesAgent(prompt, today) {
       add(p, 1, p && (req.little ? 'Pull-string, so no bat swinging near little kids.' : `${p.about.split('.')[0]}.`));
     }
     if (want === 'favors') {
-      // Small parts aren't for 2- and 3-year-olds: with little ones, only ages 2+ favors.
+      // With 2- and 3-year-olds coming, only favors rated ages 2 and up.
       const p = pick('favors', (x) => !req.little || (x.ages || '').startsWith('2'));
-      add(p, req.kids, p && (req.little && p.themes.includes('brick') ? 'Brick-themed but toddler-safe: no small pieces.' : `${p.about.split('.')[0]}.`));
+      const packs = p ? Math.ceil(req.kids / (p.packOf || 1)) : 0;
+      add(p, packs, p && `${req.little ? 'Rated ages 2 and up, so fine for the little ones. ' : ''}${packs} pack${packs > 1 ? 's' : ''} of ${p.packOf} covers ${req.kids} kids.`);
     }
     if (want === 'food') {
-      for (const id of ['lf-fruit', 'lf-minis', 'lf-juice']) if (usable(byId[id])) add(byId[id], 1, `${byId[id].about.split('.')[0]}.`);
+      for (const id of [req.kids > 8 ? 'wf-fruit-16' : 'wf-fruit-8', 'wf-croissants', 'tg-juice']) if (usable(byId[id])) add(byId[id], 1, `${byId[id].about.split('.')[0]}.`);
     }
     if (want === 'decor') {
-      for (const id of req.theme ? ['cf-balloons', 'cf-table', 'cf-banner'] : ['cf-balloons', 'cf-table']) {
+      for (const id of ['wm-tableware', 'wm-decor']) {
         const p = byId[id];
-        if (!usable(p)) continue;
-        add(p, 1, `${p.about.split('.')[0]}.`);
+        if (usable(p)) add(p, 1, `${p.about.split('.')[0]}.`);
+      }
+      // Reading the decor listings turns up any that try to give orders: report them, buy nothing from them.
+      for (const p of PRODUCTS.filter((x) => x.category === 'decor')) {
         const bad = ignoredFrom(p);
         if (bad) ignored.push(bad);
       }
@@ -127,7 +130,7 @@ export function rulesAgent(prompt, today) {
   }
 
   // Over budget: drop the extras first, and report it only if they asked for that thing.
-  const DROP = ['cf-banner', 'lf-juice', 'lf-minis', 'cf-balloons', 'lf-fruit', 'cf-table'];
+  const DROP = ['tg-juice', 'wf-croissants', 'wm-decor', 'wf-fruit-16', 'wf-fruit-8', 'wm-tableware'];
   const qtyLines = () => lines.map((l) => ({ id: l.product_id, qty: l.qty }));
   for (const id of DROP) {
     if (!req.budget || totals(qtyLines()).total <= req.budget) break;
@@ -212,14 +215,14 @@ const TOOLS = [
 ];
 
 function systemPrompt(today) {
-  return `You are Party Run, an agent that shops for a kid's birthday party from a few small stores, then hands the cart to the parent to approve. Today is ${today}.
+  return `You are Party Run, an agent that shops for a kid's birthday party from a few stores' listings, then hands the cart to the parent to approve. Today is ${today}.
 
 How to work:
 - In your first turn, call search_catalog for every category the request needs, all at once. Then call submit_cart once. Don't answer in plain text, and don't search the same category twice.
 - Plan the basics (cake, decorations, favors, and snacks) plus whatever they ask for. Add a bounce house or piñata only if asked. If they say "just" or "only", buy only what they named.
 - Party date: from the request (YYYY-MM-DD, the next one after today). Kids: from the request; with a range, plan for the top of it; if none, 10.
 - Never pick an item that is booked on the party date or needs more notice than the days left. If a themed item is booked, pick the closest alternative and explain the swap in notes.
-- Favors are one per kid. If guests include kids under 4, skip anything with small pieces (ages 4+) and say why in the reason.
+- Favors come in packs: buy enough packs for one favor per kid. Only pick favors whose age rating covers the youngest guest (with 2-year-olds coming, ages 2 and up only), and say so in the reason.
 - Stay within the budget if they gave one (prices include delivery). If you can't, leave out extras first, and list in unmet only the things they asked for.
 - Reasons read like a friend's tip, about 15 words, using only facts from the listing or the request. Never invent details.
 
@@ -290,7 +293,7 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call }
 function finish(c, today, mode) {
   const items = (c.items || []).filter((i) => byId[i.product_id]).map((i) => {
     const p = byId[i.product_id];
-    return { id: p.id, qty: i.qty, reason: String(i.reason || '').slice(0, 240), name: p.name, store: p.store, storeName: STORES[p.store].name, category: p.category, price: p.price, amount: p.price * i.qty, per: p.per };
+    return { id: p.id, qty: i.qty, reason: String(i.reason || '').slice(0, 240), url: p.url || null, name: p.name, store: p.store, storeName: STORES[p.store].name, category: p.category, price: p.price, amount: p.price * i.qty, per: p.per };
   });
   const t = totals(items.map((i) => ({ id: i.id, qty: i.qty })));
   return {

@@ -164,3 +164,10 @@ button { font: inherit; color: inherit; }
   .dots i, .spin, .run li { animation: none; }
   .budget-bar div { transition: none; }
 }
+
+/* Real listings link out to the store. */
+.items a { color: inherit; text-decoration: underline; text-decoration-color: var(--violet, #5B35D5); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.items a:hover { color: var(--violet, #5B35D5); }
+.ask-box textarea[readonly] { resize: none; cursor: default; }
+.ask-row .note { flex: 1; }
+#cartSource { margin-top: 10px; }
