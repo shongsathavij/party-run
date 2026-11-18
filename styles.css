@@ -171,3 +171,21 @@ button { font: inherit; color: inherit; }
 .ask-box textarea[readonly] { resize: none; cursor: default; }
 .ask-row .note { flex: 1; }
 #cartSource { margin-top: 10px; }
+
+/* Under the hood: the objects behind a shopping-run row. */
+.hood { font-size: 12.5px; color: var(--muted); }
+.hood summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.hood dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 2px; }
+.hood dt { font-weight: 600; color: var(--ink); }
+.hood dd { margin: 0; overflow-wrap: anywhere; }
+.hood code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; }
+
+/* Try to trick the agent. */
+.trick { margin-top: 14px; display: block; }
+.trick textarea { width: 100%; box-sizing: border-box; margin-top: 8px; border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; font: 15px/1.4 var(--sans); background: var(--paper); color: var(--ink); resize: vertical; }
+.trick-result { border: 2px solid var(--ink); border-radius: 14px; background: var(--paper); padding: 12px 14px; margin-bottom: 10px; }
+.trick-result p { margin: 6px 0 8px; font-size: 14px; }
+.trick-result q { font-style: italic; }
+.trick-result ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
+.trick-result li.held::marker { color: var(--ok); font-weight: 700; }
+.trick-result li.open::marker { color: var(--warn); font-weight: 700; }

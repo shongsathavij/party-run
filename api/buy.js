@@ -26,6 +26,20 @@ export default post(async ({ permission, signature, store, approved = false, cur
   const token = await mint({ store, cap: s.cap, ref: perm.id });
   const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Party Run test, simulated order: ${STORES[store].name}` });
   const pass = { id: token.id, cap: token.cap, expiresAt: token.expiresAt, sample: token.sample };
+  // "Under the hood": the real objects behind this row, so the claim can be checked.
+  const hood = {
+    sample: Boolean(token.sample),
+    token: token.id,
+    cap: token.cap,
+    expiresAt: token.expiresAt,
+    asked,
+    decidedBy: r.blocked ? r.by || 'stripe' : 'stripe',
+    paymentIntent: r.blocked ? r.pi || null : r.id,
+    piStatus: r.piStatus || null,
+    code: r.code || null,
+    declineCode: r.declineCode || null,
+    message: r.blocked ? r.why : null,
+  };
   if (r.blocked) {
     return {
       status: 'blocked',
@@ -34,7 +48,8 @@ export default post(async ({ permission, signature, store, approved = false, cur
       pass,
       why: asked > s.cap ? `What-if: the checkout came to ${dollars(asked)}, ${dollars(asked - s.cap)} more than you approved (a made-up fee, not a real one from this store). The pass refused it.` : r.why,
       railsMissed: Boolean(r.railsMissed),
+      hood,
     };
   }
-  return { status: 'paid', amount: r.amount, payment: r.id, pass, sample: Boolean(r.sample) };
+  return { status: 'paid', amount: r.amount, payment: r.id, pass, sample: Boolean(r.sample), hood };
 });
