@@ -247,9 +247,11 @@ export async function callAnthropic(body, apiKey) {
 export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, plant } = {}) {
   const messages = [{ role: 'user', content: `<request>${String(prompt).slice(0, 1200)}</request>` }];
   const usage = { input_tokens: 0, output_tokens: 0, turns: 0 };
-  let retried = false, nudged = false;
+  let retried = false, nudged = false, firstTry = null;
   for (let turn = 0; turn < MAX_TURNS; turn++) {
-    const res = await call({ model, max_tokens: 1500, system: systemPrompt(today), tools: TOOLS, tool_choice: { type: 'auto' }, messages });
+    // Two turns to search, then the model has to submit: a slow searcher can't run out the clock.
+    const mustSubmit = turn >= 2 || retried;
+    const res = await call({ model, max_tokens: 1500, system: systemPrompt(today), tools: TOOLS, tool_choice: mustSubmit ? { type: 'tool', name: 'submit_cart' } : { type: 'auto' }, messages });
     usage.turns++;
     usage.input_tokens += res.usage?.input_tokens || 0;
     usage.output_tokens += res.usage?.output_tokens || 0;
@@ -281,8 +283,11 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, 
         if (!problems.length || (retried && !chk.hard.length)) {
           return { ...finish({ ...c, unmet: [...(c.unmet || []), ...chk.soft] }, today, 'claude'), usage, retried, model };
         }
-        if (retried) return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', why: chk.hard, usage, retried, model };
+        // The fix made it worse, but the first cart was buyable: keep that one, with its caveats.
+        if (retried && firstTry) return { ...finish({ ...firstTry.c, unmet: [...(firstTry.c.unmet || []), ...firstTry.soft] }, today, 'claude'), usage, retried, model };
+        if (retried) return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', fallback: 'checks', why: chk.hard, usage, retried, model };
         retried = true;
+        if (!chk.hard.length) firstTry = { c: structuredClone(c), soft: chk.soft };
         results.push({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: `Fix these and call submit_cart again:\n- ${problems.join('\n- ')}` });
         continue;
       }
@@ -290,7 +295,7 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, 
     }
     messages.push({ role: 'user', content: results });
   }
-  return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', why: ['The model never submitted a cart.'], usage, model };
+  return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', fallback: 'no_cart', why: ['The model never submitted a cart.'], usage, model };
 }
 
 // The cart as the page gets it: catalog facts filled in from ids, never from the model.
@@ -323,6 +328,6 @@ export async function planParty({ prompt, today, apiKey = process.env.ANTHROPIC_
     return await claudeAgent(prompt, today, { model, plant, call: call || ((b) => callAnthropic(b, apiKey)) });
   } catch (e) {
     // An outage or the spend limit: the rules agent answers instead of an error page.
-    return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', why: [e.message] };
+    return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', fallback: 'error', why: [e.message] };
   }
 }
