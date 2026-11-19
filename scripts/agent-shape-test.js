@@ -95,7 +95,8 @@ assert.equal(f.mode, 'claude');
 // 8. A buyable first cart with a caveat (too few favors) is kept if the fix comes back unbuyable.
 const few = good.map((i) => (i.product_id === 'tg-playdoh' ? { ...i, product_id: 'tg-keychain' } : i)); // 6 favors for 10 kids
 let n = 0;
-const g = await claudeAgent(REAL, today, { call: async () => ({ content: [{ type: 'tool_use', id: `k${++n}`, name: 'submit_cart', input: cart(n === 1 ? few : [{ product_id: 'bb-brick-13', qty: 1, reason: 'x' }]) }], usage: {} }) });
+const BIG_KIDS = 'Lego party in the backyard on Dec 5 for 10 kids ages 5 to 6, with a bounce house and a piñata. Under $600.';
+const g = await claudeAgent(BIG_KIDS, today, { call: async () => ({ content: [{ type: 'tool_use', id: `k${++n}`, name: 'submit_cart', input: cart(n === 1 ? few : [{ product_id: 'bb-brick-13', qty: 1, reason: 'x' }]) }], usage: {} }) });
 assert.equal(g.mode, 'claude');
 assert.ok(g.cart.items.some((i) => i.id === 'tg-keychain'));
 assert.ok(g.cart.unmet.some((u) => /6 for 10 kids/.test(u)));
@@ -119,4 +120,18 @@ const h = await claudeAgent(REAL, today, {
 });
 assert.match(fb, /asked for a piñata/);
 assert.ok(h.cart.items.some((i) => i.id === 'mi-pinata'));
+
+// 11. A bat piñata with 2-year-olds coming is sent back; the fix uses the pull-string one.
+let fb2 = null, q = 0;
+const k = await claudeAgent(REAL, today, {
+  call: async (body) => {
+    const last = body.messages.at(-1);
+    if (Array.isArray(last.content) && last.content[0]?.is_error) fb2 = last.content[0].content;
+    q++;
+    const bat = good.map((i) => (i.product_id === 'mi-pinata' ? { ...i, product_id: 'wm-pinata-5' } : i));
+    return { content: [{ type: 'tool_use', id: `b${q}`, name: 'submit_cart', input: cart(q === 1 ? bat : good) }], usage: {} };
+  },
+});
+assert.match(fb2, /needs a bat/);
+assert.ok(k.cart.items.some((i) => i.id === 'mi-pinata') && !k.cart.items.some((i) => i.id === 'wm-pinata-5'));
 console.log('Agent tool-loop checks passed.');

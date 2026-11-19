@@ -1,7 +1,7 @@
 // Party Run: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
-import { STORES, SNAPSHOT } from './lib/catalog.js';
+import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER } from './lib/rules.js';
 
 const $ = (s) => document.querySelector(s);
@@ -120,7 +120,7 @@ function renderCart() {
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
-const countable = (i) => i.per === 'pack' || i.category === 'food';
+const countable = (i) => i.per === 'pack' || i.category === 'food' || Boolean(byId[i.id]?.countable);
 
 // + / − on one item. Favors step by pack.
 function stepper(i) {
