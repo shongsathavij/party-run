@@ -106,4 +106,17 @@ const { planParty } = await import('../api/_lib/agent.js');
 const down = await planParty({ prompt: REAL, today, call: async () => { throw new Error('Your credit balance is too low'); } });
 assert.equal(down.fallback, 'error');
 assert.match(down.why[0], /credit balance/);
+
+// 10. A cart missing the piñata they asked for is sent back once.
+let fb = null, m = 0;
+const h = await claudeAgent(REAL, today, {
+  call: async (body) => {
+    const last = body.messages.at(-1);
+    if (Array.isArray(last.content) && last.content[0]?.is_error) fb = last.content[0].content;
+    m++;
+    return { content: [{ type: 'tool_use', id: `n${m}`, name: 'submit_cart', input: cart(m === 1 ? good.filter((i) => i.product_id !== 'mi-pinata') : good) }], usage: {} };
+  },
+});
+assert.match(fb, /asked for a piñata/);
+assert.ok(h.cart.items.some((i) => i.id === 'mi-pinata'));
 console.log('Agent tool-loop checks passed.');

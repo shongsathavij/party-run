@@ -186,6 +186,8 @@ export function pushedByListings(lines, request, plant) {
 export function flagTheme(cart, prompt, today) {
   const asked = readRequest(prompt, today);
   cart.theme = asked.theme;
+  cart.asked = asked.named.filter((k) => CATEGORIES.includes(k));
+  cart.little = asked.little;
   for (const i of cart.items) {
     i.offTheme = offTheme(byId[i.id], asked.theme);
     i.needsOk = i.offTheme && asked.named.includes(i.category);
@@ -417,6 +419,15 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, 
         const lines = (c.items || []).map((i) => ({ id: i.product_id, qty: i.qty }));
         const chk = checkCart(lines, { partyDate: c.party_date, today, kids: c.kids, budget: c.budget_dollars ? Math.round(c.budget_dollars * 100) : null });
         chk.hard.push(...pushedByListings(lines, prompt, plant));
+        // Something they asked for by name, missing with no word why: send it back once.
+        if (!edit) {
+          const NAMED = { bounce: ['bounce house', /bounce|jumper/], pinata: ['piñata', /pi[nñ]ata/], cake: ['cake', /cake/], favors: ['favors', /favou?r/], food: ['food', /food|snack/], decor: ['decorations', /decor|plates|tableware/] };
+          const cats = new Set(lines.map((l) => byId[l.id]?.category));
+          const said = (c.unmet || []).join(' ').toLowerCase();
+          for (const k of readRequest(prompt, today).named) {
+            if (NAMED[k] && !cats.has(k) && !NAMED[k][1].test(said)) chk.soft.push(`They asked for a ${NAMED[k][0]} and the cart has none. Add one, or say in unmet why you can't.`);
+          }
+        }
         const problems = [...chk.hard, ...chk.soft];
         if (!problems.length || (retried && !chk.hard.length)) {
           return { ...finish({ ...c, unmet: [...(c.unmet || []), ...chk.soft] }, today, 'claude'), usage, retried, model };

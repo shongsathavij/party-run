@@ -23,7 +23,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, trick: null, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -109,6 +109,7 @@ function renderCart() {
     .join('');
   $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Tap an item to see it at the store. Nothing is ordered.`;
   renderDecide();
+  renderAskedMissing();
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
@@ -146,6 +147,8 @@ async function changeCart(body, said) {
       return;
     }
     // Keep the parent's earlier Keep/Drop answers for items that are still there.
+    // Anything the parent took out on purpose isn't "missing" later.
+    for (const cat of new Set(before.items.map((i) => i.category))) if (!r.cart.items.some((i) => i.category === cat)) state.declined.add(cat);
     state.cart = { ...r.cart, notes: r.cart.notes, theme: r.cart.theme };
     const lines = [...r.diff];
     if (r.budgetChanged !== undefined) lines.unshift(`Budget: ${money(before.budget)} → ${money(r.budgetChanged)}`);
@@ -185,6 +188,18 @@ function regroup(c) {
   c.total = c.items.reduce((a, i) => a + i.amount, 0);
 }
 
+// Something they asked for by name isn't in the cart at all: say so, and offer to add it.
+const askedMissing = () => (state.cart?.asked || []).filter((cat) => WHAT[cat] && !state.cart.items.some((i) => i.category === cat) && !state.declined.has(cat));
+function renderAskedMissing() {
+  const gone = state.locked ? [] : askedMissing();
+  $('#askedMissing').hidden = !gone.length;
+  $('#askedMissing').innerHTML = gone
+    .map((cat) => `<span class="kicker">Missing from the cart</span>
+      <p>You asked for a ${esc(WHAT[cat])}, but it isn't in the cart.</p>
+      <div class="acts"><button class="go" data-add="${cat}">Add a ${esc(WHAT[cat])}</button><button class="ghost-btn" data-nocat="${cat}">Skip it</button></div>`)
+    .join('');
+}
+
 // Something they asked for by name came back off-theme: they decide before anything is approved.
 const pending = () => (state.cart?.items || []).filter((i) => i.needsOk && !state.decided[i.id]);
 function renderDecide() {
@@ -205,6 +220,7 @@ function decide(e) {
   if (drop) {
     const gone = c.items.find((i) => i.id === drop);
     state.decided[drop] = 'dropped';
+    state.declined.add(gone.category);
     c.items = c.items.filter((i) => i.id !== drop);
     c.notes.push(`You chose no ${WHAT[gone.category]} rather than one that isn't ${themeWord(c.theme)}-themed.`);
     regroup(c);
@@ -360,6 +376,7 @@ async function buy(store, amount, { approved = false } = {}) {
   try {
     r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: $('#cbPrice').checked && (!state.priceUpStore || state.priceUpStore === store) ? 'price_up' : null });
   } catch (ex) {
+    logEvent(store, { kind: 'skipped', why: `It didn't go through: ${ex.message}` });
     paint(store, { cls: 'blocked', amount, status: esc(ex.message) });
     return;
   }
@@ -477,7 +494,7 @@ async function cancelRental() {
 // What the party should have (everything that was in the approved cart) but doesn't now.
 function missingNow() {
   const got = (store) => state.paid[store] && !state.paid[store].refunded;
-  const cats = [...new Set(state.cart.items.map((i) => i.category))];
+  const cats = [...new Set([...state.cart.items.map((i) => i.category), ...(state.cart.asked || []).filter((c) => WHAT[c] && !state.declined.has(c))])];
   return cats.filter((cat) => !state.cart.items.some((i) => i.category === cat && got(i.store)));
 }
 
@@ -489,7 +506,8 @@ function renderMissing() {
   const spent = spentTotal();
   box.innerHTML = `<span class="kicker">The party isn't complete</span>
     <p>No ${miss.map((m) => WHAT[m]).join(', no ')}. ${money(Math.max(0, budgetOf(state.cart) - spent))} of your budget is left.</p>
-    <div class="acts">${miss.map((m) => `<button class="go" data-find="${m}">Find another ${esc(WHAT[m])}</button>`).join('')}</div>`;
+    ${miss.filter((m) => state.noneLeft[m]).map((m) => `<p class="note">${esc(state.noneLeft[m])}</p>`).join('')}
+    <div class="acts">${miss.filter((m) => !state.noneLeft[m]).map((m) => `<button class="go" data-find="${m}">Find another ${esc(WHAT[m])}</button>`).join('')}</div>`;
 }
 
 async function findAnother(e) {
@@ -504,8 +522,9 @@ async function findAnother(e) {
   li.className = 'working';
   li.innerHTML = `<div class="row"><span class="spin" aria-hidden="true"></span><b>Looking for another ${esc(WHAT[cat])}…</b></div>`;
   try {
-    const r = await api('/api/replace', { category: cat, partyDate: c.partyDate, excludeStores: tried, maxCents: room, theme: c.theme });
+    const r = await api('/api/replace', { category: cat, partyDate: c.partyDate, excludeStores: tried, maxCents: room, theme: c.theme, little: Boolean(c.little) });
     if (!r.item) {
+      state.noneLeft[cat] = r.why;
       li.className = 'blocked';
       li.innerHTML = `<div class="row">${brick(tried[0])}<b>No other ${esc(WHAT[cat])}</b></div><span class="status">${esc(r.why)}</span>`;
       return;
@@ -653,7 +672,7 @@ function copyReceipt() {
 function startOver() {
   if (state.busy) return;
   $('#receiptSheet').hidden = true;
-  Object.assign(state, { changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -674,6 +693,12 @@ function bind() {
   $('#again').addEventListener('click', startOver);
   $('#rcptPrint').addEventListener('click', () => window.print());
   $('#decide').addEventListener('click', decide);
+  $('#askedMissing').addEventListener('click', (e) => {
+    const add = e.target.closest('[data-add]')?.dataset.add;
+    const no = e.target.closest('[data-nocat]')?.dataset.nocat;
+    if (add) changeCart({ add }, `Add a ${WHAT[add]}`);
+    if (no) { state.declined.add(no); renderAskedMissing(); }
+  });
   $('#cartStores').addEventListener('click', (e) => {
     const b = e.target.closest('[data-q]');
     if (b) changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
