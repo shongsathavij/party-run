@@ -351,7 +351,7 @@ const TOOLS = [
             required: ['product_id', 'qty', 'reason'],
           },
         },
-        notes: { type: 'array', items: { type: 'string' }, description: 'Substitutions or judgment calls the parent should know about.' },
+        notes: { type: 'array', items: { type: 'string' }, description: 'At most 2 notes, each under 20 words: only what the parent must know (a swap, something missing or risky). Don\'t restate prices, the theme, or what the cart already shows.' },
         unmet: { type: 'array', items: { type: 'string' }, description: 'Only things they asked for that you could not do.' },
         ignored: {
           type: 'array',
@@ -468,25 +468,28 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, 
 function finish(c, today, mode) {
   const items = (c.items || []).filter((i) => byId[i.product_id]).map((i) => {
     const p = byId[i.product_id];
-    return { id: p.id, qty: i.qty, reason: String(i.reason || '').slice(0, 240), url: p.url || null, name: p.name, store: p.store, storeName: STORES[p.store].name, category: p.category, price: p.price, amount: p.price * i.qty, per: p.per };
+    return { id: p.id, qty: i.qty, reason: plain(String(i.reason || '').slice(0, 240)), url: p.url || null, name: p.name, store: p.store, storeName: STORES[p.store].name, category: p.category, price: p.price, amount: p.price * i.qty, per: p.per };
   });
   const t = totals(items.map((i) => ({ id: i.id, qty: i.qty })));
   return {
     mode,
     cart: {
-      summary: String(c.summary || '').slice(0, 160),
+      summary: plain(String(c.summary || '').slice(0, 160)),
       partyDate: c.party_date,
       kids: c.kids,
       budget: c.budget_dollars ? Math.round(c.budget_dollars * 100) : null,
       items,
       stores: t.stores.map((s) => ({ store: s.store, name: s.name, amount: s.amount })),
       total: t.total,
-      notes: (c.notes || []).map(String).slice(0, 6),
-      unmet: (c.unmet || []).map(String).slice(0, 6),
+      notes: (c.notes || []).map((n) => plain(String(n))).slice(0, 6),
+      unmet: (c.unmet || []).map((n) => plain(String(n))).slice(0, 6),
       ignored: (c.ignored || []).slice(0, 4).map((x) => ({ store: String(x.store || ''), text: String(x.text || '').slice(0, 300) })),
     },
   };
 }
+
+// The agent's own words say "building-brick", not the trademark. (The parent's words can say Lego.)
+export const plain = (s) => s.replace(/\bLEGO(?:[- ](?:style|themed|like))?\b/gi, 'building-brick');
 
 export async function planParty({ prompt, today, apiKey = process.env.ANTHROPIC_API_KEY, model, call, plant }) {
   if (!apiKey && !call) return rulesAgent(prompt, today, { plant });

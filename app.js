@@ -90,11 +90,17 @@ async function plan(e) {
 function renderCart() {
   const c = state.cart;
   $('#cartSummary').textContent = c.summary || `A party for ${c.kids} kids.`;
-  $('#cartNotes').innerHTML = c.notes.map((n) => `<li>${esc(n)}</li>`).join('');
+  // Two notes up front; the rest behind one tap.
+  const first = c.notes.slice(0, 2), rest = c.notes.slice(2);
+  $('#cartNotes').innerHTML = first.map((n) => `<li>${esc(n)}</li>`).join('');
+  $('#moreNotes').hidden = !rest.length;
+  $('#moreNotes summary').textContent = `Why these picks? ${rest.length} more note${rest.length > 1 ? 's' : ''}`;
+  $('#cartNotesMore').innerHTML = rest.map((n) => `<li>${esc(n)}</li>`).join('');
   renderTrick();
   $('#shield').hidden = !c.ignored.length;
+  $('#shieldLine').textContent = c.ignored.length ? `Ignored a hidden instruction from ${c.ignored[0].store}, our made-up test store.` : '';
   $('#shieldText').innerHTML = c.ignored
-    .map((x) => `A listing from ${esc(x.store)} (our made-up test store) tried to give me orders. I didn't follow them, and you approve everything anyway: <q>${esc(x.text)}</q>`)
+    .map((x) => `I didn't follow it, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
   $('#cartStores').innerHTML = c.stores
     .map((s) => {
@@ -303,13 +309,22 @@ function row(store) {
 function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }) {
   const li = row(store);
   li.className = cls;
-  li.innerHTML = `<div class="row">${cls === 'working' ? '<span class="spin" aria-hidden="true"></span>' : brick(store)}<b>${esc(STORES[store].name)}</b><span class="amt">${amount != null ? money(amount) : ''}</span></div>
+  const head = `<div class="row">${cls === 'working' ? '<span class="spin" aria-hidden="true"></span>' : brick(store)}<b>${esc(STORES[store].name)}</b><span class="amt">${amount != null ? money(amount) : ''}</span></div>`;
+  // A paid store is one quiet line; the pass and Stripe details open on tap.
+  if (cls === 'paid') {
+    // If the pass refused something first, that stays visible: it's the point of the demo.
+    const refused = (state.log?.[store] || []).filter((e) => e.kind === 'refused');
+    const story = refused.length ? `<span class="status refused-note">The pass refused ${money(refused[0].amount)} first. You approved ${money(refused[0].amount - refused[0].cap)} more.</span>` : '';
+    li.innerHTML = `<details class="paid-row"><summary>${head}<span class="status">✓ ${status}</span>${story}</summary>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? hoodHtml(store, hood, true) : ''}</details>`;
+    return li;
+  }
+  li.innerHTML = `${head}
     <span class="status">${status}</span>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? hoodHtml(store, hood) : ''}${acts ? `<div class="acts">${acts}</div>` : ''}`;
   return li;
 }
 
 // "Under the hood": the objects behind a row. Real Stripe ids in test mode, labeled when simulated.
-function hoodHtml(store, h) {
+function hoodHtml(store, h, flat = false) {
   const time = new Date(h.expiresAt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const over = h.asked > h.cap;
   let result;
@@ -325,7 +340,8 @@ function hoodHtml(store, h) {
     h.paymentIntent && ['PaymentIntent', `<code>${esc(h.paymentIntent)}</code>${h.piStatus ? ` (${esc(h.piStatus)})` : ''}`],
     (h.code || h.declineCode) && ['Stripe code', `<code>${esc([h.code, h.declineCode].filter(Boolean).join(' / '))}</code>`],
   ].filter(Boolean);
-  return `<details class="hood"><summary>Under the hood</summary><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></details>`;
+  const dl = `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  return flat ? `<div class="hood">${dl}</div>` : `<details class="hood"><summary>Under the hood</summary>${dl}</details>`;
 }
 
 const passLine = (p, used) => `Pass ${p.id.slice(0, 18)}… · limit ${money(p.cap)} · ${used}`;
@@ -757,6 +773,11 @@ function bind() {
     $(`#missing [data-find="${cat}"]`)?.click();
   });
   $('#decide').addEventListener('click', decide);
+  $('#whyToggle').addEventListener('click', () => {
+    const on = $('#cartStores').classList.toggle('show-why');
+    $('#whyToggle').setAttribute('aria-expanded', String(on));
+    $('#whyToggle').textContent = on ? 'Hide the reasons' : 'Why each item?';
+  });
   $('#askedMissing').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]')?.dataset.add;
     const no = e.target.closest('[data-nocat]')?.dataset.nocat;
