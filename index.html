@@ -16,7 +16,12 @@
   <p class="strip" id="sampleStrip" hidden></p>
 
   <main class="layout">
-    <div class="col">
+    <div class="col chat-col">
+      <div class="cart-mini" id="cartMini" hidden>
+        <span class="kicker">Your cart</span>
+        <p id="cartMiniText"></p>
+        <p class="note">Locked while the agent shops. You approved it; only you can change it.</p>
+      </div>
       <!-- First screen: one question. -->
       <section class="ask" id="ask" aria-labelledby="askTitle">
         <form class="ask-form" id="askForm" novalidate>
@@ -121,6 +126,15 @@
           <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
         </div>
         <p class="note" id="passNote"></p>
+        <div class="stops">
+          <span class="lbl">The agent stops and hands it to you when</span>
+          <ul>
+            <li>a purchase is over your ask-me amount</li>
+            <li>a store asks for more than you approved</li>
+            <li>part of the party falls through</li>
+          </ul>
+          <p class="note">Everything else it handles, and you can see each step.</p>
+        </div>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
         <p class="note center" id="testNote">Test mode. No real money moves.</p>
@@ -131,6 +145,7 @@
           <h2 class="h" id="runTitle">Shopping…</h2>
           <p class="note" id="runSub">Each store gets its own pass, then charges it.</p>
         </div>
+        <ol class="queue" id="queue" aria-label="Stores in this run"></ol>
         <ol class="run" id="run"></ol>
         <div class="ledger" id="ledger" hidden>
           <div class="total-row">
@@ -154,6 +169,21 @@
 
     </aside>
   </main>
+
+  <!-- The handoff: when the agent stops, why, what it did so far, what it suggests, what happens next. -->
+  <div class="handoff-wrap" id="handoff" hidden>
+    <div class="handoff" role="dialog" aria-modal="true" aria-labelledby="hoTitle">
+      <span class="kicker">Your turn</span>
+      <h2 class="h" id="hoTitle"></h2>
+      <dl class="ho-kv">
+        <dt>Why I stopped</dt><dd id="hoWhy"></dd>
+        <dt>So far</dt><dd id="hoSoFar"></dd>
+        <dt>My suggestion</dt><dd id="hoSuggest"></dd>
+      </dl>
+      <div class="acts" id="hoActs"></div>
+      <p class="note" id="hoNext"></p>
+    </div>
+  </div>
 
   <!-- The end of the run: one brick per store that got paid, then the receipt. -->
   <section class="success" id="success" hidden aria-labelledby="successTitle">
