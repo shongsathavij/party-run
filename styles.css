@@ -299,3 +299,11 @@ details.shield[open] p { margin: 8px 0 2px; }
 .paid-row[open] summary { margin-bottom: 8px; }
 .paid-row .hood { margin-top: 6px; }
 .run li .paid-row .status.refused-note { color: var(--warn); font-weight: 600; }
+
+/* Test the limits: deliberate stress tests after the run. */
+.limits { border: 2px dashed #CFC8BE; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.limits .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.limits .ghost-btn { padding: 10px 14px; font-size: 15px; }
+.run li.tested { background: #F3EFFF; }
+.run li.tested .status { color: #5B35D5; font-weight: 600; }
+.run li.tested q { font-weight: 500; color: var(--ink); }
