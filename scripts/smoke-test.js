@@ -121,7 +121,7 @@ assert.match(none.why, /left in your budget/);
 const two = await run('edit', { prompt: REAL, today, cart: c, change: 'Two cakes' });
 assert.ok(two.ok && two.diff[0].includes('1 → 2'));
 const choc = await run('edit', { prompt: REAL, today, cart: c, change: 'Make the cake chocolate' });
-assert.match(choc.diff[0], /^Swapped Vanilla Celebration Cake for Chocolate Celebration Cake \(same price\)/);
+assert.match(choc.diff[0], /^Swapped Vanilla Celebration Cake.* for Chocolate Celebration Cake.*\(same price\)$/);
 const under300 = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $300' });
 assert.equal(under300.budgetChanged, 30000);
 assert.ok(under300.cart.total <= 30000);
