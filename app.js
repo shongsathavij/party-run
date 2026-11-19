@@ -1,7 +1,7 @@
 // Party Run: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
-import { STORES, SNAPSHOT } from './lib/catalog.js';
+import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER } from './lib/rules.js';
 
 const $ = (s) => document.querySelector(s);
@@ -120,7 +120,7 @@ function renderCart() {
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
-const countable = (i) => i.per === 'pack' || i.category === 'food';
+const countable = (i) => i.per === 'pack' || i.category === 'food' || Boolean(byId[i.id]?.countable);
 
 // + / − on one item. Favors step by pack.
 function stepper(i) {
@@ -558,6 +558,61 @@ async function findAnother(e) {
   }
 }
 
+// ---------- the success view: a brick tower, then the receipt ----------
+
+// One brick per store that got paid (in its color), and a gray gap for anything still missing.
+function towerSvg() {
+  const got = (s) => state.paid[s] && !state.paid[s].refunded;
+  const bricks = [
+    ...state.cart.stores.filter((s) => got(s.store)).map((s) => ({ color: STORES[s.store].color, label: STORES[s.store].name })),
+    ...missingNow().map((m) => ({ color: null, label: `No ${WHAT[m]}` })),
+  ];
+  const W = 170, H = 50, SH = 9, GAPX = 26, n = bricks.length;
+  const width = W + GAPX * 2 + 20, height = n * H + SH + 12;
+  const g = bricks
+    .map((b, i) => {
+      const y = height - (i + 1) * H - 4;
+      const x = 10 + (i % 2 ? GAPX * 2 : i % 4 === 0 ? 0 : GAPX);
+      const fill = b.color || '#EFEBE6';
+      const stroke = b.color ? '#161412' : '#9C958C';
+      const dash = b.color ? '' : ' stroke-dasharray="6 5"';
+      const studs = [0.2, 0.5, 0.8].map((f) => `<rect x="${x + W * f - 13}" y="${y - SH + 2}" width="26" height="${SH + 2}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"${dash}/>`).join('');
+      return `<g class="b${b.color ? '' : ' gap'}" style="animation-delay:${i * 230}ms">${studs}<rect x="${x}" y="${y}" width="${W}" height="${H - 4}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.4"${dash}/><text x="${x + W / 2}" y="${y + H / 2 + 3}" text-anchor="middle" font-size="14" font-weight="700" fill="${b.color ? '#161412' : '#57524C'}">${esc(b.label)}</text></g>`;
+    })
+    .join('');
+  return { svg: `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">${g}</svg>`, n };
+}
+
+function openSuccess() {
+  renderReceipt();
+  const { held, net, miss } = verdict();
+  const budget = budgetOf(state.cart);
+  const t = towerSvg();
+  $('#tower').innerHTML = t.svg;
+  $('#tower').style.setProperty('--done', `${t.n * 230 + 450}ms`);
+  // Confetti only when the party is complete.
+  $('#tower').insertAdjacentHTML('beforeend', !miss.length && held ? Array.from({ length: 14 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${t.n * 230 + 300 + (i % 5) * 90}ms;background:${Object.values(STORES)[i % 6].color}"></i>`).join('') : '');
+  $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
+  $('#successSub').textContent = `${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
+  $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
+  $('main.layout').hidden = true;
+  $('#success').hidden = false;
+  window.scrollTo(0, 0);
+  $('#successTitle').focus({ preventScroll: true });
+}
+
+function closeSuccess() {
+  $('#success').hidden = true;
+  $('main.layout').hidden = false;
+  $('#ledger').scrollIntoView({ block: 'center' });
+}
+
+// The same check as the receipt's verdict.
+function verdict() {
+  const { net, overPass } = receiptData();
+  return { held: !overPass && net <= budgetOf(state.cart), net, miss: missingNow() };
+}
+
 // ---------- the permission receipt ----------
 
 function logEvent(store, e) {
@@ -650,7 +705,6 @@ function renderReceipt() {
   const miss = missingNow();
   $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
   $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : 'The party is complete: every part of it is paid for.';
-  $('#receiptSheet').hidden = false;
 }
 
 function copyReceipt() {
@@ -671,7 +725,8 @@ function copyReceipt() {
 
 function startOver() {
   if (state.busy) return;
-  $('#receiptSheet').hidden = true;
+  $('#success').hidden = true;
+  $('main.layout').hidden = false;
   Object.assign(state, { noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
@@ -692,6 +747,15 @@ function bind() {
   $('#startOver').addEventListener('click', startOver);
   $('#again').addEventListener('click', startOver);
   $('#rcptPrint').addEventListener('click', () => window.print());
+  $('#seeReceipt').addEventListener('click', openSuccess);
+  $('#backToRun').addEventListener('click', closeSuccess);
+  // Straight to the search: back to the run and start looking, in one tap.
+  $('#successActs').addEventListener('click', (e) => {
+    const cat = e.target.closest('#goFind')?.dataset.cat;
+    if (!cat) return;
+    closeSuccess();
+    $(`#missing [data-find="${cat}"]`)?.click();
+  });
   $('#decide').addEventListener('click', decide);
   $('#askedMissing').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]')?.dataset.add;

@@ -148,4 +148,8 @@ assert.equal(altPinata.item, null, 'never a bat piñata with 2-year-olds');
 assert.match(altPinata.why, /safe with 2-year-olds/);
 const bigKids = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: false });
 assert.equal(bigKids.item.id, 'wm-pinata-5');
+
+// 13. A parent can still choose the bat piñata in an edit; the cart says so.
+const batPick = await run('edit', { prompt: REAL, today, cart: c, change: 'Swap the piñata for the number 5 one' });
+assert.ok(batPick.ok);
 console.log('All Party Run checks passed in sample mode.');

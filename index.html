@@ -142,40 +142,50 @@
           </div>
           <p class="note" id="ledgerNote"></p>
           <div class="missing" id="missing" hidden></div>
+          <button class="go" id="seeReceipt" type="button">See your receipt</button>
           <button class="ghost-btn" id="cancelRental" type="button" hidden>What-if: the rental cancels</button>
           <button class="link-btn" id="again" type="button">Run it again</button>
         </div>
       </section>
 
-      <!-- One record of the whole run: what you approved, what the agent did, what each store charged. -->
-      <section class="sheet receipt" id="receiptSheet" hidden aria-labelledby="receiptTitle">
-        <div class="receipt-head">
-          <span class="kicker">Permission receipt</span>
-          <h2 class="h" id="receiptTitle">What you allowed, <i>and what happened</i></h2>
-          <p class="note mono" id="rcptId"></p>
-        </div>
-        <div class="rcpt-block">
-          <span class="lbl">You approved</span>
-          <dl class="rcpt-kv" id="rcptApproved"></dl>
-        </div>
-        <div class="rcpt-block">
-          <span class="lbl">The agent</span>
-          <ul class="rcpt-list" id="rcptAgent"></ul>
-        </div>
-        <div class="rcpt-block">
-          <span class="lbl">Each store</span>
-          <ol class="rcpt-stores" id="rcptStores"></ol>
-        </div>
-        <div class="rcpt-totals" id="rcptTotals"></div>
-        <p class="rcpt-verdict" id="rcptVerdict"></p>
-        <p class="rcpt-complete" id="rcptComplete"></p>
-        <div class="rcpt-acts">
-          <button class="ghost-btn" id="rcptPrint" type="button">Print or save as PDF</button>
-          <button class="link-btn" id="rcptCopy" type="button">Copy as text</button>
-        </div>
-      </section>
     </aside>
   </main>
+
+  <!-- The end of the run: one brick per store that got paid, then the receipt. -->
+  <section class="success" id="success" hidden aria-labelledby="successTitle">
+    <button class="link-btn back" id="backToRun" type="button">← Back to the run</button>
+    <div class="tower-wrap"><div class="tower" id="tower" aria-hidden="true"></div></div>
+    <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
+    <p class="success-sub" id="successSub"></p>
+    <div class="success-acts" id="successActs"></div>
+        <!-- One record of the whole run: what you approved, what the agent did, what each store charged. -->
+        <section class="sheet receipt" id="receiptSheet" aria-labelledby="receiptTitle">
+          <div class="receipt-head">
+            <span class="kicker">Permission receipt</span>
+            <h2 class="h" id="receiptTitle">What you allowed, <i>and what happened</i></h2>
+            <p class="note mono" id="rcptId"></p>
+          </div>
+          <div class="rcpt-block">
+            <span class="lbl">You approved</span>
+            <dl class="rcpt-kv" id="rcptApproved"></dl>
+          </div>
+          <div class="rcpt-block">
+            <span class="lbl">The agent</span>
+            <ul class="rcpt-list" id="rcptAgent"></ul>
+          </div>
+          <div class="rcpt-block">
+            <span class="lbl">Each store</span>
+            <ol class="rcpt-stores" id="rcptStores"></ol>
+          </div>
+          <div class="rcpt-totals" id="rcptTotals"></div>
+          <p class="rcpt-verdict" id="rcptVerdict"></p>
+          <p class="rcpt-complete" id="rcptComplete"></p>
+          <div class="rcpt-acts">
+            <button class="ghost-btn" id="rcptPrint" type="button">Print or save as PDF</button>
+            <button class="link-btn" id="rcptCopy" type="button">Copy as text</button>
+          </div>
+        </section>
+  </section>
 
   <footer class="foot">
     Real store listings, saved <span id="footDate"></span>; prices and stock change. Stripe test mode: nothing is ordered, no store is contacted or charged, and no real money moves.<br>

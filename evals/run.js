@@ -35,6 +35,7 @@ function grade(p, r) {
   for (const h of e.hasNot || []) if (h === 'deluxe' ? ids.includes('cc-deluxe') : cats.has(h)) fails.push(`unwanted ${h}`);
   if (e.hasDeluxe && !ids.includes('cc-deluxe')) fails.push('asked for the deluxe package by name and did not get it');
   if (e.noSmallParts && c.items.some((i) => parseInt(byId[i.id].ages || '0', 10) > 2)) fails.push('favors rated too old for the 2-year-olds');
+  if (e.noSmallParts && c.items.some((i) => i.category === 'pinata' && !byId[i.id].pull)) fails.push('a bat piñata with 2-year-olds coming');
   if (e.swapNote && !c.notes.some((n) => /booked/i.test(n))) fails.push('swapped the bounce house without saying why');
   if (e.unmetOrNo && cats.has(e.unmetOrNo)) fails.push(`${e.unmetOrNo} that can't arrive in time`);
   if (e.unmetOrNo && !c.unmet.length) fails.push('did not say what it could not do');

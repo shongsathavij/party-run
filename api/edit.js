@@ -3,7 +3,7 @@
 //  - change: the parent's words ("make the cake chocolate"). Claude when it's on, rules when it isn't.
 // Either way the new cart is rebuilt from the catalog and checked like a fresh plan. Nothing is
 // bought here, and any approved permission no longer matches, so the parent approves again.
-import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme, readRequest } from './_lib/agent.js';
+import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme, readRequest, safetyProblems } from './_lib/agent.js';
 import { pickFor } from './_lib/pick.js';
 import { checkCart, dollars } from '../lib/rules.js';
 import { byId } from '../lib/catalog.js';
@@ -62,7 +62,9 @@ export default post(async ({ prompt, today: day, cart: raw, set, change, add }, 
   if (chk.hard.length || over) {
     return { ok: false, cart: flagTheme(cart, text, today), why: over ? `That would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
   }
-  next.unmet = [...next.unmet.filter((u) => !/ for \d+ kids|over the .* budget/.test(u)), ...chk.soft];
+  // If the parent picks something not meant for 2-year-olds, it's their call; the cart says so.
+  const safety = safetyProblems(next.items, text, today).map((m) => m.replace(/ Use a pull-string.*| Pick favors.*/, ''));
+  next.unmet = [...next.unmet.filter((u) => !/ for \d+ kids|over the .* budget|2-year-olds are coming/.test(u)), ...chk.soft, ...safety];
   console.log(`[edit] ${mode}${usage ? ` ${usage.turns} turns, ${usage.input_tokens}+${usage.output_tokens} tokens` : ''}`);
   return { ok: true, cart: flagTheme(next, text, today), diff: diffCarts(cart, next), budgetChanged: next.budget !== cart.budget ? next.budget : undefined, note, mode };
 });
