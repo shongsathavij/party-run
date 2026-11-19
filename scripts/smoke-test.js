@@ -122,9 +122,9 @@ const two = await run('edit', { prompt: REAL, today, cart: c, change: 'Two cakes
 assert.ok(two.ok && two.diff[0].includes('1 → 2'));
 const choc = await run('edit', { prompt: REAL, today, cart: c, change: 'Make the cake chocolate' });
 assert.match(choc.diff[0], /^Swapped Vanilla Celebration Cake.* for Chocolate Celebration Cake.*\(same price\)$/);
-const under300 = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $300' });
-assert.equal(under300.budgetChanged, 30000);
-assert.ok(under300.cart.total <= 30000);
+const under300 = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $250' });
+assert.equal(under300.budgetChanged, 25000);
+assert.ok(under300.cart.total <= 25000 && under300.diff.length > 0);
 const tap = await run('edit', { prompt: REAL, today, cart: c, set: { id: 'tg-juice', qty: 2 } });
 assert.equal(tap.mode, 'tap');
 assert.equal(tap.cart.total, c.total + 899);

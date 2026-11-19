@@ -112,10 +112,10 @@ export function rulesAgent(prompt, today, { plant } = {}) {
       add(p, packs, p && `${req.little ? 'Rated ages 2 and up, so fine for the little ones. ' : ''}${packs} pack${packs > 1 ? 's' : ''} of ${p.packOf} covers ${req.kids} kids.`);
     }
     if (want === 'food') {
-      for (const id of [req.kids > 8 ? 'wf-fruit-16' : 'wf-fruit-8', 'wf-croissants', 'tg-juice']) if (usable(byId[id])) add(byId[id], 1, `${byId[id].about.split('.')[0]}.`);
+      for (const id of [req.kids > 8 ? 'wf-fruit-16' : 'wf-fruit-8', 'tg-juice']) if (usable(byId[id])) add(byId[id], 1, `${byId[id].about.split('.')[0]}.`);
     }
     if (want === 'decor') {
-      for (const id of ['wm-tableware', 'wm-decor']) {
+      for (const id of ['wm-tableware']) {
         const p = byId[id];
         if (usable(p)) add(p, 1, `${p.about.split('.')[0]}.`);
       }
@@ -130,7 +130,7 @@ export function rulesAgent(prompt, today, { plant } = {}) {
   }
 
   // Over budget: drop the extras first, and report it only if they asked for that thing.
-  const DROP = ['tg-juice', 'wf-croissants', 'wm-decor', 'wf-fruit-16', 'wf-fruit-8', 'wm-tableware'];
+  const DROP = ['tg-juice', 'wf-fruit-16', 'wf-fruit-8', 'wm-tableware'];
   const qtyLines = () => lines.map((l) => ({ id: l.product_id, qty: l.qty }));
   for (const id of DROP) {
     if (!req.budget || totals(qtyLines()).total <= req.budget) break;
@@ -248,8 +248,8 @@ export function diffCarts(a, b) {
 // Words that point at an item already in the cart, or at a product to add.
 const KEYS = {
   bounce: /bounce|jumper|inflatable/, cake: /cake/, pinata: /pi[nñ]ata/, favors: /favou?rs?|play-?doh|bubbles|crayons|keychains?/,
-  'tg-juice': /juice|drinks?/, 'wf-fruit-8': /fruit/, 'wf-fruit-16': /fruit/, 'wf-croissants': /croissants?|pastr/, 'wf-cookies': /cookies?/,
-  'wm-tableware': /plates?|cups?|napkins?|tableware/, 'wm-decor': /decorations?|balloons?|banner/,
+  'tg-juice': /juice|drinks?/, 'wf-fruit-8': /fruit/, 'wf-fruit-16': /fruit/, 'wf-cookies': /cookies?/,
+  'wm-tableware': /plates?|cups?|napkins?|tableware/,
 };
 const hits = (p, t) => (KEYS[p.id] || KEYS[p.category])?.test(t);
 const NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
@@ -295,7 +295,7 @@ export function rulesEdit(cart, change, today) {
     }
   }
   // A lower budget: drop extras until it fits.
-  const DROP = ['tg-juice', 'wf-cookies', 'wf-croissants', 'wm-decor', 'wf-fruit-16', 'wf-fruit-8', 'wm-tableware'];
+  const DROP = ['tg-juice', 'wf-cookies', 'wf-fruit-16', 'wf-fruit-8', 'wm-tableware'];
   for (const id of DROP) {
     if (!budget || totals(lines).total <= budget) break;
     lines = lines.filter((l) => l.id !== id);
