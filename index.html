@@ -85,16 +85,15 @@
         <form class="ask-change" id="changeForm" hidden>
           <label class="lbl" for="changeText">Ask for a change</label>
           <div class="change-row">
-            <input id="changeText" maxlength="300" autocomplete="off" placeholder="Make the cake chocolate">
+            <input id="changeText" maxlength="300" autocomplete="off" placeholder="Snacks for the grown-ups">
             <button class="go" id="changeBtn" type="submit">Change it</button>
           </div>
           <div class="chips" id="changeChips">
-            <button type="button" class="chip" data-say="Two cakes">Two cakes</button>
             <button type="button" class="chip" data-say="Make the cake chocolate">Chocolate cake</button>
-            <button type="button" class="chip" data-say="No piñata">No piñata</button>
             <button type="button" class="chip" data-say="Keep it under $300">Under $300</button>
+            <button type="button" class="chip" data-say="Add cookies">Add cookies</button>
           </div>
-          <p class="note">Or use + and − on any item. Changes are checked like a new plan, and you approve the final cart.</p>
+          <p class="note">Change amounts of favors and snacks with + and −. Every change is checked like a new plan, and you approve the final cart.</p>
           <p class="err" id="changeErr" role="alert" hidden></p>
         </form>
         <button class="link-btn" id="startOver" type="button" hidden>Start over</button>

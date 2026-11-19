@@ -102,7 +102,7 @@ function renderCart() {
       return `<section class="store">
         <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
         <ul class="items">${items
-          .map((i) => `<li><span>${state.locked && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${state.locked ? '' : stepper(i)}${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
+          .map((i) => `<li><span>${(state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}${state.locked || !countable(i) ? '' : stepper(i)}</span>${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
           .join('')}</ul>
       </section>`;
     })
@@ -117,6 +117,9 @@ function renderCart() {
   $('#startOver').hidden = false;
   $('#changeForm').hidden = Boolean(state.locked);
 }
+
+// Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
+const countable = (i) => i.per === 'pack' || i.category === 'food';
 
 // + / − on one item. Favors step by pack.
 function stepper(i) {

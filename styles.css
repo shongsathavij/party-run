@@ -238,9 +238,11 @@ button { font: inherit; color: inherit; }
 .run .status a { color: inherit; }
 
 /* Changing the cart before approval. */
-.items .qty { grid-column: 2; grid-row: 2; justify-self: end; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
-.items .qty button { width: 28px; height: 28px; border-radius: 999px; border: 2px solid var(--ink); background: var(--paper); font: 700 15px/1 var(--sans); color: var(--ink); cursor: pointer; }
-.items .qty button:hover { background: #EDE7FF; border-color: #5B35D5; color: #5B35D5; }
+.items .amt:has(.qty) { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.items .qty { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; border: 1.5px solid #CFC8BE; border-radius: 999px; padding: 1px; }
+.items .qty span { min-width: 18px; text-align: center; }
+.items .qty button { width: 24px; height: 24px; border: 0; border-radius: 999px; background: transparent; font: 600 15px/1 var(--sans); color: var(--muted); cursor: pointer; }
+.items .qty button:hover { background: #EDE7FF; color: #5B35D5; }
 .changed { border: 2px solid #5B35D5; background: #F3EFFF; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .changed .kicker { color: #5B35D5; }
 .changed ul { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
@@ -250,5 +252,6 @@ button { font: inherit; color: inherit; }
 .change-row { display: flex; gap: 8px; }
 .change-row input { flex: 1; min-width: 0; border: 2px solid var(--ink); border-radius: 999px; padding: 10px 14px; font: 16px var(--sans); background: var(--paper); color: var(--ink); }
 .change-row .go { padding: 10px 16px; white-space: nowrap; }
-.ask-change .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ask-change .chips { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.ask-change .chips .chip { flex: none; padding: 6px 12px; font-size: 13px; }
 @media (max-width: 600px) { .ask-change { margin-left: 0; } }
