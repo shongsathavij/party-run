@@ -66,45 +66,54 @@
           <span class="avatar face" id="cartFace" aria-hidden="true"></span>
           <div class="bubble cart" role="status">
             <p class="cart-summary" id="cartSummary"></p>
-            <ul class="notes" id="cartNotes"></ul>
-            <details class="more-notes" id="moreNotes" hidden><summary></summary><ul class="notes" id="cartNotesMore"></ul></details>
-            <details class="shield" id="shield" hidden>
-              <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
-              <p id="shieldText"></p>
-            </details>
-            <div class="trick-result" id="trickResult" hidden>
-              <span class="kicker">Your trick</span>
-              <p id="trickQuote"></p>
-              <ol id="trickSteps"></ol>
+            <!-- Step 1: only the decisions that are hers to make. -->
+            <div class="step" id="step1" hidden>
+              <span class="step-lbl" id="step1Lbl"></span>
+              <div class="decide" id="decide" hidden></div>
+              <div class="decide" id="askedMissing" hidden></div>
+              <p class="done-line" id="decided" hidden></p>
             </div>
-            <div class="changed" id="changed" hidden></div>
-            <div class="decide" id="decide" hidden></div>
-            <div class="decide" id="askedMissing" hidden></div>
-            <button type="button" class="link-btn why-toggle" id="whyToggle" aria-expanded="false">Why each item?</button>
-            <div id="cartStores"></div>
-            <p class="note" id="cartSource"></p>
-            <div class="unmet" id="cartUnmet" hidden>
-              <span class="kicker">What I couldn't do</span>
-              <ul id="cartUnmetList"></ul>
+            <!-- Step 2: the party, one line per store. -->
+            <div class="step" id="step2">
+              <span class="step-lbl" id="step2Lbl"></span>
+              <div class="changed" id="changed" hidden></div>
+              <div id="cartStores"></div>
+              <details class="shield" id="shield" hidden>
+                <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
+                <p id="shieldText"></p>
+              </details>
+              <div class="trick-result" id="trickResult" hidden>
+                <span class="kicker">Your trick</span>
+                <p id="trickQuote"></p>
+                <ol id="trickSteps"></ol>
+              </div>
+              <div class="unmet" id="cartUnmet" hidden>
+                <span class="kicker">What I couldn't do</span>
+                <ul id="cartUnmetList"></ul>
+              </div>
+              <div class="quiet-links">
+                <button type="button" class="link-btn" id="changeOpen" aria-expanded="false">Ask for a change</button>
+                <details class="more-notes" id="moreNotes" hidden><summary>Why these picks?</summary><ul class="notes" id="cartNotesMore"></ul></details>
+              </div>
+              <form class="ask-change" id="changeForm" hidden>
+                <label class="lbl" for="changeText">What should change?</label>
+                <div class="change-row">
+                  <input id="changeText" maxlength="300" autocomplete="off" placeholder="Snacks for the grown-ups">
+                  <button class="go" id="changeBtn" type="submit">Change it</button>
+                </div>
+                <div class="chips" id="changeChips">
+                  <button type="button" class="chip" data-say="Make the cake chocolate">Chocolate cake</button>
+                  <button type="button" class="chip" data-say="Keep it under $250">Under $250</button>
+                  <button type="button" class="chip" data-say="Add cookies">Add cookies</button>
+                </div>
+                <p class="note">Every change is checked like a new plan, and you approve the final cart.</p>
+                <p class="err" id="changeErr" role="alert" hidden></p>
+              </form>
+              <p class="note" id="cartSource"></p>
+              <p class="how" id="cartHow" hidden></p>
             </div>
-            <p class="how" id="cartHow" hidden></p>
           </div>
         </div>
-        <form class="ask-change" id="changeForm" hidden>
-          <label class="lbl" for="changeText">Ask for a change</label>
-          <div class="change-row">
-            <input id="changeText" maxlength="300" autocomplete="off" placeholder="Snacks for the grown-ups">
-            <button class="go" id="changeBtn" type="submit">Change it</button>
-          </div>
-          <div class="chips" id="changeChips">
-            <button type="button" class="chip" data-say="Make the cake chocolate">Chocolate cake</button>
-            <button type="button" class="chip" data-say="Keep it under $250">Under $250</button>
-            <button type="button" class="chip" data-say="Add cookies">Add cookies</button>
-          </div>
-          <p class="note">Change amounts of favors and snacks with + and −. Every change is checked like a new plan, and you approve the final cart.</p>
-          <p class="err" id="changeErr" role="alert" hidden></p>
-        </form>
-        <button class="link-btn" id="startOver" type="button" hidden>Start over</button>
       </section>
     </div>
 
@@ -112,32 +121,37 @@
     <aside class="col money-col" id="moneyCol" hidden>
       <section class="sheet" id="permitSheet" aria-labelledby="permitTitle">
         <div>
-          <h2 class="h" id="permitTitle">What the agent <i>may spend</i></h2>
-          <p class="note" id="permitSub"></p>
+          <span class="step-lbl" id="step3Lbl"></span>
+          <h2 class="h" id="permitTitle">Ready when <i>you are</i></h2>
         </div>
         <div class="total-row">
           <span class="total-amt" id="permitTotal"></span>
           <span class="note" id="permitOf"></span>
         </div>
-        <div class="budget-bar" id="budgetBar" aria-hidden="true"><div></div></div>
-        <ul class="caps" id="caps"></ul>
-        <div class="stack">
-          <span class="lbl" id="askLbl">Ask me before any purchase over</span>
-          <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
-        </div>
-        <p class="note" id="passNote"></p>
-        <div class="stops">
-          <span class="lbl">The agent stops and hands it to you when</span>
-          <ul>
-            <li>a purchase is over your ask-me amount</li>
-            <li>a store asks for more than you approved</li>
-            <li>part of the party falls through</li>
-          </ul>
-          <p class="note">Everything else it handles, and you can see each step.</p>
-        </div>
+        <p class="permit-line" id="permitLine"></p>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
+        <details class="fold" id="limitsFold">
+          <summary>Change limits</summary>
+          <div class="stack">
+            <span class="lbl" id="askLbl">Ask me before any purchase over</span>
+            <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
+          </div>
+          <span class="lbl">Each store's pass</span>
+          <ul class="caps" id="caps"></ul>
+          <p class="note" id="passNote"></p>
+        </details>
+        <details class="fold">
+          <summary>When I'll stop and ask you</summary>
+          <ul class="stops-list">
+            <li>A purchase is over your ask-me amount</li>
+            <li>A store asks for more than you approved</li>
+            <li>Part of the party falls through</li>
+          </ul>
+          <p class="note">Everything else I handle, and you can watch each step.</p>
+        </details>
         <p class="note center" id="testNote">Test mode. No real money moves.</p>
+        <button class="link-btn center" id="startOver" type="button" hidden>Start over</button>
       </section>
 
       <section class="sheet" id="runSheet" hidden aria-labelledby="runTitle">

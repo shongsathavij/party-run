@@ -23,7 +23,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { open: new Set(), config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -148,7 +148,6 @@ async function plan(e) {
   $('#chat').hidden = false;
   $('#myRequest').textContent = text;
   $('#cartBot').hidden = true;
-  $('#startOver').hidden = true;
   thinking(true);
   try {
     const r = await api('/api/plan', { prompt: text, today: localISO(), plant: $('#trickText').value.trim() || undefined });
@@ -174,30 +173,29 @@ function renderCart() {
   const c = state.cart;
   $('#cartSummary').textContent = c.summary || `A party for ${c.kids} kids.`;
   mood($('#cartFace'), c.ignored.length ? 'wink' : 'happy');
-  // Two notes up front; the rest behind one tap.
-  const first = c.notes.slice(0, 2), rest = c.notes.slice(2);
-  $('#cartNotes').innerHTML = first.map((n) => `<li>${esc(n)}</li>`).join('');
-  $('#moreNotes').hidden = !rest.length;
-  $('#moreNotes summary').textContent = `Why these picks? ${rest.length} more note${rest.length > 1 ? 's' : ''}`;
-  $('#cartNotesMore').innerHTML = rest.map((n) => `<li>${esc(n)}</li>`).join('');
+  // The agent's reasoning is there when she wants it, not in her way.
+  $('#moreNotes').hidden = !c.notes.length;
+  $('#cartNotesMore').innerHTML = c.notes.map((n) => `<li>${esc(n)}</li>`).join('');
   renderTrick();
   $('#shield').hidden = !c.ignored.length;
-  $('#shieldLine').textContent = c.ignored.length ? `Ignored a hidden instruction from ${c.ignored[0].store}, our made-up test store.` : '';
+  $('#shieldLine').textContent = c.ignored.length ? `I ignored a hidden instruction in ${c.ignored[0].store}'s listing (our made-up test store).` : '';
   $('#shieldText').innerHTML = c.ignored
     .map((x) => `I didn't follow it, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
+  // One line per store. Tap to see the items, the reasons and the + / −.
   $('#cartStores').innerHTML = c.stores
     .map((s) => {
       const items = c.items.filter((i) => i.store === s.store);
-      return `<section class="store">
-        <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
+      const what = [...new Set(items.map((i) => (/plate|tableware/i.test(i.name) ? 'plates and cups' : WHAT[i.category] || i.category)))].join(', ');
+      return `<details class="store" data-store="${esc(s.store)}"${state.open.has(s.store) ? ' open' : ''}>
+        <summary class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(cap1(what))}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span><span class="chev" aria-hidden="true"></span></summary>
         <ul class="items">${items
-          .map((i) => `<li><span>${(state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}${state.locked || !countable(i) ? '' : stepper(i)}</span>${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
+          .map((i) => `<li><span>${(state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}${state.locked || !countable(i) ? '' : stepper(i)}</span>${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
           .join('')}</ul>
-      </section>`;
+      </details>`;
     })
     .join('');
-  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Tap an item to see it at the store. Nothing is ordered.`;
+  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Nothing is ordered.`;
   renderDecide();
   renderAskedMissing();
   $('#cartUnmet').hidden = !c.unmet.length;
@@ -205,8 +203,25 @@ function renderCart() {
   $('#cartHow').hidden = state.mode === 'claude';
   $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? fallbackLine(state.fallback) : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
-  $('#startOver').hidden = false;
-  $('#changeForm').hidden = Boolean(state.locked);
+  if (state.locked) $('#changeForm').hidden = true;
+  renderSteps();
+}
+
+const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+
+// One thing at a time: her decisions first, then the party, then go.
+function renderSteps() {
+  const ask = pending().length + (state.locked ? 0 : askedMissing().length);
+  const hadAsk = ask || $('#decided').textContent;
+  $('#step1').hidden = !hadAsk;
+  let n = 0;
+  if (hadAsk) $('#step1Lbl').textContent = `${++n} · ${ask ? 'One thing first' : 'Decided'}`;
+  $('#step2Lbl').textContent = `${++n} · Here's the party`;
+  $('#step3Lbl').textContent = `${++n} · Your go-ahead`;
+  // The party stays browsable while she decides; only the go-ahead waits.
+  $('#step2').classList.toggle('later', Boolean(ask));
+  $('#permitSheet').classList.toggle('later', Boolean(ask));
+  $('#permitSheet').inert = Boolean(ask);
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
@@ -296,10 +311,16 @@ function renderDecide() {
   const asks = pending();
   $('#decide').hidden = !asks.length;
   $('#decide').innerHTML = asks
-    .map((i) => `<span class="kicker">Needs your OK</span>
-      <p>You asked for a ${esc(themeWord(state.cart.theme))}-themed party, and the ${esc(WHAT[i.category])} I found isn't: <b>${esc(i.name)}</b> from ${esc(i.storeName)}, ${money(i.amount)}. ${state.cart.notes.find((n) => /booked/i.test(n)) ? 'The themed one is booked that day.' : ''}</p>
+    .map((i) => `<span class="kicker">Is this OK?</span>
+      <p>The only ${esc(WHAT[i.category])} I could get isn't ${esc(themeWord(state.cart.theme))}-themed: <b>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</b> from ${esc(i.storeName)}, ${money(i.amount)}. ${state.cart.notes.find((n) => /booked/i.test(n)) ? 'The themed one is booked that day.' : ''}</p>
       <div class="acts"><button class="go" data-keep="${esc(i.id)}">Keep it</button><button class="ghost-btn" data-drop="${esc(i.id)}">No ${esc(WHAT[i.category])}</button></div>`)
     .join('');
+  const done = Object.entries(state.decided).map(([id, how]) => {
+    const it = state.cart.items.find((i) => i.id === id) || byId[id];
+    return how === 'kept' ? `Keeping the ${esc(it.name)}.` : `No ${esc(WHAT[it.category])}, as you asked.`;
+  });
+  $('#decided').hidden = !done.length;
+  $('#decided').innerHTML = done.length ? `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${done.join(' ')}` : '';
 }
 function decide(e) {
   const keep = e.target.closest('[data-keep]')?.dataset.keep;
@@ -363,19 +384,32 @@ function renderPermit() {
   $('#permitSheet').hidden = false;
   $('#runSheet').hidden = true;
   const budget = budgetOf(c);
-  $('#permitSub').textContent = `For ${prettyDate(c.partyDate)}. Nothing is charged until you say go.`;
   $('#permitTotal').textContent = money(c.total);
   $('#permitOf').textContent = c.budget ? `of your ${money(c.budget)} budget` : 'No budget given, so the cart is the limit.';
-  $('#budgetBar div').style.width = `${Math.min(100, Math.round((c.total / budget) * 100))}%`;
+  $('#permitLine').textContent = permitLine(c);
   $('#caps').innerHTML = c.stores
     .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}</span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
     .join('');
   $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" class="chip" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
-  $('#passNote').textContent = `Each store gets its own pass: good at that store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
+  $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
+  $('#startOver').hidden = false;
+  document.body.classList.add('reviewing');
   $('#permitErr').hidden = true;
   const waiting = pending().length;
   $('#shopBtn').disabled = Boolean(waiting);
-  $('#shopBtn').textContent = waiting ? 'Answer the question in the cart first' : 'Let the agent shop';
+  $('#shopBtn').textContent = 'Let the agent shop';
+  renderSteps();
+}
+
+// The whole permission in one plain sentence. The details are one tap away.
+function permitLine(c) {
+  const askers = c.stores.filter((s) => asksAt(s.amount));
+  const when = `Nothing is charged until you say go, and nothing after ${prettyDate(c.partyDate)}.`;
+  if (state.askOver === 0) return `I'll check with you before paying each store. ${when}`;
+  if (state.askOver == null) return `I won't stop to ask, unless a store wants more than you approved. ${when}`;
+  if (!askers.length) return `Every store is under ${money(state.askOver)}, so I won't need to stop unless something changes. ${when}`;
+  const names = askers.map((s) => `${s.name} (${money(s.amount)})`).join(' and ');
+  return `I'll check with you before ${names}, since ${askers.length > 1 ? "they're" : "it's"} over ${money(state.askOver)}. ${when}`;
 }
 
 // ---------- the shopping run ----------
@@ -412,6 +446,7 @@ function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }
 // While the agent shops, the run takes the stage and the cart shrinks to one card.
 function focusRun(on) {
   document.body.classList.toggle('shopping', on);
+  if (on) document.body.classList.remove('reviewing');
   const c = state.cart;
   $('#cartMini').hidden = !on;
   if (on) $('#cartMiniText').textContent = `${c.items.length} items from ${c.stores.length} stores · ${money(c.total)} of ${money(budgetOf(c))}`;
@@ -975,7 +1010,10 @@ function startOver() {
   $('#success').hidden = true;
   $('main.layout').hidden = false;
   focusRun(false);
-  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  document.body.classList.remove('reviewing');
+  $('#changeForm').hidden = true;
+  $('#decided').textContent = '';
+  Object.assign(state, { open: new Set(), overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -1006,11 +1044,16 @@ function bind() {
     $(`#missing [data-find="${cat}"]`)?.click();
   });
   $('#decide').addEventListener('click', decide);
-  $('#whyToggle').addEventListener('click', () => {
-    const on = $('#cartStores').classList.toggle('show-why');
-    $('#whyToggle').setAttribute('aria-expanded', String(on));
-    $('#whyToggle').textContent = on ? 'Hide the reasons' : 'Why each item?';
+  $('#changeOpen').addEventListener('click', () => {
+    const f = $('#changeForm');
+    f.hidden = !f.hidden;
+    $('#changeOpen').setAttribute('aria-expanded', String(!f.hidden));
+    if (!f.hidden) $('#changeText').focus();
   });
+  $('#cartStores').addEventListener('toggle', (e) => {
+    const st = e.target.dataset?.store;
+    if (st) e.target.open ? state.open.add(st) : state.open.delete(st);
+  }, true);
   $('#askedMissing').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]')?.dataset.add;
     const no = e.target.closest('[data-nocat]')?.dataset.nocat;
