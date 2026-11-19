@@ -218,10 +218,10 @@ function renderSteps() {
   if (hadAsk) $('#step1Lbl').textContent = `${++n} · ${ask ? 'One thing first' : 'Decided'}`;
   $('#step2Lbl').textContent = `${++n} · Here's the party`;
   $('#step3Lbl').textContent = `${++n} · Your go-ahead`;
-  for (const el of [$('#step2'), $('#permitSheet')]) {
-    el.classList.toggle('later', Boolean(ask));
-    el.inert = Boolean(ask);
-  }
+  // The party stays browsable while she decides; only the go-ahead waits.
+  $('#step2').classList.toggle('later', Boolean(ask));
+  $('#permitSheet').classList.toggle('later', Boolean(ask));
+  $('#permitSheet').inert = Boolean(ask);
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
