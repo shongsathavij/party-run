@@ -59,11 +59,11 @@
       <section class="chat" id="chat" hidden aria-label="The agent's cart">
         <p class="me" id="myRequest"></p>
         <div class="bot" id="thinking" hidden>
-          <span class="avatar face" aria-hidden="true"></span>
+          <span class="avatar face" id="thinkFace" aria-hidden="true"></span>
           <div class="bubble thinking" role="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span id="thinkingLine">Reading your message…</span></div>
         </div>
         <div class="bot" id="cartBot" hidden>
-          <span class="avatar face" aria-hidden="true"></span>
+          <span class="avatar face" id="cartFace" aria-hidden="true"></span>
           <div class="bubble cart" role="status">
             <p class="cart-summary" id="cartSummary"></p>
             <ul class="notes" id="cartNotes"></ul>
@@ -141,9 +141,13 @@
       </section>
 
       <section class="sheet" id="runSheet" hidden aria-labelledby="runTitle">
-        <div>
-          <h2 class="h" id="runTitle">Shopping…</h2>
-          <p class="note" id="runSub">Each store gets its own pass, then charges it.</p>
+        <div class="run-head">
+          <span class="avatar face big" id="runFace" aria-hidden="true"></span>
+          <div class="run-words">
+            <h2 class="h" id="runTitle">Out getting the party…</h2>
+            <p class="note" id="runSub">Each store gets its own pass, then charges it.</p>
+          </div>
+          <figure class="cake-box"><div class="cake" id="cake" aria-hidden="true"></div><figcaption class="note" id="cakeNote" aria-live="polite"></figcaption></figure>
         </div>
         <ol class="queue" id="queue" aria-label="Stores in this run"></ol>
         <ol class="run" id="run"></ol>
@@ -173,7 +177,7 @@
   <!-- The handoff: when the agent stops, why, what it did so far, what it suggests, what happens next. -->
   <div class="handoff-wrap" id="handoff" hidden>
     <div class="handoff" role="dialog" aria-modal="true" aria-labelledby="hoTitle">
-      <span class="kicker">Your turn</span>
+      <div class="ho-head"><span class="avatar face" id="hoFace" aria-hidden="true"></span><span class="kicker">Your turn</span></div>
       <h2 class="h" id="hoTitle"></h2>
       <dl class="ho-kv">
         <dt>Why I stopped</dt><dd id="hoWhy"></dd>
@@ -188,7 +192,7 @@
   <!-- The end of the run: one brick per store that got paid, then the receipt. -->
   <section class="success" id="success" hidden aria-labelledby="successTitle">
     <button class="link-btn back" id="backToRun" type="button">← Back to the run</button>
-    <div class="tower-wrap"><div class="tower" id="tower" aria-hidden="true"></div></div>
+    <div class="tower-wrap"><div class="cake big-cake" id="successCake" aria-hidden="true"></div><div class="tower" id="tower" aria-hidden="true"></div></div>
     <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
     <p class="success-sub" id="successSub"></p>
     <div class="success-acts" id="successActs"></div>

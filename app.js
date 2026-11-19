@@ -33,6 +33,88 @@ async function api(path, body) {
 }
 
 // A generic toy brick in the store's color: the badge for each store.
+// ---------- the agent's face ----------
+// One face, a few moods: thinking while it works, happy when a store is paid, an eyebrow
+// when it hands something to you, a wink when it ignores a hidden instruction.
+const INK = '#161412';
+const FACES = {
+  idle: `<circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  working: `<circle cx="15" cy="12.5" r="2" fill="${INK}"/><circle cx="25" cy="12.5" r="2" fill="${INK}"/><path d="M14 23 q5 2.5 10 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  happy: `<path d="M9.5 16 q3.5 -4.5 7 0 M19.5 16 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M10 20 q8 11 16 0 z" fill="${INK}"/>`,
+  brow: `<path d="M9 10.5 h7 M20 9.5 l7 -2.5" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M12 23 q6 2.5 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  wink: `<circle cx="13" cy="15" r="2" fill="${INK}"/><path d="M20 15.5 q3 2.5 6 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+};
+function mood(el, m) {
+  if (!el || el.dataset.mood === m) return;
+  el.dataset.mood = m;
+  el.innerHTML = `<svg viewBox="0 0 36 36">${FACES[m] || FACES.idle}</svg>`;
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+
+// ---------- the candles ----------
+// One candle per store (this party has five). Paid lights it; refused, skipped or
+// cancelled leaves it out. A replacement relights the candle it stands in for.
+function cakeSvg(n) {
+  const W = 168, cx = (i) => 34 + (i * (W - 68)) / Math.max(1, n - 1);
+  const candles = Array.from({ length: n }, (_, i) => `<g class="candle" data-slot="${i}" transform="translate(${n === 1 ? W / 2 : cx(i)},0)">
+      <rect x="-4" y="22" width="8" height="24" rx="2" fill="var(--c, #E4E0D8)" stroke="${INK}" stroke-width="1.8"/>
+      <path d="M0 22 v-4" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
+      <path class="flame" d="M0 3 C5 9 5 14 0 17 C-5 14 -5 9 0 3 z" fill="#FFD23F" stroke="#E8590C" stroke-width="1.4"/>
+      <path class="smoke" d="M0 14 c3 -3 -3 -6 0 -9 c3 -3 -3 -6 0 -9" fill="none" stroke="#9C958C" stroke-width="1.6" stroke-linecap="round"/>
+    </g>`).join('');
+  const studs = [0, 1, 2, 3, 4, 5].map((k) => `<rect x="${22 + k * 21}" y="41" width="14" height="7" rx="2" fill="#FFF1C9" stroke="${INK}" stroke-width="1.8"/>`).join('');
+  return `<svg viewBox="0 0 ${W} 104">${candles}${studs}
+    <rect x="14" y="47" width="${W - 28}" height="44" rx="8" fill="#FFF1C9" stroke="${INK}" stroke-width="2.2"/>
+    <path d="M15 63 h${W - 30}" stroke="#FF8A80" stroke-width="5"/>
+    <rect x="4" y="91" width="${W - 8}" height="9" rx="4.5" fill="#fff" stroke="${INK}" stroke-width="2"/></svg>`;
+}
+function renderCake(stores) {
+  state.slots = stores.map((s) => ({ store: s.store, state: 'unlit' }));
+  $('#cake').innerHTML = cakeSvg(stores.length);
+  stores.forEach((s, i) => $(`#cake [data-slot="${i}"]`).style.setProperty('--c', STORES[s.store].color));
+  cakeNote();
+}
+function candle(store, st) {
+  if (!state.slots) return;
+  let i = state.slots.findIndex((x) => x.store === store);
+  if (i < 0 && st === 'lit') i = state.slots.findIndex((x) => x.state === 'out');
+  if (i < 0) return;
+  state.slots[i] = { store, state: st };
+  const g = $(`#cake [data-slot="${i}"]`);
+  if (!g) return;
+  g.setAttribute('class', `candle ${st}`);
+  g.style.setProperty('--c', STORES[store].color);
+  cakeNote();
+}
+function cakeNote() {
+  const lit = state.slots.filter((x) => x.state === 'lit').length;
+  $('#cakeNote').textContent = `${lit} of ${state.slots.length} candles lit`;
+}
+
+// ---------- party voice (never in the numbers) ----------
+function partyLine(store) {
+  const items = state.cart.items.filter((i) => i.store === store);
+  const cats = new Set(items.map((i) => i.category));
+  const out = [];
+  if (cats.has('bounce')) out.push(`Bounce house: booked for ${prettyDate(state.cart.partyDate).replace(/^\w+, /, '')}.`);
+  if (cats.has('cake')) out.push(`Cake: done. Serves ${byId[items.find((i) => i.category === 'cake').id].serves || 'the crowd'}.`);
+  if (cats.has('pinata')) out.push(state.cart.little && byId[items.find((i) => i.category === 'pinata').id].pull ? 'Piñata: secured. Pull-string, so no bats near the toddlers.' : 'Piñata: secured.');
+  if (cats.has('favors')) out.push(`Favors: ${state.cart.kids} kids covered.`);
+  if (cats.has('food')) out.push('Snacks: sorted.');
+  if (cats.has('decor')) out.push('Plates and cups: set.');
+  return out.join(' ');
+}
+function bookedLine() {
+  const got = (s) => state.paid[s] && !state.paid[s].refunded;
+  const cats = new Set(state.cart.items.filter((i) => got(i.store)).map((i) => i.category));
+  const names = [['bounce', 'the bounce house'], ['cake', 'the cake'], ['pinata', 'the piñata'], ['favors', `${state.cart.kids} favors`], ['food', 'snacks'], ['decor', 'the plates']].filter(([k]) => cats.has(k)).map(([, n]) => n);
+  if (!names.length) return '';
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+  return `${list[0].toUpperCase()}${list.slice(1)} ${names.length > 1 ? 'are' : 'is'} booked. `;
+}
+
 const brick = (store) => {
   const c = STORES[store]?.color || '#DDD';
   return `<svg class="brick" viewBox="0 0 26 20" aria-hidden="true"><rect x="1" y="7" width="24" height="12" rx="2" fill="${c}" stroke="#161412" stroke-width="1.6"/><rect x="4.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/><rect x="15.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/></svg>`;
@@ -46,6 +128,7 @@ function thinking(on) {
   clearInterval(thinkTimer);
   $('#thinking').hidden = !on;
   if (!on) return;
+  mood($('#thinkFace'), 'working');
   let n = 0;
   $('#thinkingLine').textContent = THINKING[0];
   thinkTimer = setInterval(() => ($('#thinkingLine').textContent = THINKING[(n = (n + 1) % THINKING.length)]), 1600);
@@ -90,6 +173,7 @@ async function plan(e) {
 function renderCart() {
   const c = state.cart;
   $('#cartSummary').textContent = c.summary || `A party for ${c.kids} kids.`;
+  mood($('#cartFace'), c.ignored.length ? 'wink' : 'happy');
   // Two notes up front; the rest behind one tap.
   const first = c.notes.slice(0, 2), rest = c.notes.slice(2);
   $('#cartNotes').innerHTML = first.map((n) => `<li>${esc(n)}</li>`).join('');
@@ -367,6 +451,8 @@ function handoff({ title, why, suggest, next, acts, link }) {
   $('#hoSuggest').textContent = suggest;
   $('#hoNext').textContent = next || '';
   $('#hoActs').innerHTML = acts.map(([v, label, cls]) => `<button class="${cls}" data-choice="${v}" type="button">${esc(label)}</button>`).join('') + (link ? `<a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">See the listing</a>` : '');
+  mood($('#hoFace'), 'brow');
+  mood($('#runFace'), 'brow');
   $('#handoff').hidden = false;
   document.body.classList.add('handing-off');
   $('#hoActs .go, #hoActs .ghost-btn')?.focus();
@@ -428,7 +514,9 @@ async function shop() {
   $('#runSheet').hidden = false;
   $('#run').innerHTML = '';
   $('#ledger').hidden = true;
-  $('#runTitle').textContent = 'Shopping…';
+  $('#runTitle').textContent = 'Out getting the party…';
+  renderCake([...c.stores].sort((a, b) => a.amount - b.amount));
+  mood($('#runFace'), 'working');
   focusRun(true);
   renderQueue(c);
   $('#runSheet').scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
@@ -443,6 +531,7 @@ async function shop() {
 
 async function buy(store, amount, { approved = false } = {}) {
   queueSet(store, 'working');
+  mood($('#runFace'), 'working');
   spotlight(store, amount, 1);
   await wait(calm() ? 0 : 450);
   spotlight(store, amount, 2);
@@ -452,6 +541,7 @@ async function buy(store, amount, { approved = false } = {}) {
     if (r.status === 'paid' || r.status === 'blocked') { spotlight(store, amount, 3); await wait(calm() ? 0 : 450); }
   } catch (ex) {
     queueSet(store, 'blocked');
+    candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: `It didn't go through: ${ex.message}` });
     paint(store, { cls: 'blocked', amount, status: esc(ex.message) });
     return;
@@ -461,7 +551,10 @@ async function buy(store, amount, { approved = false } = {}) {
     state.paid[store] = { amount: r.amount, payment: r.payment };
     queueSet(store, 'paid');
     logEvent(store, { kind: 'paid', amount: r.amount, hood: r.hood });
-    paint(store, { cls: 'paid', amount: r.amount, status: `Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}`, pass: passLine(r.pass, 'used once, now closed'), hood: r.hood });
+    candle(store, 'lit');
+    mood($('#runFace'), 'happy');
+    paint(store, { cls: 'paid', amount: r.amount, status: `${esc(partyLine(store))} <span class="paid-amt">Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}</span>`, pass: passLine(r.pass, 'used once, now closed'), hood: r.hood });
+    await wait(calm() ? 0 : 500);
     return;
   }
 
@@ -484,6 +577,7 @@ async function buy(store, amount, { approved = false } = {}) {
       return buy(store, amount, { approved: true });
     }
     queueSet(store, 'skipped');
+    candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: 'You chose Skip at the ask-me step.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
@@ -523,6 +617,7 @@ async function buy(store, amount, { approved = false } = {}) {
       }
     }
     queueSet(store, 'skipped');
+    candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: 'You chose not to approve the higher price.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
@@ -538,10 +633,11 @@ function spentTotal() {
 
 function finishRun() {
   const c = state.cart;
-  focusRun(false);
   const paid = Object.keys(state.paid).length;
   const all = c.stores.length;
-  $('#runTitle').textContent = paid === all ? 'All done' : paid ? `${paid} of ${all} stores paid` : 'Nothing was bought';
+  const missingList = missingNow();
+  $('#runTitle').textContent = !missingList.length && paid ? 'Everything’s booked.' : paid ? `${paid} of ${all} stores paid` : 'Nothing was bought';
+  mood($('#runFace'), missingList.length ? 'brow' : 'happy');
   $('#runSub').textContent = `For ${prettyDate(c.partyDate)}.`;
   $('#ledger').hidden = false;
   renderSpent();
@@ -576,6 +672,7 @@ async function cancelRental() {
     const r = await api('/api/refund', { permission: state.permission, signature: state.signature, payment: p.payment });
     p.refunded = true;
     state.cancelUsed = true;
+    candle(store, 'out');
     logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id });
     renderReceipt();
     paint(store, { cls: 'refunded', amount: p.amount, status: `Test: the rental cancelled. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
@@ -726,12 +823,23 @@ function openSuccess() {
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
   const t = towerSvg();
-  $('#tower').innerHTML = t.svg;
-  $('#tower').style.setProperty('--done', `${t.n * 230 + 450}ms`);
+  const complete = !miss.length && held;
+  // A complete party: the candles are blown out, then the bricks drop.
+  const lead = complete && !calm() && state.slots ? 1300 : 0;
+  $('#successCake').hidden = !lead;
+  if (lead) {
+    $('#successCake').innerHTML = cakeSvg(state.slots.length);
+    state.slots.forEach((x, i) => { const g = $(`#successCake [data-slot="${i}"]`); g.setAttribute('class', `candle ${x.state}`); g.style.setProperty('--c', STORES[x.store].color); });
+    $('#successCake').classList.remove('blowing');
+    void $('#successCake').offsetWidth;
+    $('#successCake').classList.add('blowing');
+  }
+  $('#tower').innerHTML = t.svg.replace(/animation-delay:(\d+)ms/g, (_, d) => `animation-delay:${Number(d) + lead}ms`);
+  $('#tower').style.setProperty('--done', `${t.n * 230 + 450 + lead}ms`);
   // Confetti only when the party is complete.
-  $('#tower').insertAdjacentHTML('beforeend', !miss.length && held ? Array.from({ length: 14 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${t.n * 230 + 300 + (i % 5) * 90}ms;background:${Object.values(STORES)[i % 6].color}"></i>`).join('') : '');
+  $('#tower').insertAdjacentHTML('beforeend', !miss.length && held ? Array.from({ length: 14 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${t.n * 230 + 300 + lead + (i % 5) * 90}ms;background:${Object.values(STORES)[i % 6].color}"></i>`).join('') : '');
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
-  $('#successSub').textContent = `${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
+  $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
   $('main.layout').hidden = true;
   $('#success').hidden = false;
@@ -866,6 +974,7 @@ function startOver() {
   if (state.busy) return;
   $('#success').hidden = true;
   $('main.layout').hidden = false;
+  focusRun(false);
   Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
