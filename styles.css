@@ -307,3 +307,52 @@ details.shield[open] p { margin: 8px 0 2px; }
 .run li.tested { background: #F3EFFF; }
 .run li.tested .status { color: #5B35D5; font-weight: 600; }
 .run li.tested q { font-weight: 500; color: var(--ink); }
+
+/* Focus while shopping: the run takes the stage, the cart becomes one card. */
+.cart-mini { border: 2px solid var(--ink); border-radius: 16px; padding: 14px 16px; background: var(--paper); display: flex; flex-direction: column; gap: 6px; }
+.cart-mini p { margin: 0; }
+.cart-mini #cartMiniText { font-weight: 700; }
+body.shopping .chat-col > :not(.cart-mini) { display: none; }
+@media (min-width: 900px) {
+  body.shopping .layout { max-width: 1200px; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+  body.shopping .money-col { position: static; }
+}
+
+/* The queue strip and the spotlight card. */
+.queue { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.queue li { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; border: 1.5px solid #CFC8BE; border-radius: 999px; padding: 4px 10px 4px 6px; color: var(--muted); }
+.queue li .brick { width: 18px; height: 14px; }
+.queue li.waiting .brick { filter: grayscale(1); opacity: .45; }
+.queue li.working { border-color: var(--violet); color: var(--violet); }
+.queue li.paid { border-color: var(--ok); color: var(--ok); }
+.queue li.asking { border-color: var(--violet); background: var(--violet-soft); color: var(--violet); }
+.queue li.blocked, .queue li.skipped { border-color: var(--warn); color: var(--warn); }
+.run li.spot { border: 2px solid var(--violet); background: #FBFAFF; padding: 16px 18px; }
+.run li.spot .row b { font-size: 19px; }
+.steps { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; font-size: 15px; }
+.run li.spot .steps li { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; text-align: left; gap: 10px; color: #A39D94; background: none; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; animation: none; }
+.steps li::before { content: ''; width: 16px; height: 16px; border-radius: 999px; border: 2px solid #CFC8BE; flex: none; box-sizing: border-box; }
+.run li.spot .steps li.done { color: var(--ink); }
+.steps li.done::before { border-color: var(--ok); background: var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% no-repeat; }
+.run li.spot .steps li.now { color: var(--violet); font-weight: 700; }
+.steps li.now::before { border-color: var(--violet); border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* What makes the agent stop, stated before you approve. */
+.stops { border-top: 1.5px dashed #CFC8BE; padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.stops ul { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 2px; }
+
+/* The handoff sheet. */
+.handoff-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(22, 20, 18, .45); display: flex; align-items: flex-end; justify-content: center; }
+.handoff { width: min(560px, 100%); background: var(--paper); border: 2px solid var(--ink); border-bottom: 0; border-radius: 22px 22px 0 0; padding: 20px 22px 26px; display: flex; flex-direction: column; gap: 12px; animation: sheet-up .28s ease-out; max-height: 88vh; overflow: auto; }
+.handoff .kicker { color: var(--violet); }
+.handoff .h { margin: 0; font-size: 30px; line-height: 1.1; }
+.ho-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 15px; }
+.ho-kv dt { color: var(--muted); }
+.ho-kv dd { margin: 0; }
+.handoff .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.handoff .acts .go, .handoff .acts .ghost-btn { padding: 12px 18px; font-size: 16px; }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (min-width: 900px) { .handoff-wrap { align-items: center; } .handoff { border-bottom: 2px solid var(--ink); border-radius: 22px; } }
+@media (prefers-reduced-motion: reduce) { .handoff, .steps li.now::before { animation: none; } }
+.handoff .acts a.link-btn { color: var(--ink); }

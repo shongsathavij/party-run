@@ -323,6 +323,60 @@ function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }
   return li;
 }
 
+// ---------- focus, spotlight and handoff ----------
+
+// While the agent shops, the run takes the stage and the cart shrinks to one card.
+function focusRun(on) {
+  document.body.classList.toggle('shopping', on);
+  const c = state.cart;
+  $('#cartMini').hidden = !on;
+  if (on) $('#cartMiniText').textContent = `${c.items.length} items from ${c.stores.length} stores · ${money(c.total)} of ${money(budgetOf(c))}`;
+}
+
+// The queue: one brick per store, in shopping order, colored as each one finishes.
+function renderQueue(c) {
+  $('#queue').innerHTML = [...c.stores].sort((a, b) => a.amount - b.amount).map((s) => `<li data-q="${esc(s.store)}" class="waiting" title="${esc(s.name)}">${brick(s.store)}<span>${esc(s.name)}</span></li>`).join('');
+}
+function queueSet(store, cls) {
+  let li = $(`#queue [data-q="${store}"]`);
+  if (!li) { $('#queue').insertAdjacentHTML('beforeend', `<li data-q="${esc(store)}">${brick(store)}<span>${esc(STORES[store].name)}</span></li>`); li = $(`#queue [data-q="${store}"]`); }
+  li.className = cls;
+}
+
+// The store being bought from, with the steps from the diagram as they happen.
+function spotlight(store, amount, step) {
+  const steps = [
+    ['Checking your permission', 'Checked your permission'],
+    [`Making a pass: ${money(amount)}, ${STORES[store].name} only, 30 minutes`, `Made a pass: ${money(amount)}, ${STORES[store].name} only, 30 minutes`],
+    ['Store charging the pass', 'Store charged the pass'],
+  ];
+  const li = row(store);
+  li.className = 'working spot';
+  li.innerHTML = `<div class="row">${brick(store)}<b>${esc(STORES[store].name)}</b><span class="amt">${money(amount)}</span></div>
+    <ol class="steps">${steps.map(([now, done], i) => `<li class="${i < step - 1 ? 'done' : i === step - 1 ? 'now' : ''}">${esc(i < step - 1 ? done : now)}</li>`).join('')}</ol>`;
+}
+
+// The handoff: the agent stops for a stated reason, says what it did and what it suggests,
+// and says what happens next. You decide; the receipt records that you did.
+function handoff({ title, why, suggest, next, acts, link }) {
+  const paidN = Object.keys(state.paid).filter((s) => !state.paid[s].refunded).length;
+  const spent = spentTotal();
+  $('#hoTitle').textContent = title;
+  $('#hoWhy').innerHTML = why;
+  $('#hoSoFar').textContent = paidN ? `Paid ${paidN} store${paidN > 1 ? 's' : ''}, ${money(spent)} of ${money(budgetOf(state.cart))}.` : 'Nothing paid yet.';
+  $('#hoSuggest').textContent = suggest;
+  $('#hoNext').textContent = next || '';
+  $('#hoActs').innerHTML = acts.map(([v, label, cls]) => `<button class="${cls}" data-choice="${v}" type="button">${esc(label)}</button>`).join('') + (link ? `<a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">See the listing</a>` : '');
+  $('#handoff').hidden = false;
+  document.body.classList.add('handing-off');
+  $('#hoActs .go, #hoActs .ghost-btn')?.focus();
+  return choice($('#hoActs')).then((v) => {
+    $('#handoff').hidden = true;
+    document.body.classList.remove('handing-off');
+    return v;
+  });
+}
+
 // "Under the hood": the objects behind a row. Real Stripe ids in test mode, labeled when simulated.
 function hoodHtml(store, h, flat = false) {
   const time = new Date(h.expiresAt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -375,6 +429,8 @@ async function shop() {
   $('#run').innerHTML = '';
   $('#ledger').hidden = true;
   $('#runTitle').textContent = 'Shopping…';
+  focusRun(true);
+  renderQueue(c);
   $('#runSheet').scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
 
   // Smallest first, so the easy ones go through while you watch.
@@ -386,12 +442,16 @@ async function shop() {
 }
 
 async function buy(store, amount, { approved = false } = {}) {
-  paint(store, { cls: 'working', amount, status: `Making a pass for ${money(amount)}, good at this store only…` });
-  await wait(calm() ? 0 : 650);
+  queueSet(store, 'working');
+  spotlight(store, amount, 1);
+  await wait(calm() ? 0 : 450);
+  spotlight(store, amount, 2);
   let r;
   try {
     r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: null });
+    if (r.status === 'paid' || r.status === 'blocked') { spotlight(store, amount, 3); await wait(calm() ? 0 : 450); }
   } catch (ex) {
+    queueSet(store, 'blocked');
     logEvent(store, { kind: 'skipped', why: `It didn't go through: ${ex.message}` });
     paint(store, { cls: 'blocked', amount, status: esc(ex.message) });
     return;
@@ -399,22 +459,31 @@ async function buy(store, amount, { approved = false } = {}) {
 
   if (r.status === 'paid') {
     state.paid[store] = { amount: r.amount, payment: r.payment };
+    queueSet(store, 'paid');
     logEvent(store, { kind: 'paid', amount: r.amount, hood: r.hood });
     paint(store, { cls: 'paid', amount: r.amount, status: `Paid ${money(r.amount)}${r.sample ? ' (sample)' : ''}`, pass: passLine(r.pass, 'used once, now closed'), hood: r.hood });
     return;
   }
 
   if (r.status === 'ask') {
-    const li = paint(store, {
-      cls: 'asking',
-      amount,
-      status: `${money(amount)} is over your ask-me rule, so the agent is waiting for you.`,
-      acts: `<button class="go" data-choice="yes">Approve ${money(amount)}</button><button class="ghost-btn" data-choice="no">Skip</button>`,
+    queueSet(store, 'asking');
+    paint(store, { cls: 'asking', amount, status: 'Waiting for you.' });
+    const s = state.cart.stores.find((x) => x.store === store);
+    const items = state.cart.items.filter((i) => i.store === store);
+    const pick = await handoff({
+      title: `Approve ${money(amount)} at ${STORES[store].name}?`,
+      why: `It's over your ${money(state.askOver)} ask-me amount.`,
+      suggest: `Approve. ${items.map((i) => i.name).join(', ')}${items.some((i) => i.offTheme) && state.decided[items[0].id] === 'kept' ? ' (you already chose to keep it)' : ''}.`,
+      next: `If you approve, I make a ${money(amount)} pass for ${STORES[store].name} only, good for 30 minutes, and the store charges it.`,
+      acts: [['yes', `Approve ${money(amount)}`, 'go'], ['no', 'Skip this store', 'ghost-btn']],
+      link: items[0]?.url,
+      store: s?.store,
     });
-    if ((await choice(li)) === 'yes') {
+    if (pick === 'yes') {
       logEvent(store, { kind: 'asked', amount });
       return buy(store, amount, { approved: true });
     }
+    queueSet(store, 'skipped');
     logEvent(store, { kind: 'skipped', why: 'You chose Skip at the ask-me step.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
@@ -425,15 +494,23 @@ async function buy(store, amount, { approved = false } = {}) {
     logEvent(store, { kind: 'refused', amount: r.asked, cap: r.cap, hood: r.hood, railsMissed: r.railsMissed });
     // The what-if happens at one rental only, not again at a replacement.
     if (more > 0) state.priceUpStore ||= store;
-    const li = paint(store, {
+    queueSet(store, 'blocked');
+    paint(store, {
       cls: 'blocked',
       amount: r.asked,
       status: esc(r.why),
       pass: passLine(r.pass, `refused ${money(r.asked)}${r.railsMissed ? ' (refunded at once)' : ''}`),
       hood: r.hood,
-      acts: more > 0 ? `<button class="go" data-choice="raise">Approve ${money(more)} more</button><button class="ghost-btn" data-choice="no">Skip this store</button>` : '<button class="ghost-btn" data-choice="no">OK</button>',
     });
-    if ((await choice(li)) === 'raise') {
+    const pick = await handoff({
+      title: more > 0 ? `${STORES[store].name} asked for ${money(more)} more` : `${STORES[store].name} didn't go through`,
+      why: more > 0 ? `You approved ${money(r.cap)}; the store asked for ${money(r.asked)}. ${r.hood?.decidedBy === 'stripe' ? 'Stripe refused it.' : 'The pass refused it.'}` : esc(r.why),
+      suggest: more > 0 ? 'Check what the extra is for before approving. A surprise fee is worth a question to the store.' : 'Skip it, and I\'ll tell you what\'s missing at the end.',
+      next: more > 0 ? `If you approve, I make a new ${money(r.asked)} pass for this store only. Your total stays under ${money(budgetOf(state.cart))}.` : '',
+      acts: more > 0 ? [['raise', `Approve ${money(more)} more`, 'go'], ['no', 'Skip this store', 'ghost-btn']] : [['no', 'OK', 'ghost-btn']],
+      link: state.cart.items.find((i) => i.store === store)?.url,
+    });
+    if (pick === 'raise') {
       try {
         const up = await api('/api/raise', { permission: state.permission, signature: state.signature, store, newCap: r.asked });
         Object.assign(state, { permission: up.permission, signature: up.signature, perm: up.perm });
@@ -445,6 +522,7 @@ async function buy(store, amount, { approved = false } = {}) {
         return;
       }
     }
+    queueSet(store, 'skipped');
     logEvent(store, { kind: 'skipped', why: 'You chose not to approve the higher price.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
@@ -460,6 +538,7 @@ function spentTotal() {
 
 function finishRun() {
   const c = state.cart;
+  focusRun(false);
   const paid = Object.keys(state.paid).length;
   const all = c.stores.length;
   $('#runTitle').textContent = paid === all ? 'All done' : paid ? `${paid} of ${all} stores paid` : 'Nothing was bought';
@@ -584,10 +663,16 @@ async function findAnother(e) {
     }
     const it = r.item;
     li.className = 'asking';
-    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(it.amount)}</span></div>
-      <span class="status">Found <a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">${esc(it.name)}</a>, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${esc(themeWord(c.theme))}-themed.` : ''} This needs a new permission: ${money(it.amount)} for ${esc(it.storeName)} only.</span>
-      <div class="acts"><button class="go" data-choice="yes">Approve ${money(it.amount)}</button><button class="ghost-btn" data-choice="no">Not now</button></div>`;
-    if ((await choice(li)) !== 'yes') {
+    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(it.amount)}</span></div><span class="status">Waiting for you.</span>`;
+    const pick = await handoff({
+      title: `Book ${it.storeName} instead?`,
+      why: `The party has no ${esc(WHAT[cat])} now${tried.some((t) => state.paid[t]?.refunded) ? ' (the test cancellation)' : ''}. A replacement is new spending, so it's your call.`,
+      suggest: `${it.name}, ${money(it.amount)}, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${themeWord(c.theme)}-themed.` : ''}`,
+      next: `If you approve, it's a second, separate permission: ${money(it.amount)} for ${it.storeName} only. Your first approval doesn't stretch to cover it.`,
+      acts: [['yes', `Approve ${money(it.amount)}`, 'go'], ['no', 'Not now', 'ghost-btn']],
+      link: it.url,
+    });
+    if (pick !== 'yes') {
       li.className = '';
       li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b></div><span class="status">You passed on it. Nothing charged.</span>`;
       return;
