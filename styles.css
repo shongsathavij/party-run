@@ -220,7 +220,7 @@ button { font: inherit; color: inherit; }
 @media print {
   body * { visibility: hidden; }
   #receiptSheet, #receiptSheet * { visibility: visible; }
-  #receiptSheet { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; box-shadow: none; }
+  #receiptSheet { position: absolute; inset: 0 auto auto 0; width: 100%; border: 0; box-shadow: none; margin: 0; }
   .rcpt-acts { display: none; }
 }
 
@@ -255,3 +255,26 @@ button { font: inherit; color: inherit; }
 .ask-change .chips { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .ask-change .chips .chip { flex: none; padding: 6px 12px; font-size: 13px; }
 @media (max-width: 600px) { .ask-change { margin-left: 0; } }
+
+/* The success view: a brick tower, then the receipt. */
+.success { max-width: 640px; margin: 0 auto; padding: 24px 20px 48px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.success .back { align-self: flex-start; }
+.success .receipt { width: 100%; text-align: left; margin-top: 18px; }
+.success-title { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(48px, 12vw, 76px); line-height: 1; margin: 6px 0 0; outline: none; opacity: 0; animation: rise .5s ease-out var(--done, 0ms) forwards; }
+.success-sub { margin: 0; font-size: 17px; max-width: 30ch; opacity: 0; animation: rise .5s ease-out calc(var(--done, 0ms) + 120ms) forwards; }
+.success-acts:empty { display: none; }
+.tower-wrap { position: relative; padding-top: 24px; }
+.tower { position: relative; display: flex; justify-content: center; }
+.tower svg { max-width: 100%; height: auto; overflow: visible; font-family: 'Inter Tight', system-ui, sans-serif; }
+.tower .b { transform-box: fill-box; animation: drop .55s cubic-bezier(.2, .9, .3, 1.25) both; }
+.tower .b.gap { animation-name: drop-gap; }
+.confetti { position: absolute; top: 0; left: var(--x); width: 9px; height: 9px; border: 1.5px solid #161412; border-radius: 2px; opacity: 0; animation: fall 1.4s ease-in var(--d) forwards; }
+@keyframes drop { from { transform: translateY(-420px); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(0); opacity: 1; } }
+@keyframes drop-gap { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fall { 0% { opacity: 1; transform: translateY(-20px) rotate(0); } 100% { opacity: 0; transform: translateY(260px) rotate(320deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .tower .b, .success-title, .success-sub { animation: none; opacity: 1; }
+  .confetti { display: none; }
+}
+#app .layout + .success { }
