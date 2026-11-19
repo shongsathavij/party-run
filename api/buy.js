@@ -11,17 +11,18 @@ import { post, fail, serverToday } from './_lib/http.js';
 
 const PRICE_UP = 2000; // the what-if: a made-up $20 added at the rental's checkout. Simulated; no real store did this.
 
-export default post(async ({ permission, signature, store, approved = false, curveball = null }) => {
+export default post(async ({ permission, signature, store, approved = false, curveball = null, test = false }) => {
   const perm = open(permission, signature);
   const s = perm.stores[store];
   if (!s) throw fail(`${STORES[store]?.name || 'That store'} isn't in what you approved.`);
   const quoted = totals(s.lines).total; // prices from the catalog, not the page
-  const d = decide(perm, store, quoted, { approved: approved === true, today: serverToday() });
+  // A stress test asks for more than the pass on purpose, so the ask-me step doesn't apply.
+  const d = decide(perm, store, quoted, { approved: approved === true || test === true, today: serverToday() });
   if (!d.ok) return { status: d.ask ? 'ask' : 'refused', why: d.why, amount: quoted };
 
   // What the store's checkout actually asks for.
   const isRental = /rental/i.test(STORES[store].kind);
-  const asked = curveball === 'price_up' && isRental ? quoted + PRICE_UP : quoted;
+  const asked = test === true ? s.cap + PRICE_UP : curveball === 'price_up' && isRental ? quoted + PRICE_UP : quoted;
 
   const token = await mint({ store, cap: s.cap, ref: perm.id });
   const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Party Run test, simulated order: ${STORES[store].name}` });
@@ -46,10 +47,13 @@ export default post(async ({ permission, signature, store, approved = false, cur
       asked,
       cap: s.cap,
       pass,
-      why: asked > s.cap ? `What-if: the checkout came to ${dollars(asked)}, ${dollars(asked - s.cap)} more than you approved (a made-up fee, not a real one from this store). The pass refused it.` : r.why,
+      test: test === true,
+      why: test === true ? `Test: a fresh pass for ${dollars(s.cap)}, and the store tried ${dollars(asked)}.` : asked > s.cap ? `What-if: the checkout came to ${dollars(asked)}, ${dollars(asked - s.cap)} more than you approved (a made-up fee, not a real one from this store). The pass refused it.` : r.why,
       railsMissed: Boolean(r.railsMissed),
       hood,
     };
   }
+  // A test can never end in a charge: the amount is over the pass by design. If it somehow went through, it was refunded above.
+  if (test === true) return { status: 'blocked', test: true, asked, cap: s.cap, pass, why: 'The charge went through, which should never happen.', railsMissed: true, hood };
   return { status: 'paid', amount: r.amount, payment: r.id, pass, sample: Boolean(r.sample), hood };
 });

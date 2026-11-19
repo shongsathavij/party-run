@@ -121,11 +121,6 @@
           <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
         </div>
         <p class="note" id="passNote"></p>
-        <details class="curve">
-          <summary>What-ifs for the demo (simulated)</summary>
-          <label class="check"><input type="checkbox" id="cbPrice"> <span><b>What if the checkout comes to more?</b> We add a made-up $20 to the rental’s charge to test the pass. No real store did this.</span></label>
-          <p class="note">After the run, you can also simulate the rental cancelling and see the refund.</p>
-        </details>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
         <p class="note center" id="testNote">Test mode. No real money moves.</p>
@@ -145,7 +140,14 @@
           <p class="note" id="ledgerNote"></p>
           <div class="missing" id="missing" hidden></div>
           <button class="go" id="seeReceipt" type="button">See your receipt</button>
-          <button class="ghost-btn" id="cancelRental" type="button" hidden>What-if: the rental cancels</button>
+          <div class="limits" id="limits">
+            <span class="kicker">Test the limits</span>
+            <p class="note">Deliberate stress tests. Nothing real is charged or cancelled.</p>
+            <div class="acts">
+              <button class="ghost-btn" id="overcharge" type="button">Have a store charge $20 more</button>
+              <button class="ghost-btn" id="cancelRental" type="button" hidden>Have the rental cancel</button>
+            </div>
+          </div>
           <button class="link-btn" id="again" type="button">Run it again</button>
         </div>
       </section>

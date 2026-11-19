@@ -152,4 +152,11 @@ assert.equal(bigKids.item.id, 'wm-pinata-5');
 // 13. A parent can still choose the bat piñata in an edit; the cart says so.
 const batPick = await run('edit', { prompt: REAL, today, cart: c, change: 'Swap the piñata for the number 5 one' });
 assert.ok(batPick.ok);
+
+// 14. Test the limits: a fresh pass and a charge $20 over it, on any store, refused and never charged
+const tested = await run('buy', { permission: p.permission, signature: p.signature, store: 'target', test: true });
+assert.equal(tested.status, 'blocked');
+assert.equal(tested.test, true);
+assert.equal(tested.asked - tested.cap, 2000);
+assert.equal(tested.hood.decidedBy, 'simulator');
 console.log('All Party Run checks passed in sample mode.');

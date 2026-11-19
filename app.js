@@ -360,7 +360,7 @@ async function shop() {
   $('#permitErr').hidden = true;
   try {
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
@@ -390,7 +390,7 @@ async function buy(store, amount, { approved = false } = {}) {
   await wait(calm() ? 0 : 650);
   let r;
   try {
-    r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: $('#cbPrice').checked && (!state.priceUpStore || state.priceUpStore === store) ? 'price_up' : null });
+    r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, approved, curveball: null });
   } catch (ex) {
     logEvent(store, { kind: 'skipped', why: `It didn't go through: ${ex.message}` });
     paint(store, { cls: 'blocked', amount, status: esc(ex.message) });
@@ -473,6 +473,11 @@ function finishRun() {
   $('#cancelRental').hidden = !rental || state.cancelUsed;
   renderMissing();
   $('#cancelRental').dataset.store = rental || '';
+  // The overcharge test needs a paid store that's in the current permission; the rental if there is one.
+  const target = [rental, ...Object.keys(state.paid)].find((s) => s && state.perm?.stores[s] && !state.paid[s].refunded);
+  $('#overcharge').dataset.store = target || '';
+  $('#overcharge').hidden = !target || state.overchargeUsed;
+  $('#limits').hidden = $('#overcharge').hidden && $('#cancelRental').hidden;
   renderReceipt();
 }
 
@@ -494,13 +499,45 @@ async function cancelRental() {
     state.cancelUsed = true;
     logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id });
     renderReceipt();
-    paint(store, { cls: 'refunded', amount: p.amount, status: `What-if: the rental cancels. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
+    paint(store, { cls: 'refunded', amount: p.amount, status: `Test: the rental cancelled. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
     renderSpent();
     b.hidden = true;
     finishRun();
   } catch (ex) {
     $('#ledgerNote').textContent = ex.message;
   } finally {
+    b.removeAttribute('aria-busy');
+  }
+}
+
+// Stress test: a fresh pass for one store, and the store asks for $20 more than it.
+async function overcharge() {
+  const store = $('#overcharge').dataset.store;
+  if (!store || state.busy) return;
+  state.busy = true;
+  const b = $('#overcharge');
+  b.setAttribute('aria-busy', 'true');
+  const key = `test-${store}`;
+  const li = row(key);
+  li.className = 'working';
+  li.innerHTML = `<div class="row"><span class="spin" aria-hidden="true"></span><b>Test: ${esc(STORES[store].name)} charges $20 more…</b></div>`;
+  try {
+    const r = await api('/api/buy', { permission: state.permission, signature: state.signature, store, test: true });
+    const h = r.hood;
+    const who = h?.decidedBy === 'stripe' ? 'Stripe refused it' : h?.decidedBy === 'simulator' ? 'Our simulator refused it (no Stripe key)' : 'Stripe let it through, so our code refunded it at once';
+    logEvent(store, { kind: 'tested', amount: r.asked, cap: r.cap, hood: h, railsMissed: r.railsMissed });
+    li.className = r.railsMissed ? 'blocked' : 'tested';
+    li.innerHTML = `<div class="row">${brick(store)}<b>Test: ${esc(STORES[store].name)}</b><span class="amt">${money(r.asked)}</span></div>
+      <span class="status">A new pass for ${money(r.cap)}, and the store tried ${money(r.asked)}. ${who}.${h?.message && h.decidedBy === 'stripe' ? ` <q>${esc(h.message)}</q>` : ''}</span>
+      ${h ? hoodHtml(store, h) : ''}`;
+    state.overchargeUsed = true;
+    b.hidden = true;
+    renderReceipt();
+  } catch (ex) {
+    li.className = 'blocked';
+    li.innerHTML = `<div class="row">${brick(store)}<b>Test didn't run</b></div><span class="status">${esc(ex.message)}</span>`;
+  } finally {
+    state.busy = false;
     b.removeAttribute('aria-busy');
   }
 }
@@ -650,7 +687,8 @@ function storeStory(store) {
     if (e.kind === 'raised') lines.push(`You approved ${money(e.to - e.from)} more. New limit ${money(e.to)}.`);
     if (e.kind === 'asked') lines.push(`${money(e.amount)} is over your ask-me rule, so it asked you first. You said yes.`);
     if (e.kind === 'paid') lines.push(`Paid ${money(e.amount)}.`);
-    if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (what-if: the rental cancels).`);
+    if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (test: the rental cancelled).`);
+    if (e.kind === 'tested') lines.push(`Stress test: a new ${money(e.cap)} pass, and the store tried ${money(e.amount)}. ${WHO[e.hood?.decidedBy] || 'Refused'}.`);
     if (e.kind === 'skipped') lines.push(`Skipped. ${e.why}`);
   }
   const ids = ev.filter((e) => e.hood).map((e) => [e.hood.token && `pass ${shortId(e.hood.token)}`, e.hood.paymentIntent && `${shortId(e.hood.paymentIntent)}`].filter(Boolean).join(' · '));
@@ -743,7 +781,7 @@ function startOver() {
   if (state.busy) return;
   $('#success').hidden = true;
   $('main.layout').hidden = false;
-  Object.assign(state, { noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -760,6 +798,7 @@ function bind() {
   });
   $('#shopBtn').addEventListener('click', shop);
   $('#cancelRental').addEventListener('click', cancelRental);
+  $('#overcharge').addEventListener('click', overcharge);
   $('#startOver').addEventListener('click', startOver);
   $('#again').addEventListener('click', startOver);
   $('#rcptPrint').addEventListener('click', () => window.print());
