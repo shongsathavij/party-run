@@ -402,3 +402,57 @@ body.shopping .chat-col > :not(.cart-mini) { display: none; }
   .candle.lit .flame { opacity: 1; transform: none; }
 }
 @media (max-width: 600px) { .queue { display: none; } }
+
+/* One thing at a time: a single column of three steps before shopping. */
+body.reviewing .layout { max-width: 680px; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+body.reviewing .money-col { position: static; }
+.step { display: flex; flex-direction: column; gap: 10px; transition: opacity .25s; }
+.step-lbl { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--violet); }
+.later { opacity: .38; filter: saturate(.4); }
+.bubble.cart { gap: 18px; }
+.decide { border-color: var(--violet); box-shadow: 4px 4px 0 var(--violet); }
+.decide .kicker { color: var(--violet); }
+.decide .see { align-self: center; margin-left: 4px; font-weight: 600; color: var(--ink); text-underline-offset: 3px; }
+.done-line { margin: 0; font-size: 15px; font-weight: 600; color: var(--ok); display: flex; gap: 6px; align-items: flex-start; }
+.done-line svg { width: 16px; height: 16px; flex: none; margin-top: 3px; }
+
+/* Stores: one line each, tap to open. */
+#cartStores { display: flex; flex-direction: column; gap: 8px; }
+details.store { padding: 0; gap: 0; }
+details.store > summary { list-style: none; cursor: pointer; padding: 12px 14px; border-radius: 16px; }
+details.store > summary::-webkit-details-marker { display: none; }
+details.store > summary:hover { background: #FBF8F2; }
+details.store > summary:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+details.store .chev { width: 9px; height: 9px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); margin: -4px 4px 0 6px; transition: transform .2s; flex: none; }
+details.store[open] .chev { transform: rotate(225deg); margin-top: 4px; }
+details.store .items { padding: 2px 14px 14px; border-top: 1px solid var(--line); padding-top: 12px; margin: 0 0 0; }
+#cartStores .items .why { display: block; }
+.store-head .store-amt { margin-left: auto; }
+
+.quiet-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+.quiet-links .link-btn, .more-notes summary { font-size: 14px; }
+.more-notes[open] { flex-basis: 100%; }
+.bubble .ask-change { margin: 0; }
+details.shield { font-size: 14px; }
+
+/* Step 3: the go-ahead. */
+#permitTitle { margin: 4px 0 0; }
+.permit-line { margin: 0; font-size: 16px; line-height: 1.5; }
+details.fold { border-top: 1.5px dashed #CFC8BE; padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+details.fold > summary { cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; display: flex; align-items: center; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); margin-top: -3px; transition: transform .2s; }
+details.fold[open] > summary::after { transform: rotate(225deg); margin-top: 3px; }
+details.fold[open] > summary { margin-bottom: 10px; }
+details.fold > * + * { margin-top: 10px; }
+.stops-list { margin: 0; padding-left: 18px; font-size: 15px; display: grid; gap: 4px; }
+#permitSheet .link-btn.center { align-self: center; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .step, details.store .chev, details.fold > summary::after { transition: none; } }
+.quiet-links { align-items: center; }
+.quiet-links .link-btn { min-height: 0; padding: 4px 0; }
+.more-notes summary { list-style: none; color: var(--ink); font-weight: 600; padding: 4px 0; }
+.more-notes summary::-webkit-details-marker { display: none; }
+details.fold .lbl { display: block; margin: 14px 0 8px; }
+details.fold .stack .lbl { margin-top: 0; }
+.decide p a { color: inherit; text-decoration-color: var(--violet); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+@media (max-width: 600px) { .decide .acts .go, .decide .acts .ghost-btn { padding: 10px 14px; font-size: 15px; } }
