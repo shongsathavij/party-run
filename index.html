@@ -62,10 +62,11 @@
           <div class="bubble cart" role="status">
             <p class="cart-summary" id="cartSummary"></p>
             <ul class="notes" id="cartNotes"></ul>
-            <div class="shield" id="shield" hidden>
-              <span class="kicker"><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg>Ignored an instruction</span>
+            <details class="more-notes" id="moreNotes" hidden><summary></summary><ul class="notes" id="cartNotesMore"></ul></details>
+            <details class="shield" id="shield" hidden>
+              <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
               <p id="shieldText"></p>
-            </div>
+            </details>
             <div class="trick-result" id="trickResult" hidden>
               <span class="kicker">Your trick</span>
               <p id="trickQuote"></p>
@@ -74,6 +75,7 @@
             <div class="changed" id="changed" hidden></div>
             <div class="decide" id="decide" hidden></div>
             <div class="decide" id="askedMissing" hidden></div>
+            <button type="button" class="link-btn why-toggle" id="whyToggle" aria-expanded="false">Why each item?</button>
             <div id="cartStores"></div>
             <p class="note" id="cartSource"></p>
             <div class="unmet" id="cartUnmet" hidden>

@@ -278,3 +278,24 @@ button { font: inherit; color: inherit; }
   .confetti { display: none; }
 }
 #app .layout + .success { }
+
+/* Quieter cart: reasons on request, notes capped, the shield as one line. */
+#cartStores .items .why { display: none; }
+#cartStores.show-why .items .why { display: block; }
+.why-toggle { align-self: flex-start; font-size: 14px; margin: 2px 0 -4px; }
+.more-notes summary { cursor: pointer; font-size: 14px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.more-notes[open] summary { margin-bottom: 6px; }
+details.shield { padding: 10px 14px; }
+details.shield summary { cursor: pointer; list-style: none; display: block; font-size: 14px; font-weight: 600; line-height: 1.45; }
+details.shield summary::-webkit-details-marker { display: none; }
+details.shield summary svg { width: 13px; height: 15px; color: #FFD23F; vertical-align: -2px; margin-right: 6px; }
+details.shield summary u { color: #FFD23F; font-weight: 700; text-underline-offset: 3px; }
+details.shield[open] p { margin: 8px 0 2px; }
+
+/* Quieter run: a paid store is one line. */
+.paid-row summary { list-style: none; cursor: pointer; display: grid; gap: 2px; }
+.paid-row summary::-webkit-details-marker { display: none; }
+.paid-row .status { font-size: 14px; }
+.paid-row[open] summary { margin-bottom: 8px; }
+.paid-row .hood { margin-top: 6px; }
+.run li .paid-row .status.refused-note { color: var(--warn); font-weight: 600; }
