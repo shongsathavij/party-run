@@ -236,3 +236,22 @@ button { font: inherit; color: inherit; }
 .rcpt-complete.ok { background: #E2F2E8; color: var(--ok); }
 .rcpt-complete.bad { background: #FFE7C2; color: #8A4B00; }
 .run .status a { color: inherit; }
+
+/* Changing the cart before approval. */
+.items .amt:has(.qty) { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.items .qty { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; border: 1.5px solid #CFC8BE; border-radius: 999px; padding: 1px; }
+.items .qty span { min-width: 18px; text-align: center; }
+.items .qty button { width: 24px; height: 24px; border: 0; border-radius: 999px; background: transparent; font: 600 15px/1 var(--sans); color: var(--muted); cursor: pointer; }
+.items .qty button:hover { background: #EDE7FF; color: #5B35D5; }
+.changed { border: 2px solid #5B35D5; background: #F3EFFF; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.changed .kicker { color: #5B35D5; }
+.changed ul { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
+.changed p { margin: 0; font-size: 14px; }
+.changed .tot { font-weight: 700; }
+.ask-change { margin: 14px 0 0 56px; display: flex; flex-direction: column; gap: 8px; }
+.change-row { display: flex; gap: 8px; }
+.change-row input { flex: 1; min-width: 0; border: 2px solid var(--ink); border-radius: 999px; padding: 10px 14px; font: 16px var(--sans); background: var(--paper); color: var(--ink); }
+.change-row .go { padding: 10px 16px; white-space: nowrap; }
+.ask-change .chips { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.ask-change .chips .chip { flex: none; padding: 6px 12px; font-size: 13px; }
+@media (max-width: 600px) { .ask-change { margin-left: 0; } }
