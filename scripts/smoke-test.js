@@ -116,4 +116,24 @@ assert.ok(!STORES_TEST.includes(alt.item.store), 'never the made-up test store')
 const none = await run('replace', { category: 'bounce', partyDate: '2026-12-05', excludeStores: ['cm-events'], maxCents: 10000 });
 assert.equal(none.item, null);
 assert.match(none.why, /left in your budget/);
+
+// 11. Changing the cart before approval: taps and words, rebuilt from the catalog and checked
+const two = await run('edit', { prompt: REAL, today, cart: c, change: 'Two cakes' });
+assert.ok(two.ok && two.diff[0].includes('1 → 2'));
+const choc = await run('edit', { prompt: REAL, today, cart: c, change: 'Make the cake chocolate' });
+assert.match(choc.diff[0], /^Swapped Vanilla Celebration Cake for Chocolate Celebration Cake \(same price\)/);
+const tight = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $300' });
+assert.equal(tight.budgetChanged, 30000);
+assert.ok(tight.cart.total <= 30000);
+const tap = await run('edit', { prompt: REAL, today, cart: c, set: { id: 'tg-juice', qty: 2 } });
+assert.equal(tap.mode, 'tap');
+assert.equal(tap.cart.total, c.total + 899);
+const tooMany = await run('edit', { prompt: REAL, today, cart: c, set: { id: 'wf-vanilla-cake', qty: 40 } });
+assert.equal(tooMany.ok, false);
+assert.equal(tooMany.cart.total, c.total, 'a refused change leaves the cart as it was');
+const forged = await run('edit', { prompt: REAL, today, cart: { ...c, items: c.items.map((i) => ({ ...i, price: 1, amount: 1 })) }, set: { id: 'tg-juice', qty: 1 } });
+assert.equal(forged.cart.total, c.total, 'prices come from the catalog, not the page');
+const offTopic = await run('edit', { prompt: REAL, today, cart: c, change: 'What is the weather?' });
+assert.deepEqual(offTopic.diff, []);
+assert.ok(offTopic.note);
 console.log('All Party Run checks passed in sample mode.');

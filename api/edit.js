@@ -1,0 +1,59 @@
+// Change the cart before it's approved. Two ways in:
+//  - set: a + / − tap on one item. Plain code, no AI, no tokens.
+//  - change: the parent's words ("make the cake chocolate"). Claude when it's on, rules when it isn't.
+// Either way the new cart is rebuilt from the catalog and checked like a fresh plan. Nothing is
+// bought here, and any approved permission no longer matches, so the parent approves again.
+import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme } from './_lib/agent.js';
+import { checkCart, dollars } from '../lib/rules.js';
+import { byId } from '../lib/catalog.js';
+import { post, fail, isoDate, serverToday } from './_lib/http.js';
+import { allowClaude } from './_lib/limits.js';
+
+const clean = (t) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 300);
+
+export default post(async ({ prompt, today: day, cart: raw, set, change }, req) => {
+  const text = String(prompt || '').trim().slice(0, 1200);
+  const today = isoDate(day) || serverToday();
+  if (!raw || !Array.isArray(raw.items) || !isoDate(raw.partyDate)) throw fail('Missing the cart.');
+  // Only ids, quantities and the parent's numbers are taken from the page; prices come from the catalog.
+  const lines = raw.items.filter((i) => byId[i?.id]).map((i) => ({ id: i.id, qty: Math.max(1, Math.min(40, Number(i.qty) | 0)), reason: i.reason }));
+  const cart = rebuild({ ...raw, budget: Number.isInteger(raw.budget) ? raw.budget : null, kids: Math.max(1, Math.min(60, Number(raw.kids) | 0 || 10)) }, lines);
+
+  let next, mode, note = null, usage = null;
+  if (set) {
+    const qty = Number(set.qty) | 0;
+    if (!byId[set.id]) throw fail('Unknown item.');
+    const out = cart.items.map((i) => ({ id: i.id, qty: i.id === set.id ? qty : i.qty }));
+    if (!out.some((l) => l.id === set.id) && qty > 0) out.push({ id: set.id, qty });
+    next = rebuild(cart, out.filter((l) => l.qty > 0));
+    mode = 'tap';
+  } else {
+    const words = clean(change);
+    if (words.length < 2) throw fail('Say what to change, like "two cakes" or "no piñata".');
+    const live = Boolean(process.env.ANTHROPIC_API_KEY);
+    if (live && allowClaude(req)) {
+      const r = await claudeAgent(text, today, { edit: { cart, change: words } }).catch((e) => ({ mode: 'fallback', why: [e.message] }));
+      usage = r.usage || null;
+      if (r.mode === 'claude') {
+        next = rebuild(cart, r.cart.items.map((i) => ({ id: i.id, qty: i.qty, reason: i.reason })), { notes: r.cart.notes, unmet: r.cart.unmet, budget: r.cart.budget ?? cart.budget });
+        mode = 'claude';
+      }
+    }
+    if (!next) {
+      const r = rulesEdit(cart, words, today);
+      next = r.cart;
+      note = r.note;
+      mode = live ? 'rules-fallback' : 'rules';
+    }
+  }
+
+  // The same checks as a fresh plan. A change that would break them is refused, and the cart stays as it was.
+  const chk = checkCart(next.items.map((i) => ({ id: i.id, qty: i.qty })), { partyDate: next.partyDate, today, kids: next.kids, budget: next.budget });
+  const over = next.budget && next.total > next.budget;
+  if (chk.hard.length || over) {
+    return { ok: false, cart: flagTheme(cart, text, today), why: over ? `That would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
+  }
+  next.unmet = [...next.unmet.filter((u) => !/ for \d+ kids|over the .* budget/.test(u)), ...chk.soft];
+  console.log(`[edit] ${mode}${usage ? ` ${usage.turns} turns, ${usage.input_tokens}+${usage.output_tokens} tokens` : ''}`);
+  return { ok: true, cart: flagTheme(next, text, today), diff: diffCarts(cart, next), budgetChanged: next.budget !== cart.budget ? next.budget : undefined, note, mode };
+});

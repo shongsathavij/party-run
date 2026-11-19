@@ -23,7 +23,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, trick: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { config: null, cart: null, mode: null, trick: null, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -102,7 +102,7 @@ function renderCart() {
       return `<section class="store">
         <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
         <ul class="items">${items
-          .map((i) => `<li><span>${i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
+          .map((i) => `<li><span>${state.locked && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}</span>${state.locked ? '' : stepper(i)}${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
           .join('')}</ul>
       </section>`;
     })
@@ -115,6 +115,60 @@ function renderCart() {
   $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? fallbackLine(state.fallback) : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
   $('#startOver').hidden = false;
+  $('#changeForm').hidden = Boolean(state.locked);
+}
+
+// + / − on one item. Favors step by pack.
+function stepper(i) {
+  const unit = i.per === 'pack' ? `${i.qty} pack${i.qty > 1 ? 's' : ''}` : `${i.qty}`;
+  return `<span class="qty" role="group" aria-label="How many ${esc(i.name)}">
+    <button type="button" data-q="${i.qty - 1}" data-id="${esc(i.id)}" aria-label="${i.qty > 1 ? 'One fewer' : 'Remove'}">${i.qty > 1 ? '−' : '×'}</button>
+    <span>${unit}</span>
+    <button type="button" data-q="${i.qty + 1}" data-id="${esc(i.id)}" aria-label="One more">+</button>
+  </span>`;
+}
+
+// One change to the cart, by tap or in words. The server rebuilds and checks it.
+async function changeCart(body, said) {
+  if (state.busy || state.locked) return;
+  state.busy = true;
+  $('#changeErr').hidden = true;
+  $('#changeBtn').setAttribute('aria-busy', 'true');
+  try {
+    const before = state.cart;
+    const r = await api('/api/edit', { prompt: $('#askText').value, today: localISO(), cart: before, ...body });
+    if (!r.ok) {
+      $('#changeErr').textContent = r.why;
+      $('#changeErr').hidden = false;
+      return;
+    }
+    // Keep the parent's earlier Keep/Drop answers for items that are still there.
+    state.cart = { ...r.cart, notes: r.cart.notes, theme: r.cart.theme };
+    const lines = [...r.diff];
+    if (r.budgetChanged !== undefined) lines.unshift(`Budget: ${money(before.budget)} → ${money(r.budgetChanged)}`);
+    state.changes.push({ said, lines, mode: r.mode, note: r.note, total: r.cart.total });
+    renderChanged();
+    renderCart();
+    renderPermit();
+    $('#changeText').value = '';
+  } catch (ex) {
+    $('#changeErr').textContent = ex.message;
+    $('#changeErr').hidden = false;
+  } finally {
+    state.busy = false;
+    $('#changeBtn').removeAttribute('aria-busy');
+  }
+}
+
+function renderChanged() {
+  const last = state.changes.at(-1);
+  $('#changed').hidden = !last;
+  if (!last) return;
+  const who = last.mode === 'claude' ? 'Claude' : last.mode === 'tap' ? '' : 'The rules-based agent';
+  $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'You changed an amount'}</span>
+    ${last.lines.length ? `<ul>${last.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul><p class="tot">New total ${money(last.total)}${who ? ` · changed by ${who}` : ''}</p>` : ''}
+    ${last.note ? `<p>${esc(last.note)}</p>` : ''}
+    ${state.changes.length > 1 ? `<p class="note">${state.changes.length} changes so far. Each one was checked like a new plan.</p>` : ''}`;
 }
 
 const themeWord = (t) => (t === 'brick' ? 'brick' : t || 'party');
@@ -263,6 +317,8 @@ const choice = (li) => new Promise((res) => li.querySelectorAll('[data-choice]')
 async function shop() {
   if (state.busy || pending().length) return;
   state.busy = true;
+  state.locked = true;
+  renderCart();
   const c = state.cart;
   const btn = $('#shopBtn');
   btn.setAttribute('aria-busy', 'true');
@@ -594,7 +650,7 @@ function copyReceipt() {
 function startOver() {
   if (state.busy) return;
   $('#receiptSheet').hidden = true;
-  Object.assign(state, { priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -615,6 +671,19 @@ function bind() {
   $('#again').addEventListener('click', startOver);
   $('#rcptPrint').addEventListener('click', () => window.print());
   $('#decide').addEventListener('click', decide);
+  $('#cartStores').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-q]');
+    if (b) changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
+  });
+  $('#changeForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const said = $('#changeText').value.trim();
+    if (said) changeCart({ change: said }, said);
+  });
+  $('#changeChips').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-say]');
+    if (b) changeCart({ change: b.dataset.say }, b.dataset.say);
+  });
   $('#missing').addEventListener('click', findAnother);
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
