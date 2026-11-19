@@ -136,4 +136,16 @@ assert.equal(fakePrices.cart.total, c.total, 'prices come from the catalog, not 
 const offTopic = await run('edit', { prompt: REAL, today, cart: c, change: 'What is the weather?' });
 assert.deepEqual(offTopic.diff, []);
 assert.ok(offTopic.note);
+
+// 12. What they asked for by name is tracked, so a missing piñata can be noticed and added
+assert.deepEqual([...c.asked].sort(), ['bounce', 'pinata']);
+assert.equal(c.little, true);
+const noPinata = { ...c, items: c.items.filter((i) => i.category !== 'pinata') };
+const added = await run('edit', { prompt: REAL, today, cart: noPinata, add: 'pinata' });
+assert.ok(added.ok && added.cart.items.some((i) => i.id === 'mi-pinata'), 'adds the pull-string piñata');
+const altPinata = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: true });
+assert.equal(altPinata.item, null, 'never a bat piñata with 2-year-olds');
+assert.match(altPinata.why, /safe with 2-year-olds/);
+const bigKids = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: false });
+assert.equal(bigKids.item.id, 'wm-pinata-5');
 console.log('All Party Run checks passed in sample mode.');

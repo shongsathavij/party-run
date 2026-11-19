@@ -3,7 +3,8 @@
 //  - change: the parent's words ("make the cake chocolate"). Claude when it's on, rules when it isn't.
 // Either way the new cart is rebuilt from the catalog and checked like a fresh plan. Nothing is
 // bought here, and any approved permission no longer matches, so the parent approves again.
-import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme } from './_lib/agent.js';
+import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme, readRequest } from './_lib/agent.js';
+import { pickFor } from './_lib/pick.js';
 import { checkCart, dollars } from '../lib/rules.js';
 import { byId } from '../lib/catalog.js';
 import { post, fail, isoDate, serverToday } from './_lib/http.js';
@@ -11,7 +12,7 @@ import { allowClaude } from './_lib/limits.js';
 
 const clean = (t) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 300);
 
-export default post(async ({ prompt, today: day, cart: raw, set, change }, req) => {
+export default post(async ({ prompt, today: day, cart: raw, set, change, add }, req) => {
   const text = String(prompt || '').trim().slice(0, 1200);
   const today = isoDate(day) || serverToday();
   if (!raw || !Array.isArray(raw.items) || !isoDate(raw.partyDate)) throw fail('Missing the cart.');
@@ -20,7 +21,15 @@ export default post(async ({ prompt, today: day, cart: raw, set, change }, req) 
   const cart = rebuild({ ...raw, budget: Number.isInteger(raw.budget) ? raw.budget : null, kids: Math.max(1, Math.min(60, Number(raw.kids) | 0 || 10)) }, lines);
 
   let next, mode, note = null, usage = null;
-  if (set) {
+  if (add) {
+    // "Add a piñata": the same picker as a replacement, within what the budget leaves.
+    const asked = readRequest(text, today);
+    const room = (cart.budget || Infinity) - cart.total;
+    const { pick, why } = pickFor({ category: String(add), date: cart.partyDate, today, room: Number.isFinite(room) ? room : 10 ** 9, theme: asked.theme, little: asked.little });
+    if (!pick) return { ok: false, cart: flagTheme(cart, text, today), why, mode: 'tap' };
+    next = rebuild(cart, [...cart.items.map((i) => ({ id: i.id, qty: i.qty })), { id: pick.id, qty: 1, reason: asked.little && pick.pull ? 'Pull-string, so no bat swinging near little kids.' : undefined }]);
+    mode = 'tap';
+  } else if (set) {
     const qty = Number(set.qty) | 0;
     if (!byId[set.id]) throw fail('Unknown item.');
     const out = cart.items.map((i) => ({ id: i.id, qty: i.id === set.id ? qty : i.qty }));
