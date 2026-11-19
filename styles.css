@@ -458,3 +458,7 @@ details.fold .stack .lbl { margin-top: 0; }
 @media (max-width: 600px) { .decide .acts .go, .decide .acts .ghost-btn { padding: 10px 14px; font-size: 15px; } }
 #step2.later { opacity: .55; filter: saturate(.6); }
 #step2.later:hover, #step2.later:focus-within, #step2.later:has(details[open]) { opacity: 1; filter: none; }
+/* A small bob while the agent is busy, so it reads as working, not waiting. */
+#thinkFace, body.shopping #runFace[data-mood="working"] { animation: bob 1.2s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(0) } 25% { transform: translateY(-3px) rotate(-5deg) } 75% { transform: translateY(-1px) rotate(4deg) } }
+@media (prefers-reduced-motion: reduce) { #thinkFace, body.shopping #runFace[data-mood="working"] { animation: none; } }

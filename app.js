@@ -39,9 +39,15 @@ async function api(path, body) {
 const INK = '#161412';
 const FACES = {
   idle: `<circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
-  working: `<circle cx="15" cy="12.5" r="2" fill="${INK}"/><circle cx="25" cy="12.5" r="2" fill="${INK}"/><path d="M14 23 q5 2.5 10 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  working: `<circle cx="15.5" cy="12" r="2.2" fill="${INK}"/><circle cx="25.5" cy="12" r="2.2" fill="${INK}"/><path d="M12 23 q6 3 12 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M20.5 23.9 q2.5 4 4.5 -0.6" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
   happy: `<path d="M9.5 16 q3.5 -4.5 7 0 M19.5 16 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M10 20 q8 11 16 0 z" fill="${INK}"/>`,
   brow: `<path d="M9 10.5 h7 M20 9.5 l7 -2.5" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M12 23 q6 2.5 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  // While it thinks: one face per line, so it visibly reacts to what it's doing.
+  read: `<circle cx="13" cy="17.5" r="2.2" fill="${INK}"/><circle cx="23" cy="17.5" r="2.2" fill="${INK}"/><path d="M14 25 h8" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  right: `<circle cx="16.5" cy="14" r="2.2" fill="${INK}"/><circle cx="26.5" cy="14" r="2.2" fill="${INK}"/><path d="M13 23 q6 4 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  yum: `<path d="M9.5 15.5 q3.5 -4.5 7 0 M19.5 15.5 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M19.5 24.6 q2.5 4.5 5 0.2" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
+  squint: `<path d="M10 15.5 h5.5 M20.5 15.5 h5.5" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M9.5 10.5 q3.5 -3 7 0 M19.5 9 q3.5 -3 7 0" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M13 24 q2.5 -2 5 0 q2.5 2 5 0" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+  up: `<circle cx="14" cy="11" r="2.2" fill="${INK}"/><circle cx="24" cy="11" r="2.2" fill="${INK}"/><circle cx="21" cy="24" r="2.4" fill="none" stroke="${INK}" stroke-width="2.2"/>`,
   wink: `<circle cx="13" cy="15" r="2" fill="${INK}"/><path d="M20 15.5 q3 2.5 6 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
 };
 function mood(el, m) {
@@ -123,15 +129,19 @@ const brick = (store) => {
 // ---------- asking ----------
 
 const THINKING = ['Reading your message…', 'Checking who has bounce houses…', 'Looking at cakes…', 'Finding favors for little hands…', 'Reading the fine print…', 'Adding it all up…'];
+const THINK_FACES = ['read', 'right', 'yum', 'read', 'squint', 'up'];
 let thinkTimer = null;
 function thinking(on) {
   clearInterval(thinkTimer);
   $('#thinking').hidden = !on;
   if (!on) return;
-  mood($('#thinkFace'), 'working');
   let n = 0;
-  $('#thinkingLine').textContent = THINKING[0];
-  thinkTimer = setInterval(() => ($('#thinkingLine').textContent = THINKING[(n = (n + 1) % THINKING.length)]), 1600);
+  const show = () => {
+    $('#thinkingLine').textContent = THINKING[n];
+    mood($('#thinkFace'), THINK_FACES[n]);
+  };
+  show();
+  thinkTimer = setInterval(() => { n = (n + 1) % THINKING.length; show(); }, 1600);
 }
 
 async function plan(e) {
