@@ -1,4 +1,4 @@
-// Cakewalk: ask → the agent's cart → what it may spend → the shopping run → the ledger.
+// Piece of Cake: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
@@ -36,14 +36,14 @@ async function api(path, body) {
 
 // A generic toy brick in the store's color: the badge for each store.
 // ---------- the agent's face ----------
-// One face, a few moods, on the cake's blue-and-white tier: thinking while it works, happy when a store is paid, an eyebrow
-// when it hands something to you, a wink when it ignores a hidden instruction.
+// One face, a few moods, on the cake's blue-and-white tier: thinking while it works, happy when a store is paid, one raised eyebrow
+// (curious, not cross) when it hands something to you, a wink when it ignores a hidden instruction.
 const INK = '#161412';
 const FACES = {
   idle: `<circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   working: `<circle cx="15.5" cy="12" r="2.2" fill="${INK}"/><circle cx="25.5" cy="12" r="2.2" fill="${INK}"/><path d="M12 23 q6 3 12 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M20.5 23.9 q2.5 4 4.5 -0.6" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
   happy: `<path d="M9.5 16 q3.5 -4.5 7 0 M19.5 16 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M10 20 q8 11 16 0 z" fill="${INK}"/>`,
-  brow: `<path d="M9 10.5 h7 M20 9.5 l7 -2.5" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M12 23 q6 2.5 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  brow: `<path d="M19.5 8.5 q3.5 -3.2 7 -0.6" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="14.5" r="2.2" fill="${INK}"/><path d="M12.5 21.5 q5.5 4 11 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   // While it thinks: one face per line, so it visibly reacts to what it's doing.
   read: `<circle cx="13" cy="17.5" r="2.2" fill="${INK}"/><circle cx="23" cy="17.5" r="2.2" fill="${INK}"/><path d="M14 25 h8" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   right: `<circle cx="16.5" cy="14" r="2.2" fill="${INK}"/><circle cx="26.5" cy="14" r="2.2" fill="${INK}"/><path d="M13 23 q6 4 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
@@ -1013,7 +1013,7 @@ function renderReceipt() {
 function copyReceipt() {
   const { c, perm, ask, charged, refunded, net } = receiptData();
   const out = [
-    `Cakewalk permission receipt (${perm.id}), test mode`,
+    `Piece of Cake permission receipt (${perm.id}), test mode`,
     `Party: ${prettyDate(c.partyDate)}. Budget ${money(budgetOf(c))}. Ask before ${ask}.`,
     '',
     ...c.stores.map((s) => `${s.name}: ${storeStory(s.store).lines.join(' ') || 'Not reached.'}`),
@@ -1103,7 +1103,7 @@ function bind() {
 function showWallet() {
   const w = state.wallet;
   if (!w) return;
-  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Cakewalk never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
 }
 // Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
 async function ensureWallet() {
@@ -1120,17 +1120,31 @@ const DANCES = ['walk', 'twist', 'hop', 'spin'];
 function dance(move = 'walk') {
   const l = $('#logo');
   if (calm()) return;
-  l.classList.remove(...DANCES);
+  // Prefixed so they never collide with other classes (.spin is the loading spinner).
+  l.classList.remove(...DANCES.map((d) => `go-${d}`));
   void l.offsetWidth;
-  l.classList.add(move);
-  setTimeout(() => l.classList.remove(move), 2300);
+  l.classList.add(`go-${move}`);
+  setTimeout(() => l.classList.remove(`go-${move}`), 2300);
 }
 const moonwalk = () => dance('walk');
 const randomDance = () => dance(DANCES[Math.floor(Math.random() * DANCES.length)]);
+// The big cake on the home page: one random dance on arrival, another each time it's tapped.
+function heroDance() {
+  const c = $('#heroCake');
+  if (!c || calm()) return;
+  // Prefixed so they never collide with other classes (.spin is the loading spinner).
+  const move = `go-${DANCES[Math.floor(Math.random() * DANCES.length)]}`;
+  c.classList.remove(...DANCES.map((d) => `go-${d}`));
+  void c.getBoundingClientRect();
+  c.classList.add(move);
+  setTimeout(() => c.classList.remove(move), 2300);
+}
 
 async function init() {
   bind();
   $('#logo').addEventListener('click', moonwalk);
+  $('#heroCake')?.addEventListener('click', heroDance);
+  setTimeout(heroDance, 700);
   try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
   // The request is fixed, so the box is exactly as tall as the words.

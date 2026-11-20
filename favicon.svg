@@ -6,9 +6,9 @@
       <clipPath id="t"><rect x="13" y="22" width="38" height="16" rx="7"/></clipPath>
     </defs>
     <g clip-path="url(#b)"><rect y="36" width="64" height="30" fill="#fff"/><rect y="36" width="64" height="8" fill="#7CC5EE"/><rect y="58" width="64" height="8" fill="#7CC5EE"/></g>
-    <g clip-path="url(#t)"><rect y="22" width="64" height="16" fill="#DC2C2A"/><rect y="28" width="64" height="4" fill="#fff"/></g>
+    <g clip-path="url(#t)"><rect y="22" width="64" height="16" fill="#EE3B3B"/><rect y="28" width="64" height="4" fill="#fff"/></g>
     <rect x="29.5" y="10" width="5" height="13" rx="2.5" fill="#7CC5EE"/>
-    <path d="M32 1c4 5 5 8 0 10-5-2-4-5 0-10z" fill="#DC2C2A"/>
+    <path d="M32 1c4 5 5 8 0 10-5-2-4-5 0-10z" fill="#EE3B3B"/>
     <circle cx="26" cy="50" r="2.6" fill="#111"/><circle cx="38" cy="50" r="2.6" fill="#111"/>
     <path d="M29 54.5q3 2.6 6 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/>
   </g>
