@@ -222,7 +222,25 @@
   <!-- The end of the run: one brick per store that got paid, then the receipt. -->
   <section class="success" id="success" hidden aria-labelledby="successTitle">
     <button class="link-btn back" id="backToRun" type="button">← Back to the run</button>
-    <div class="tower-wrap"><div class="cake big-cake" id="successCake" aria-hidden="true"></div><div class="tower" id="tower" aria-hidden="true"></div></div>
+    <!-- The cake does a victory dance: a different move each time. -->
+    <div class="dance-wrap" id="danceWrap">
+      <div class="dancer" id="dancer" aria-hidden="true">
+        <svg viewBox="0 0 120 150">
+          <g class="body">
+            <g class="legs"><path class="lg ll" d="M50 112 l-5 24 h-11"/><path class="lg lr" d="M70 112 l5 24 h11"/></g>
+            <g class="arms"><path class="arm al" d="M25 88 q-14 -4 -18 -20"/><path class="arm ar" d="M95 88 q14 -4 18 -20"/></g>
+            <rect x="24" y="72" width="72" height="40" fill="#fff" stroke="#111" stroke-width="4"/>
+            <path d="M28 82h64" stroke="#1FB5A8" stroke-width="4" stroke-dasharray="6 5"/>
+            <circle cx="50" cy="95" r="3.4" fill="#111"/><circle cx="70" cy="95" r="3.4" fill="#111"/>
+            <path class="smile" d="M52 102 q8 7 16 0" fill="none" stroke="#111" stroke-width="3.4" stroke-linecap="round"/>
+            <rect x="38" y="48" width="44" height="24" fill="#FF6B57" stroke="#111" stroke-width="4"/>
+            <rect x="57" y="27" width="6" height="21" fill="#111"/>
+            <path class="flame" d="M60 6c6 7 7 12 0 17c-7-5-6-10 0-17z" fill="#FFD23F" stroke="#111" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+      <p class="move" id="danceMove"></p>
+    </div>
     <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
     <p class="success-sub" id="successSub"></p>
     <div class="success-acts" id="successActs"></div>

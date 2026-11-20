@@ -692,3 +692,58 @@ body.shopping .brand-confetti { display: none; }
   .faq details > :not(summary) { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .logo.walk svg, .logo.walk .l1, .logo.walk .l2, .logo.walk .flame { animation: none; } }
+
+/* The success page: the cake's victory dance. One move per run (MOVES in app.js). */
+.dance-wrap { position: relative; padding-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.dancer svg { width: 180px; height: 225px; overflow: visible; display: block; }
+.dancer .lg, .dancer .arm { fill: none; stroke: var(--ink); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.dancer .body, .dancer .lg, .dancer .arm, .dancer .flame { transform-box: fill-box; }
+.dancer .body { transform-origin: 50% 100%; }
+.dancer .ll { transform-origin: 100% 0; } .dancer .lr { transform-origin: 0 0; }
+.dancer .al { transform-origin: 100% 100%; } .dancer .ar { transform-origin: 0 100%; }
+.dancer .flame { transform-origin: 50% 100%; animation: flick .3s ease-in-out infinite alternate; }
+.move { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.dancer, .dancer * { animation-iteration-count: 4; }
+.dancer .flame { animation-iteration-count: infinite; }
+
+/* The Moonwalk: glide back while the feet step forward. */
+.m-moonwalk .body { animation: mw-glide 2.4s linear 4; }
+.m-moonwalk .ll { animation: mw-step .6s ease-in-out 16; }
+.m-moonwalk .lr { animation: mw-step .6s ease-in-out -.3s 16; }
+@keyframes mw-glide { 0%, 100% { transform: translateX(0) } 45% { transform: translateX(-70px) rotate(-3deg) } 50% { transform: translateX(-70px) rotate(6deg) } 55% { transform: translateX(-70px) } }
+@keyframes mw-step { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(10px) rotate(-12deg) } }
+/* The Twist: hips one way, knees the other. */
+.m-twist .body { animation: tw-body .5s ease-in-out infinite alternate; animation-iteration-count: 16; }
+.m-twist .ll, .m-twist .lr { animation: tw-legs .5s ease-in-out infinite alternate; animation-iteration-count: 16; }
+.m-twist .al { animation: tw-arm .5s ease-in-out infinite alternate; animation-iteration-count: 16; }
+.m-twist .ar { animation: tw-arm .5s ease-in-out -.5s infinite alternate; animation-iteration-count: 16; }
+@keyframes tw-body { from { transform: rotate(-9deg) } to { transform: rotate(9deg) } }
+@keyframes tw-legs { from { transform: rotate(14deg) } to { transform: rotate(-14deg) } }
+@keyframes tw-arm { from { transform: rotate(-30deg) } to { transform: rotate(25deg) } }
+/* The Bunny Hop: squash, jump, land. */
+.m-hop .body { animation: hop .7s cubic-bezier(.3, 0, .3, 1) 8; }
+.m-hop .al, .m-hop .ar { animation: hop-arms .7s ease-in-out 8; }
+@keyframes hop { 0%, 100% { transform: translateY(0) scale(1.06, .92) } 20% { transform: translateY(0) scale(1) } 50% { transform: translateY(-34px) scale(.96, 1.05) } 80% { transform: translateY(0) scale(1) } }
+@keyframes hop-arms { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-40deg) } }
+/* The Spin: a full turn, then a bow. */
+.m-spin .body { animation: spin-turn 1.6s ease-in-out 5; }
+.m-spin .al, .m-spin .ar { animation: hop-arms .8s ease-in-out 10; }
+@keyframes spin-turn { 0% { transform: scaleX(1) } 25% { transform: scaleX(0) } 50% { transform: scaleX(-1) } 75% { transform: scaleX(0) } 90% { transform: scaleX(1) rotate(0) } 95% { transform: scaleX(1) rotate(-10deg) } 100% { transform: scaleX(1) } }
+/* The Robot: stiff, stepped, very serious. */
+.m-robot .body { animation: rb-body 1.6s steps(4) 5; }
+.m-robot .al { animation: rb-arm 1.6s steps(2) 5; }
+.m-robot .ar { animation: rb-arm 1.6s steps(2) -.8s 5; }
+@keyframes rb-body { 0% { transform: rotate(0) } 25% { transform: rotate(6deg) translateX(6px) } 50% { transform: rotate(0) } 75% { transform: rotate(-6deg) translateX(-6px) } }
+@keyframes rb-arm { 0% { transform: rotate(0) } 50% { transform: rotate(-90deg) } }
+/* The Sprinkler: one arm sweeps out in clicks, then snaps back. */
+.m-sprinkler .ar { animation: spr-arm 1.8s steps(6) 5; }
+.m-sprinkler .al { animation: spr-hand 1.8s ease-in-out 5; }
+.m-sprinkler .body { animation: spr-body 1.8s steps(6) 5; }
+@keyframes spr-arm { 0% { transform: rotate(-60deg) } 85% { transform: rotate(40deg) } 100% { transform: rotate(-60deg) } }
+@keyframes spr-hand { 0%, 100% { transform: rotate(-70deg) } }
+@keyframes spr-body { 0% { transform: rotate(-4deg) } 85% { transform: rotate(4deg) } 100% { transform: rotate(-4deg) } }
+/* Not complete yet: the cake taps its foot. */
+.m-wait .lr { animation: tap .5s ease-in-out infinite; }
+.m-wait .smile { transform: scaleY(-1); transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes tap { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-22deg) } }
+@media (prefers-reduced-motion: reduce) { .dancer *, .dancer .body { animation: none !important; } }

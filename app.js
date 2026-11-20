@@ -580,7 +580,7 @@ async function shop() {
   try {
     await ensureWallet();
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false, dance: null });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
@@ -874,51 +874,26 @@ async function findAnother(e) {
   }
 }
 
-// ---------- the success view: a brick tower, then the receipt ----------
+// ---------- the success view: the cake's victory dance, then the receipt ----------
 
-// One brick per store that got paid (in its color), and a gray gap for anything still missing.
-function towerSvg() {
-  const got = (s) => state.paid[s] && !state.paid[s].refunded;
-  const bricks = [
-    ...state.cart.stores.filter((s) => got(s.store)).map((s) => ({ color: STORES[s.store].color, label: STORES[s.store].name })),
-    ...missingNow().map((m) => ({ color: null, label: `No ${WHAT[m]}` })),
-  ];
-  const W = 170, H = 50, SH = 9, GAPX = 26, n = bricks.length;
-  const width = W + GAPX * 2 + 20, height = n * H + SH + 12;
-  const g = bricks
-    .map((b, i) => {
-      const y = height - (i + 1) * H - 4;
-      const x = 10 + (i % 2 ? GAPX * 2 : i % 4 === 0 ? 0 : GAPX);
-      const fill = b.color || '#EFEBE6';
-      const stroke = b.color ? '#161412' : '#9C958C';
-      const dash = b.color ? '' : ' stroke-dasharray="6 5"';
-      const studs = [0.2, 0.5, 0.8].map((f) => `<rect x="${x + W * f - 13}" y="${y - SH + 2}" width="26" height="${SH + 2}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"${dash}/>`).join('');
-      return `<g class="b${b.color ? '' : ' gap'}" style="animation-delay:${i * 230}ms">${studs}<rect x="${x}" y="${y}" width="${W}" height="${H - 4}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.4"${dash}/><text x="${x + W / 2}" y="${y + H / 2 + 3}" text-anchor="middle" font-size="14" font-weight="700" fill="${b.color ? '#161412' : '#57524C'}">${esc(b.label)}</text></g>`;
-    })
-    .join('');
-  return { svg: `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">${g}</svg>`, n };
-}
+// One move per run, picked at random, and named on the receipt.
+const MOVES = { moonwalk: 'The Moonwalk', twist: 'The Twist', hop: 'The Bunny Hop', spin: 'The Spin', robot: 'The Robot', sprinkler: 'The Sprinkler' };
+const danceMove = () => (state.dance ||= Object.keys(MOVES)[Math.floor(Math.random() * Object.keys(MOVES).length)]);
 
 function openSuccess() {
   renderReceipt();
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
-  const t = towerSvg();
   const complete = !miss.length && held;
-  // A complete party: the candles are blown out, then the bricks drop.
-  const lead = complete && !calm() && state.slots ? 1300 : 0;
-  $('#successCake').hidden = !lead;
-  if (lead) {
-    $('#successCake').innerHTML = cakeSvg(state.slots.length);
-    state.slots.forEach((x, i) => { const g = $(`#successCake [data-slot="${i}"]`); g.setAttribute('class', `candle ${x.state}`); g.style.setProperty('--c', STORES[x.store].color); });
-    $('#successCake').classList.remove('blowing');
-    void $('#successCake').offsetWidth;
-    $('#successCake').classList.add('blowing');
-  }
-  $('#tower').innerHTML = t.svg.replace(/animation-delay:(\d+)ms/g, (_, d) => `animation-delay:${Number(d) + lead}ms`);
-  $('#tower').style.setProperty('--done', `${t.n * 230 + 450 + lead}ms`);
-  // Confetti only when the party is complete.
-  $('#tower').insertAdjacentHTML('beforeend', !miss.length && held ? Array.from({ length: 14 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${t.n * 230 + 300 + lead + (i % 5) * 90}ms;background:${Object.values(STORES)[i % 6].color}"></i>`).join('') : '');
+  // A complete party gets the victory dance (and confetti). Otherwise the cake taps its foot.
+  const move = complete ? danceMove() : 'wait';
+  const d = $('#dancer');
+  d.className = 'dancer';
+  void d.offsetWidth;
+  d.classList.add(`m-${move}`);
+  $('#danceMove').textContent = complete ? `Victory dance: ${MOVES[move]}` : 'Saving the victory dance for when the party is complete.';
+  $('#danceWrap').querySelectorAll('.confetti').forEach((x) => x.remove());
+  if (complete) $('#danceWrap').insertAdjacentHTML('beforeend', Array.from({ length: 16 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${200 + (i % 5) * 110}ms;background:${['#FF6B57', '#1FB5A8', '#FFD23F'][i % 3]}"></i>`).join(''));
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
   $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
@@ -1034,7 +1009,7 @@ function renderReceipt() {
       : 'Never more than you approved. Every charge fit its pass.';
   const miss = missingNow();
   $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
-  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : 'The party is complete: every part of it is paid for.';
+  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : `The party is complete: every part of it is paid for. Victory dance: ${MOVES[danceMove()]}.`;
 }
 
 function copyReceipt() {
