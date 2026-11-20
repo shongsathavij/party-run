@@ -1,7 +1,7 @@
 // Pick one item of a kind for the party: free on the date, enough notice, within the money
 // left, never the made-up test store, on theme when possible, and safe for little kids.
 import { PRODUCTS, STORES, offTheme } from '../../lib/catalog.js';
-import { dollars } from '../../lib/rules.js';
+import { dollars, totals } from '../../lib/rules.js';
 import { fits as free, safeFor } from '../../lib/options.js';
 
 export const WHAT = { bounce: 'bounce house', cake: 'cake', pinata: 'piñata', decor: 'decorations', favors: 'favors', food: 'food' };
@@ -11,10 +11,12 @@ export function pickFor({ category, date, today, room, theme = null, little = fa
   const fits = PRODUCTS.filter((p) => p.category === category && !skip.has(p.store) && free(p, { date, today }));
   // With kids under 4: pull-string piñatas only, and favors rated ages 2 and up.
   const safe = fits.filter((p) => safeFor(p, little));
-  const affordable = safe.filter((p) => p.price <= room);
+  // What it would really cost at its own checkout: the item plus that store's delivery and tax.
+  const cost = (p) => totals([{ id: p.id, qty: 1 }]).total;
+  const affordable = safe.filter((p) => cost(p) <= room);
   const pick = affordable.find((p) => !offTheme(p, theme)) || affordable.sort((a, b) => a.price - b.price)[0];
   if (pick) return { pick };
   if (fits.length && !safe.length) return { why: `The only other ${WHAT[category]} ${fits.length > 1 ? 'options aren\'t' : 'isn\'t'} safe with 2-year-olds coming${category === 'pinata' ? ' (they need a bat)' : ''}.` };
-  if (safe.length) return { why: `The cheapest other ${WHAT[category]} is ${dollars(Math.min(...safe.map((p) => p.price)))}, and ${dollars(room)} is left in your budget.` };
+  if (safe.length) return { why: `The cheapest other ${WHAT[category]} comes to ${dollars(Math.min(...safe.map(cost)))} with delivery and tax, and ${dollars(room)} is left in your budget.` };
   return { why: `No other store has a ${WHAT[category]} free on that date.` };
 }

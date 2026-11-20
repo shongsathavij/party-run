@@ -55,17 +55,39 @@ async function previewCall(path, params, opts) {
   }
 }
 
-export async function mint({ store, cap, ref }) {
+// Onboarding: the parent saves a card once. In test mode that's Stripe's test Visa, saved to a
+// new Customer, so every pass the agent makes later draws on that saved card. The card number
+// never reaches Party Run's code, the agent, or the stores.
+export async function saveCard() {
+  if (!stripeKey()) return { customer: `cus_sample_${randomUUID().slice(0, 8)}`, paymentMethod: `pm_sample_${randomUUID().slice(0, 8)}`, brand: 'visa', last4: '4242', sample: true };
+  const cus = await call('/v1/customers', { description: 'Party Run demo parent (test mode)', metadata: { app: 'party-run' } });
+  const pm = await call('/v1/payment_methods/pm_card_visa/attach', { customer: cus.id });
+  return { customer: cus.id, paymentMethod: pm.id, brand: pm.card?.brand || 'visa', last4: pm.card?.last4 || '4242', sample: false };
+}
+
+export async function mint({ store, cap, ref, wallet = null }) {
   const expiresAt = Math.floor(Date.now() / 1000) + TOKEN_MINUTES * 60;
-  if (!stripeKey()) return { id: `spt_sample_${randomUUID().slice(0, 10)}`, cap, expiresAt, sample: true };
-  const t = await previewCall('/v1/test_helpers/shared_payment/granted_tokens', {
-    payment_method: 'pm_card_visa',
+  if (!stripeKey()) return { id: `spt_sample_${randomUUID().slice(0, 10)}`, cap, expiresAt, sample: true, paymentMethod: wallet?.paymentMethod || null };
+  const saved = wallet && /^pm_/.test(wallet.paymentMethod) && !/sample/.test(wallet.paymentMethod) ? wallet : null;
+  const params = (w) => ({
+    payment_method: w ? w.paymentMethod : 'pm_card_visa',
+    customer: w ? w.customer : undefined,
     usage_limits: { currency: 'usd', max_amount: cap, expires_at: expiresAt },
     // The test helper takes payment_method, usage_limits, customer and shared_metadata
     // only (no seller_details), so the store and run go in shared_metadata.
     shared_metadata: { app: 'party-run', store, ref },
   });
-  return { id: t.id, cap: t.usage_limits?.max_amount ?? cap, expiresAt: t.usage_limits?.expires_at ?? expiresAt, sample: false };
+  // The pass draws on the parent's saved card. If the test helper won't take it, fall back to
+  // Stripe's test Visa and say so in Under the hood.
+  let t, fellBack = false;
+  try {
+    t = await previewCall('/v1/test_helpers/shared_payment/granted_tokens', params(saved));
+  } catch (e) {
+    if (!saved) throw e;
+    t = await previewCall('/v1/test_helpers/shared_payment/granted_tokens', params(null));
+    fellBack = true;
+  }
+  return { id: t.id, cap: t.usage_limits?.max_amount ?? cap, expiresAt: t.usage_limits?.expires_at ?? expiresAt, sample: false, paymentMethod: saved && !fellBack ? saved.paymentMethod : 'pm_card_visa', fellBack };
 }
 
 // What happened when the store tried to charge. `blocked` means the token refused it.

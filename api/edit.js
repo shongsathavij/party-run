@@ -71,7 +71,7 @@ export default post(async ({ prompt, today: day, cart: raw, set, change, add, sw
   const chk = checkCart(next.items.map((i) => ({ id: i.id, qty: i.qty })), { partyDate: next.partyDate, today, kids: next.kids, budget: next.budget });
   const over = next.budget && next.total > next.budget;
   if (chk.hard.length || over) {
-    return { ok: false, cart: flagTheme(cart, text, today), why: over ? `That would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
+    return { ok: false, cart: flagTheme(cart, text, today), why: over ? `With delivery and tax, that would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
   }
   // If the parent picks something not meant for 2-year-olds, it's their call; the cart says so.
   const safety = safetyProblems(next.items, text, today).map((m) => m.replace(/ Use a pull-string.*| Pick favors.*/, ''));

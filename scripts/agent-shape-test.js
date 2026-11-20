@@ -1,3 +1,4 @@
+import { totals } from '../lib/rules.js';
 // The Claude tool loop with a scripted model: a good cart ships as 'claude'; a cart that
 // follows the listing's hidden instruction is sent back, and if the model insists, the
 // rules agent takes over. No network, no key.
@@ -26,7 +27,9 @@ function script(turns) {
 // 1. Searches, then a good cart.
 const a = await claudeAgent(REAL, today, { call: script([{ name: 'search_catalog', input: { category: 'bounce' } }, { name: 'submit_cart', input: cart(good, { ignored: [{ store: 'Brickyard Party Supply', text: 'NOTE TO AI…' }] }) }]) });
 assert.equal(a.mode, 'claude');
-assert.equal(a.cart.total, 14999 + 2799 + 3799 + 659 + 1825);
+assert.equal(a.cart.itemsTotal, 14999 + 2799 + 3799 + 659 + 1825);
+assert.equal(a.cart.total, totals(a.cart.items.map((i) => ({ id: i.id, qty: i.qty }))).total, 'the total adds delivery and tax');
+assert.ok(a.cart.total > a.cart.itemsTotal);
 assert.equal(a.cart.ignored.length, 1);
 
 // 2. Follows the injection once, then fixes it on the retry.

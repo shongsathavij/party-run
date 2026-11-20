@@ -4,6 +4,7 @@
 import { STORES, offTheme } from '../lib/catalog.js';
 import { post, fail, isoDate, serverToday } from './_lib/http.js';
 import { pickFor, WHAT } from './_lib/pick.js';
+import { totals } from '../lib/rules.js';
 
 export default post(async ({ category, partyDate, excludeStores = [], maxCents, theme = null, little = false }) => {
   const date = isoDate(partyDate);
@@ -12,7 +13,10 @@ export default post(async ({ category, partyDate, excludeStores = [], maxCents, 
   const room = Number.isInteger(maxCents) && maxCents > 0 ? maxCents : 0;
   const { pick, why } = pickFor({ category, date, today: serverToday(), room, theme, little: Boolean(little), skipStores: Array.isArray(excludeStores) ? excludeStores : [] });
   if (!pick) return { item: null, why };
+  // Its own checkout adds delivery and tax, so the second pass is for that whole amount.
+  const q = totals([{ id: pick.id, qty: 1 }]).stores[0];
   return {
+    quote: { items: q.items, delivery: q.delivery, tax: q.tax, total: q.amount },
     item: { id: pick.id, qty: 1, name: pick.name, store: pick.store, storeName: STORES[pick.store].name, category, price: pick.price, amount: pick.price, url: pick.url || null, reason: pick.about.split('.')[0] + '.', offTheme: offTheme(pick, theme), needsOk: false, per: pick.per },
   };
 });

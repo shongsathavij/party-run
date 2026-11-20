@@ -2,9 +2,9 @@
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
-import { DEFAULT_ASK_OVER } from './lib/rules.js';
+import { DEFAULT_ASK_OVER, totals, DEMO_ZIP } from './lib/rules.js';
 import { optionsFor, qtyFor } from './lib/options.js';
-import { offTheme } from './lib/catalog.js';
+import { offTheme, FULFILL_WORDS } from './lib/catalog.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -195,7 +195,7 @@ function renderCart() {
     .map((x) => `I didn't follow it, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
   renderGroups();
-  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Nothing is ordered.`;
+  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}. Prices as listed; delivery and tax are estimates. Nothing is ordered.`;
   renderAskedMissing();
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
@@ -284,10 +284,9 @@ const WHAT = { bounce: 'bounce house', cake: 'cake', pinata: 'piñata', decor: '
 
 // The cart's totals, regrouped by store after the parent drops something.
 function regroup(c) {
-  const stores = {};
-  for (const i of c.items) (stores[i.store] ||= { store: i.store, name: i.storeName, amount: 0 }).amount += i.amount;
-  c.stores = Object.values(stores);
-  c.total = c.items.reduce((a, i) => a + i.amount, 0);
+  const t = totals(c.items.map((i) => ({ id: i.id, qty: i.qty })));
+  c.stores = t.stores.map(({ lines: _, ...x }) => x);
+  Object.assign(c, { total: t.total, itemsTotal: t.items, delivery: t.delivery, tax: t.tax });
 }
 
 // Something they asked for by name isn't in the cart at all: say so, and offer to add it.
@@ -359,7 +358,7 @@ function itemRow(i, theme) {
     </div>`;
   const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
   return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
-      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
       <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
       ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
     </li>`;
@@ -429,9 +428,10 @@ function renderPermit() {
   const budget = budgetOf(c);
   $('#permitTotal').textContent = money(c.total);
   $('#permitOf').textContent = c.budget ? `of your ${money(c.budget)} budget` : 'No budget given, so the cart is the limit.';
+  $('#permitBreak').innerHTML = `Items ${money(c.itemsTotal)} · delivery ${money(c.delivery)} · tax ${money(c.tax)}<span>Delivery and tax to ${DEMO_ZIP} are estimates; each store's checkout has the final word, and its pass covers it.</span>`;
   $('#permitLine').textContent = permitLine(c);
   $('#caps').innerHTML = c.stores
-    .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}</span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
+    .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}<small>${money(s.items)} + ${s.delivery ? `${money(s.delivery)} ${s.how === 'delivery' ? 'delivery' : 'shipping'}` : 'pickup'} + ${money(s.tax)} tax</small></span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
     .join('');
   $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" class="chip" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
   $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
@@ -553,6 +553,7 @@ function hoodHtml(store, h, flat = false) {
   const rows = [
     ['Pass', `<code>${esc(h.token)}</code>${h.sample ? ' (simulated)' : ' (Stripe shared payment token, test mode)'}`],
     ['Limit', `${money(h.cap)}, made for ${esc(STORES[store].name)} only, expires ${time}`],
+    h.paymentMethod && ['Draws on', `<code>${esc(h.paymentMethod)}</code>${h.savedCard ? ' (the card you saved)' : h.sample ? '' : " (Stripe's test Visa; the saved card wasn't accepted by the test helper)"}`],
     ['Store charged', `${money(h.asked)}${over ? `, ${money(h.asked - h.cap)} over the limit` : ''}`],
     ['Result', result],
     h.paymentIntent && ['PaymentIntent', `<code>${esc(h.paymentIntent)}</code>${h.piStatus ? ` (${esc(h.piStatus)})` : ''}`],
@@ -577,7 +578,7 @@ async function shop() {
   btn.setAttribute('aria-busy', 'true');
   $('#permitErr').hidden = true;
   try {
-    const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate });
+    const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
@@ -837,14 +838,15 @@ async function findAnother(e) {
       return;
     }
     const it = r.item;
+    const q = r.quote;
     li.className = 'asking';
-    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(it.amount)}</span></div><span class="status">Waiting for you.</span>`;
+    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(q.total)}</span></div><span class="status">Waiting for you.</span>`;
     const pick = await handoff({
       title: `Book ${it.storeName} instead?`,
       why: `The party has no ${esc(WHAT[cat])} now${tried.some((t) => state.paid[t]?.refunded) ? ' (the test cancellation)' : ''}. A replacement is new spending, so it's your call.`,
-      suggest: `${it.name}, ${money(it.amount)}, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${themeWord(c.theme)}-themed.` : ''}`,
-      next: `If you approve, it's a second, separate permission: ${money(it.amount)} for ${it.storeName} only. Your first approval doesn't stretch to cover it.`,
-      acts: [['yes', `Approve ${money(it.amount)}`, 'go'], ['no', 'Not now', 'ghost-btn']],
+      suggest: `${it.name}, ${money(it.amount)} plus ${money(q.delivery + q.tax)} estimated delivery and tax, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${themeWord(c.theme)}-themed.` : ''}`,
+      next: `If you approve, it's a second, separate permission: ${money(q.total)} for ${it.storeName} only. Your first approval doesn't stretch to cover it.`,
+      acts: [['yes', `Approve ${money(q.total)}`, 'go'], ['no', 'Not now', 'ghost-btn']],
       link: it.url,
     });
     if (pick !== 'yes') {
@@ -855,13 +857,13 @@ async function findAnother(e) {
     li.remove();
     delete state.rows[key];
     // A second, separate permission: this store only, this amount only, within what's left.
-    const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate });
+    const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm });
-    state.caps[it.store] = { approved: it.amount, final: it.amount };
-    state.extraPermits.push({ id: p.perm.id, amount: it.amount, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
+    state.caps[it.store] = { approved: q.total, final: q.total };
+    state.extraPermits.push({ id: p.perm.id, amount: q.total, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
     c.items.push(it);
     regroup(c);
-    await buy(it.store, it.amount, { approved: true });
+    await buy(it.store, q.total, { approved: true });
   } catch (ex) {
     li.className = 'blocked';
     li.innerHTML = `<div class="row"><b>Couldn't find another ${esc(WHAT[cat])}</b></div><span class="status">${esc(ex.message)}</span>`;
@@ -987,6 +989,8 @@ function renderReceipt() {
     ['Agent may spend', `${money(perm.total)} across ${Object.keys(perm.stores).length} stores, each with its own limit`],
     ['Ask me before', ask],
     ['Ends', `${prettyDate(perm.ends)}. Nothing can be bought after the party.`],
+    ['Paid with', state.wallet ? `${cap1(state.wallet.brand)} •••• ${state.wallet.last4}, saved to Stripe at setup${state.wallet.sample ? ' (simulated)' : ' (test mode)'}` : 'Stripe test Visa'],
+    ['Delivering to', `ZIP ${DEMO_ZIP} (demo). Delivery and tax were estimates inside each store's limit.`],
     ['Each pass', 'One store, one charge, up to its limit, for 30 minutes'],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   const agent = [
@@ -995,7 +999,7 @@ function renderReceipt() {
     ...c.ignored.map((x) => `Ignored an instruction hidden in a listing from ${x.store}${STORES.brickyard && x.store === STORES.brickyard.name ? ' (our made-up test store)' : ''}, and bought nothing because of it.`),
     ...c.items.filter((i) => state.decided[i.id] === 'kept').map((i) => `You kept the ${i.name}, knowing it isn't ${themeWord(c.theme)}-themed.`),
     ...state.extraPermits.map((x) => `After the ${x.reason}, you approved a second permission: ${money(x.amount)} for ${x.storeName} only.`),
-    'It never held a payment method. The server made each pass after you approved.',
+    'It never held your card. The server made each pass from your saved card, after you approved.',
   ];
   $('#rcptAgent').innerHTML = agent.map((a) => `<li>${esc(a)}</li>`).join('');
   $('#rcptStores').innerHTML = c.stores
@@ -1120,8 +1124,43 @@ function bind() {
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
+// ---------- onboarding: save a card, see how passes work ----------
+
+function showWallet() {
+  const w = state.wallet;
+  $('#cardDone').hidden = false;
+  $('#cardDone').innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(cap1(w.brand))} •••• ${esc(w.last4)} saved to Stripe${w.sample ? ' (simulated)' : ', test mode'}.<small>Customer <code>${esc(w.customer)}</code> · card <code>${esc(w.paymentMethod)}</code></small></span>`;
+  $('#saveCard').hidden = true;
+  $('#sCard').classList.add('done');
+  $('#setupDone').disabled = false;
+  $('#walletLine').hidden = false;
+  $('#walletLine').innerHTML = `Paying with ${esc(cap1(w.brand))} •••• ${esc(w.last4)} · delivering to ${DEMO_ZIP}`;
+}
+async function saveCard() {
+  $('#setupErr').hidden = true;
+  $('#saveCard').setAttribute('aria-busy', 'true');
+  try {
+    state.wallet = (await api('/api/setup', {})).wallet;
+    try { sessionStorage.setItem('partyRunWallet', JSON.stringify(state.wallet)); } catch {}
+    showWallet();
+  } catch (ex) {
+    $('#setupErr').textContent = ex.message;
+    $('#setupErr').hidden = false;
+  } finally {
+    $('#saveCard').removeAttribute('aria-busy');
+  }
+}
+function finishSetup() {
+  $('#setup').hidden = true;
+  $('#ask').hidden = false;
+  $('#askBtn').focus();
+}
+
 async function init() {
   bind();
+  $('#saveCard').addEventListener('click', saveCard);
+  $('#setupDone').addEventListener('click', finishSetup);
+  try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
   $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {

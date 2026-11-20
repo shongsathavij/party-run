@@ -43,7 +43,15 @@ console.log(`cart: ${c.items.length} items, $${c.total / 100}, ${c.stores.length
 
 // 2. Approve it
 const items = c.items.map((i) => ({ id: i.id, qty: i.qty }));
-const p = await run('permit', { items, budget: c.budget, askOver: 10000, partyDate: c.partyDate });
+// 2a. Onboarding: the parent saves a card once; the permission names it, signed.
+const setup = await run('setup', {});
+assert.ok(setup.wallet.customer.startsWith('cus_') && setup.wallet.paymentMethod.startsWith('pm_') && setup.wallet.last4 === '4242');
+const p = await run('permit', { items, budget: c.budget, askOver: 10000, partyDate: c.partyDate, wallet: { ...setup.wallet, number: '4242424242424242' } });
+assert.equal(p.perm.wallet.paymentMethod, setup.wallet.paymentMethod);
+assert.equal(p.perm.wallet.number, undefined, 'only Stripe ids are kept, never a card number');
+assert.equal(c.total, c.itemsTotal + c.delivery + c.tax, 'the total is items, delivery and tax');
+const swappedCard = JSON.stringify({ ...JSON.parse(p.permission), wallet: { ...p.perm.wallet, paymentMethod: 'pm_someone_else' } });
+assert.equal((await run('buy', { permission: swappedCard, signature: p.signature, store: 'target' })).code, 400, 'a swapped card is refused');
 assert.equal(p.code, 200, p.error);
 assert.equal(Object.keys(p.perm.stores).length, c.stores.length);
 const over = await run('permit', { items, budget: 10000, askOver: 10000, partyDate: c.partyDate });
@@ -58,18 +66,20 @@ const ask = await run('buy', { permission: p.permission, signature: p.signature,
 assert.equal(ask.status, 'ask');
 const yes = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true });
 assert.equal(yes.status, 'paid');
-assert.equal(yes.amount, 14500);
+const CM = c.stores.find((s) => s.store === 'cm-events');
+assert.equal(CM.amount, 14500 + 5000 + Math.round(14500 * 0.0975), 'the rental: item, delivery estimate and tax');
+assert.equal(yes.amount, CM.amount);
 
 // 4. The price-hike curveball is refused by the pass; the parent raises the cap; it goes through
 const hike = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(hike.status, 'blocked');
-assert.equal(hike.asked, 16500);
+assert.equal(hike.asked, CM.amount + 2000);
 assert.match(hike.why, /made-up fee/);
 const r = await run('raise', { permission: p.permission, signature: p.signature, store: 'cm-events', newCap: hike.asked });
 assert.equal(r.code, 200, r.error);
 const again = await run('buy', { permission: r.permission, signature: r.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(again.status, 'paid');
-assert.equal(again.amount, 16500);
+assert.equal(again.amount, CM.amount + 2000);
 
 // 5. Tampering and other stores
 const forged = JSON.stringify({ ...JSON.parse(p.permission), budget: 999900 });
@@ -122,9 +132,9 @@ const two = await run('edit', { prompt: REAL, today, cart: c, change: 'Two cakes
 assert.ok(two.ok && two.diff[0].includes('1 → 2'));
 const choc = await run('edit', { prompt: REAL, today, cart: c, change: 'Make the cake chocolate' });
 assert.match(choc.diff[0], /^Swapped Vanilla Celebration Cake.* for Chocolate Celebration Cake.*\(same price\)$/);
-const under300 = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $250' });
-assert.equal(under300.budgetChanged, 25000);
-assert.ok(under300.cart.total <= 25000 && under300.diff.length > 0);
+const under300 = await run('edit', { prompt: REAL, today, cart: c, change: 'Keep it under $350' });
+assert.equal(under300.budgetChanged, 35000, under300.why);
+assert.ok(under300.cart.total <= 35000 && under300.diff.length > 0);
 const tap = await run('edit', { prompt: REAL, today, cart: c, set: { id: 'tg-juice', qty: 2 } });
 assert.equal(tap.mode, 'tap');
 assert.equal(tap.cart.total, c.total + 899);
