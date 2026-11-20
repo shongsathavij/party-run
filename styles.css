@@ -578,7 +578,8 @@ html, body { background: var(--paper); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Headlines: heavy grotesk, no italics. */
-.h, .ask-title, .cart-summary, .grp-head h3, .success-title, .hero-title { font-family: var(--sans); font-weight: 900; letter-spacing: -0.035em; }
+.h, .ask-title, .cart-summary, .grp-head h3, .success-title, .hero-title { font-family: var(--sans); font-weight: 900; letter-spacing: -0.02em; word-spacing: .04em; }
+.cart-summary, .grp-head h3 { font-weight: 800; letter-spacing: -0.01em; }
 .h i, .success-title i { font-style: normal; }
 .h { font-size: 26px; }
 .cart-summary { font-size: 22px; line-height: 1.15; }

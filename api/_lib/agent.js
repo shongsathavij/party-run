@@ -495,7 +495,10 @@ function finish(c, today, mode) {
 }
 
 // The agent's own words say "building-brick", not the trademark. (The parent's words can say Lego.)
-export const plain = (s) => s.replace(/\bLEGO(?:[- ](?:style|themed|like))?\b/gi, 'building-brick');
+// Our own words avoid the trademark. A swap at the start of a sentence keeps its capital.
+export const plain = (s) => s
+  .replace(/\bLEGO(?:[- ](?:style|themed|like))?\b/gi, 'building-brick')
+  .replace(/(^|[.!?]\s+)building-brick/g, (_, pre) => `${pre}Building-brick`);
 
 export async function planParty({ prompt, today, apiKey = process.env.ANTHROPIC_API_KEY, model, call, plant }) {
   if (!apiKey && !call) return rulesAgent(prompt, today, { plant });
