@@ -1,10 +1,5 @@
-/* Same system as Supper & a Show (D4): white page, Instrument Serif headlines,
-   Inter Tight everywhere else, ink outlines, sticker chips. Each color has one job:
-     violet = anything you tap to act (Plan it, Let the agent shop, Approve)
-     yellow = the sticker and the agent's face
-     butter = the agent's voice (its bubbles)
-     store colors = the brick badge for each kind of store
-     green  = money that went through; red = refused, over budget, errors */
+/* Base layer (originally the Supper & a Show system). The Cakewalk layer at the end of
+   this file restyles it; the color jobs are described there. */
 :root {
   --paper: #FFFFFF;
   --ink: #161412;
@@ -554,3 +549,145 @@ details.fold .stack .lbl { margin-top: 0; }
   .f-arrow { transform: rotate(90deg); margin: 6px 0; }
   .flow { flex-direction: column; align-items: flex-start; }
 }
+
+/* =====================================================================
+   Cakewalk: Memphis, pared back. Warm white, thick ink outlines, and
+   four colors with one job each:
+     coral  = anything you tap to act (Plan it, Approve and shop, Swap)
+     teal   = the chatbox's offset shadow, links and small accents
+     yellow = celebration only: the candle, the BETA sticker, paid moments
+     ink    = outlines and type
+   (The old --violet variable now carries the dark teal used for text accents,
+   so every link and kicker stays readable.)
+   ===================================================================== */
+:root {
+  --paper: #FFFDF8;
+  --ink: #111111;
+  --coral: #FF6B57;
+  --coral-soft: #FFE3DD;
+  --teal: #1FB5A8;
+  --teal-ink: #0B6E66;
+  --violet: #0B6E66;
+  --violet-ink: #085650;
+  --violet-soft: #D9F3F0;
+  --butter: #FFFFFF;
+  --serif: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+html, body { background: var(--paper); }
+:focus-visible { outline-color: var(--teal-ink); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Headlines: heavy grotesk, no italics. */
+.h, .ask-title, .cart-summary, .grp-head h3, .success-title, .hero-title { font-family: var(--sans); font-weight: 900; letter-spacing: -0.035em; }
+.h i, .success-title i { font-style: normal; }
+.h { font-size: 26px; }
+.cart-summary { font-size: 22px; line-height: 1.15; }
+.grp-head h3 { font-size: 20px; }
+
+/* Brand bar: wordmark, the cake, three pieces of confetti, the BETA sticker. */
+.brand { max-width: 1100px; margin: 0 auto; padding-top: 20px; display: flex; align-items: center; gap: 6px; position: relative; }
+.wordmark { font-weight: 900; font-size: 24px; letter-spacing: -0.03em; }
+.logo { all: unset; cursor: pointer; width: 38px; height: 38px; display: block; position: relative; z-index: 1; }
+.logo:focus-visible { outline: 3px solid var(--teal-ink); outline-offset: 2px; }
+.logo svg { width: 38px; height: 38px; overflow: visible; display: block; }
+.logo .legs path { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.logo .legs { opacity: 0; transition: opacity .12s; }
+.logo.walk .legs { opacity: 1; }
+.logo.walk svg { animation: moon 2.2s linear; }
+.logo.walk .l1 { animation: stepA .44s ease-in-out 5; }
+.logo.walk .l2 { animation: stepB .44s ease-in-out 5; }
+.logo.walk .flame { animation: flick .22s ease-in-out 10 alternate; transform-origin: 20px 7px; }
+@keyframes moon { 0% { transform: translateX(0) } 8% { transform: translateX(-3px) rotate(-3deg) } 48% { transform: translateX(110px) rotate(-3deg) } 54% { transform: translateX(110px) rotate(8deg) scale(1.08) } 60% { transform: translateX(110px) rotate(0) } 100% { transform: translateX(0) } }
+@keyframes stepA { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
+@keyframes stepB { 0%, 100% { transform: translateX(4px) } 50% { transform: translateX(-1px) } }
+@keyframes flick { to { transform: scale(1.25) } }
+.brand-confetti { position: absolute; right: 120px; top: 6px; width: 120px; height: 94px; pointer-events: none; }
+.beta { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .14em; background: var(--yellow); border: 2.5px solid var(--ink); padding: 3px 9px; transform: rotate(-4deg); position: relative; }
+body.shopping .brand-confetti { display: none; }
+
+/* Home: one headline, one line, one chatbox. */
+.ask { max-width: 860px; }
+.hero-title { margin: 22px 0 0; font-size: clamp(38px, 6.4vw, 56px); line-height: 1; white-space: nowrap; }
+.hero-title em { font-style: normal; color: var(--coral); position: relative; white-space: nowrap; }
+.hero-title em svg { position: absolute; left: 0; bottom: -12px; width: 100%; height: 12px; }
+.hero-sub { margin: 26px 0 0; font-size: 18px; line-height: 1.45; max-width: 32em; color: #2A2622; }
+.ask-box { border: 3px solid var(--ink); border-radius: 0; padding: 0; gap: 0; background: #fff; box-shadow: 8px 8px 0 var(--teal), 8px 8px 0 3px var(--ink); margin-top: 22px; }
+.ask-box textarea { font-size: 20px; padding: 18px 20px; min-height: 120px; }
+.ask-row { border-top: 3px solid var(--ink); padding: 10px 10px 10px 20px; }
+.trick { border-radius: 0 !important; border: 2px dashed var(--ink) !important; }
+.success .back { position: relative; z-index: 3; }
+
+/* Buttons: coral pills with an ink outline and a hard shadow. */
+.go, .pay-btn { background: var(--coral); color: var(--ink); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); font-weight: 800; }
+.go:hover, .pay-btn:hover { background: #FF8573; }
+.go:active, .pay-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.go[disabled], .pay-btn[disabled] { background: #EDE7DF; box-shadow: none; }
+.pay-btn { box-shadow: 4px 4px 0 var(--ink); min-height: 58px; font-size: 18px; }
+.ghost-btn { border-width: 2.5px; }
+.chip[aria-checked="true"], .chip.on { background: var(--ink); color: #fff; }
+
+/* Conversation: the parent in ink, the agent in white with a teal shadow. */
+.me { border-radius: 0; background: var(--ink); }
+.bubble { background: #fff; border: 3px solid var(--ink); border-radius: 0; box-shadow: 6px 6px 0 var(--teal), 6px 6px 0 3px var(--ink); }
+.avatar { border-width: 2.5px; }
+.grp { border: 2.5px solid var(--ink); border-radius: 0; background: #fff; }
+.grp-head { border-bottom-width: 2.5px; }
+.flag { border-radius: 0; border: 2.5px solid var(--ink); border-left: 8px solid var(--coral); background: #fff; }
+.opts { border-radius: 0; background: var(--soft); border: 2px solid var(--ink); }
+.decide { border-radius: 0; box-shadow: 4px 4px 0 var(--teal); border-color: var(--ink); }
+.tag { border-radius: 0; }
+
+/* Sheets: square, thick outline. */
+.sheet { border: 3px solid var(--ink); border-radius: 0; background: #fff; }
+.total-amt { font-weight: 900; letter-spacing: -0.03em; }
+.pay-with { display: flex; flex-direction: column; gap: 8px; }
+.pay-with .lbl { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.pay-with .cardbox { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; border: 2.5px solid var(--ink); background: #fff; border-radius: 0; overflow: visible; }
+.cb-f { padding: 8px 12px; border-right: 2px solid var(--ink); display: flex; flex-direction: column; }
+.cb-f:last-child { border-right: 0; }
+.cb-lbl { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cb-val { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.pay-with .note { margin: 0; }
+.pay-with a, .faq a { color: var(--teal-ink); font-weight: 700; }
+.fold { border-top-style: solid; border-top-color: var(--ink); }
+.run li { border-radius: 0; border: 2px solid var(--ink); background: #fff; }
+.queue li { border-radius: 0 !important; }
+.handoff { border-radius: 0; border-width: 3px; }
+.cart-mini { border-radius: 0 !important; border: 2.5px solid var(--ink) !important; }
+
+/* How it works: collapsed at the very bottom. */
+.faq { max-width: 1100px; margin: 56px auto 0; border-top: 3px solid var(--ink); }
+.faq h2 { margin: 16px 0 6px; font-weight: 900; font-size: 26px; letter-spacing: -0.03em; }
+.faq details { border-bottom: 2px solid var(--ink); }
+.faq summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 15px 0; font-weight: 700; font-size: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; margin-left: auto; font-weight: 900; font-size: 22px; line-height: 1; }
+.faq details[open] summary::after { content: '−'; }
+.faq summary i { width: 12px; height: 12px; border: 2.5px solid var(--ink); flex: none; }
+.faq details:nth-of-type(2) summary i { background: var(--teal); border-radius: 99px; }
+.faq details:nth-of-type(3) summary i { background: var(--yellow); transform: rotate(45deg); }
+.faq details:nth-of-type(4) summary i { background: var(--coral); }
+.faq details:nth-of-type(5) summary i { background: var(--ink); border-radius: 99px; }
+.faq details > :not(summary) { margin: 0 0 18px 24px; max-width: 46em; font-size: 15px; line-height: 1.55; }
+.faq-steps, .faq-promises { padding-left: 18px; display: grid; gap: 6px; }
+.faq-flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ff-card, .ff-pass { border: 2.5px solid var(--ink); padding: 10px 14px; font-weight: 800; }
+.ff-card { background: var(--ink); color: #fff; }
+.ff-card small, .ff-pass small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+.ff-pass { background: var(--coral-soft); border-style: dashed; }
+.ff-pass b { font-size: 13px; }
+.ff-arrow { width: 28px; height: 3px; background: var(--ink); position: relative; }
+.ff-arrow::after { content: ''; position: absolute; right: -2px; top: -5px; border-left: 9px solid var(--ink); border-top: 6.5px solid transparent; border-bottom: 6.5px solid transparent; }
+.faq-proof { background: var(--ink); color: #fff; padding: 14px 16px; }
+.faq-proof b { color: var(--yellow); }
+
+@media (max-width: 700px) {
+  .hero-title { white-space: normal; font-size: 40px; }
+  .brand-confetti { right: 86px; width: 90px; height: 70px; }
+  .ask-box { box-shadow: 6px 6px 0 var(--teal), 6px 6px 0 3px var(--ink); }
+  .ask-box textarea { font-size: 18px; }
+  .pay-with .cardbox { grid-template-columns: 1fr 1fr 1fr; }
+  .cb-f.wide { grid-column: 1 / -1; border-right: 0; border-bottom: 2px solid var(--ink); }
+  .faq details > :not(summary) { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .logo.walk svg, .logo.walk .l1, .logo.walk .l2, .logo.walk .flame { animation: none; } }
