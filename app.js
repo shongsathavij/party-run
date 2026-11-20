@@ -881,7 +881,7 @@ function openSuccess() {
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
   const complete = !miss.length && held;
-  // A complete party gets the cake's moonwalk up top. Nothing else moves.
+  // A complete party gets a dance from the cake up top (one of four, at random). Nothing else moves.
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
   $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
@@ -889,7 +889,7 @@ function openSuccess() {
   $('#success').hidden = false;
   window.scrollTo(0, 0);
   $('#successTitle').focus({ preventScroll: true });
-  if (complete) setTimeout(moonwalk, 450);
+  if (complete) setTimeout(randomDance, 450);
 }
 
 function closeSuccess() {
@@ -1105,15 +1105,19 @@ async function ensureWallet() {
   return state.wallet;
 }
 
-// The cake moonwalks when tapped. Reduced motion: it stays put.
-function moonwalk() {
+// The cake moonwalks when tapped. On a complete party it does one of four dances, picked at random.
+// Reduced motion: it stays put.
+const DANCES = ['walk', 'twist', 'hop', 'spin'];
+function dance(move = 'walk') {
   const l = $('#logo');
   if (calm()) return;
-  l.classList.remove('walk');
+  l.classList.remove(...DANCES);
   void l.offsetWidth;
-  l.classList.add('walk');
-  setTimeout(() => l.classList.remove('walk'), 2300);
+  l.classList.add(move);
+  setTimeout(() => l.classList.remove(move), 2300);
 }
+const moonwalk = () => dance('walk');
+const randomDance = () => dance(DANCES[Math.floor(Math.random() * DANCES.length)]);
 
 async function init() {
   bind();
