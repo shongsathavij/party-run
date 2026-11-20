@@ -60,7 +60,7 @@ async function previewCall(path, params, opts) {
 // never reaches Party Run's code, the agent, or the stores.
 export async function saveCard() {
   if (!stripeKey()) return { customer: `cus_sample_${randomUUID().slice(0, 8)}`, paymentMethod: `pm_sample_${randomUUID().slice(0, 8)}`, brand: 'visa', last4: '4242', sample: true };
-  const cus = await call('/v1/customers', { description: 'Party Run demo parent (test mode)', metadata: { app: 'party-run' } });
+  const cus = await call('/v1/customers', { description: 'Piece of Cake demo parent (test mode)', metadata: { app: 'party-run' } });
   const pm = await call('/v1/payment_methods/pm_card_visa/attach', { customer: cus.id });
   return { customer: cus.id, paymentMethod: pm.id, brand: pm.card?.brand || 'visa', last4: pm.card?.last4 || '4242', sample: false };
 }

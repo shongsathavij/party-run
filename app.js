@@ -1,4 +1,4 @@
-// Cakewalk: ask → the agent's cart → what it may spend → the shopping run → the ledger.
+// Piece of Cake: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
@@ -1013,7 +1013,7 @@ function renderReceipt() {
 function copyReceipt() {
   const { c, perm, ask, charged, refunded, net } = receiptData();
   const out = [
-    `Cakewalk permission receipt (${perm.id}), test mode`,
+    `Piece of Cake permission receipt (${perm.id}), test mode`,
     `Party: ${prettyDate(c.partyDate)}. Budget ${money(budgetOf(c))}. Ask before ${ask}.`,
     '',
     ...c.stores.map((s) => `${s.name}: ${storeStory(s.store).lines.join(' ') || 'Not reached.'}`),
@@ -1103,7 +1103,7 @@ function bind() {
 function showWallet() {
   const w = state.wallet;
   if (!w) return;
-  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Cakewalk never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
 }
 // Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
 async function ensureWallet() {

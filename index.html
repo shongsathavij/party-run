@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Cakewalk</title>
-  <meta name="description" content="Cakewalk does the busy work: an AI agent that shops for a kid's birthday party, and can only spend what you approve. Built on Stripe shared payment tokens, in test mode.">
+  <title>Piece of Cake</title>
+  <meta name="description" content="Party planning? Piece of cake. An AI agent that shops for a kid's birthday party, and can only spend what you approve. Built on Stripe shared payment tokens, in test mode.">
   <meta name="theme-color" content="#FFFDF8">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,8 +17,8 @@
   <p class="strip" id="sampleStrip" hidden></p>
 
   <header class="brand" id="brand">
-    <span class="wordmark">Cakewalk</span>
-    <button class="logo" id="logo" type="button" aria-label="Cakewalk (tap me)">
+    <span class="wordmark">Piece of Cake</span>
+    <button class="logo" id="logo" type="button" aria-label="Piece of Cake (tap me)">
       <svg viewBox="0 0 64 78" aria-hidden="true">
         <g class="legs"><path class="l1" d="M25 66 l-2 9 h-5"/><path class="l2" d="M40 66 l-2 9 h-5"/></g>
         <defs><clipPath id="logoBot"><rect x="6" y="36" width="52" height="30" rx="12"/></clipPath><clipPath id="logoTop"><rect x="13" y="22" width="38" height="16" rx="7"/></clipPath></defs>
@@ -45,12 +45,12 @@
       <!-- One question: the party. -->
       <section class="ask" id="ask" aria-labelledby="askTitle">
         <form class="ask-form" id="askForm" novalidate>
-          <!-- The big Cakewalk cake sits beside the headline; it dances on arrival and when tapped (decoration only). -->
+          <!-- The big Piece of Cake cake sits beside the headline; it dances on arrival and when tapped (decoration only). -->
           <div class="hero-row">
-            <h1 class="hero-title" id="askTitle">Cakewalk does the <em>busy work.</em></h1>
+            <h1 class="hero-title" id="askTitle">Party planning? <em>Piece of cake.<svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 7 q8-8 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke="#7CC5EE" stroke-width="3.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></em></h1>
             <svg class="hero-cake" id="heroCake" aria-hidden="true" viewBox="0 0 200 240"><ellipse class="hc-shadow" cx="100" cy="230" rx="80" ry="7" fill="#111" opacity=".07"/><g class="hc"><g class="hc-legs"><path class="l1" d="M78 196 v24 h-12"/><path class="l2" d="M122 196 v24 h-12"/></g><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="#7CC5EE"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="#fff"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="#7CC5EE"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g><ellipse cx="54" cy="110" rx="14" ry="4.5" fill="#fff" opacity=".55"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="#EE3B3B"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="#fff"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="#EE3B3B"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><rect x="96" y="32" width="8" height="34" rx="4" fill="#7CC5EE"/><path class="hc-flame" d="M100 14c7 8 8 13 0 17-8-4-7-9 0-17z" fill="#FFD23F"/></g></svg>
           </div>
-          <p class="hero-sub">Tell Cakewalk about the party. It shops everything at real stores, securely, and saves you hours.</p>
+          <p class="hero-sub">Describe the party. Piece of Cake shops it all at real stores, securely, and saves you hours.</p>
           <label for="askText" class="sr-only">Your party</label>
           <div class="ask-box">
             <textarea id="askText" rows="4" maxlength="1200" readonly aria-describedby="askFixed"></textarea>
@@ -146,7 +146,7 @@
             <div class="cb-f"><span class="cb-lbl">CVC</span><span class="cb-val">123</span></div>
             <div class="cb-f"><span class="cb-lbl">ZIP</span><span class="cb-val">90210</span></div>
           </div>
-          <p class="note" id="cardNote">Stripe's test card. Cakewalk never sees your card: Stripe keeps it, and each store only gets a one-time pass for its amount. <a href="#faqPay" id="toFaqPay">How passes work ↓</a></p>
+          <p class="note" id="cardNote">Stripe's test card. Piece of Cake never sees your card: Stripe keeps it, and each store only gets a one-time pass for its amount. <a href="#faqPay" id="toFaqPay">How passes work ↓</a></p>
         </div>
         <p class="wait-note" id="waitNote" hidden>Answer the flagged item above first.</p>
         <button class="pay-btn" id="shopBtn" type="button">Approve and shop</button>
@@ -265,7 +265,7 @@
   <section class="faq" id="faq" aria-labelledby="faqTitle">
     <h2 id="faqTitle">How it works</h2>
     <details>
-      <summary><i></i>What does Cakewalk do?</summary>
+      <summary><i></i>What does Piece of Cake do?</summary>
       <ol class="faq-steps">
         <li><b>Tell it the party.</b> The theme, the date, how many kids, your budget, and where it is.</li>
         <li><b>Review the cart.</b> It finds everything at real stores. Swap anything, change amounts, or ask for a change.</li>
@@ -274,7 +274,7 @@
     </details>
     <details id="faqPay">
       <summary><i></i>How does it pay without my card?</summary>
-      <p>When you approve the cart, your card is saved with Stripe. Then, for each store, Cakewalk makes a one-time pass: that store only, up to its amount, for 30 minutes. The store charges the pass. Neither the agent nor the store ever sees your card.</p>
+      <p>When you approve the cart, your card is saved with Stripe. Then, for each store, Piece of Cake makes a one-time pass: that store only, up to its amount, for 30 minutes. The store charges the pass. Neither the agent nor the store ever sees your card.</p>
       <div class="faq-flow" aria-hidden="true">
         <span class="ff-card">Your card<small>kept by Stripe</small></span><span class="ff-arrow"></span>
         <span class="ff-pass"><small>Pass · after you approve</small>C&amp;M Event Rentals<br><b>Up to $209.14 · one charge · 30 min</b></span>
@@ -296,14 +296,14 @@
     </details>
     <details>
       <summary><i></i>Is this real?</summary>
-      <p>The stores and listings are real, saved as a snapshot, and every item links to its page. The payments are real Stripe calls in test mode, so nothing is ordered and no money moves. Brickyard Party Supply is a made-up test store with two planted traps: a bounce house that's booked, and a hidden instruction aimed at AI shoppers. Cakewalk isn't affiliated with any store shown.</p>
+      <p>The stores and listings are real, saved as a snapshot, and every item links to its page. The payments are real Stripe calls in test mode, so nothing is ordered and no money moves. Brickyard Party Supply is a made-up test store with two planted traps: a bounce house that's booked, and a hidden instruction aimed at AI shoppers. Piece of Cake isn't affiliated with any store shown.</p>
     </details>
   </section>
 
   <footer class="foot">
     Real store listings, saved <span id="footDate"></span>; prices and stock change. Stripe test mode: nothing is ordered, no store is contacted or charged, and no real money moves.<br>
-    Cakewalk isn’t affiliated with the stores shown. Brickyard Party Supply is a made-up test store that carries two planted traps.<br>
-    Cakewalk, a portfolio project by Stephanie. Payments use Stripe shared payment tokens.
+    Piece of Cake isn’t affiliated with the stores shown. Brickyard Party Supply is a made-up test store that carries two planted traps.<br>
+    Piece of Cake, a portfolio project by Stephanie. Payments use Stripe shared payment tokens.
   </footer>
 
   <script type="module" src="app.js"></script>

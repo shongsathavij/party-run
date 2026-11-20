@@ -1,4 +1,4 @@
-/* Base layer (originally the Supper & a Show system). The Cakewalk layer at the end of
+/* Base layer (originally the Supper & a Show system). The Piece of Cake layer at the end of
    this file restyles it; the color jobs are described there. */
 :root {
   --paper: #FFFFFF;
@@ -551,7 +551,7 @@ details.fold .stack .lbl { margin-top: 0; }
 }
 
 /* =====================================================================
-   Cakewalk: Memphis, pared back. Warm white, thick ink outlines, and
+   Piece of Cake (formerly Cakewalk): Memphis, pared back. Warm white, thick ink outlines, and
    four colors with one job each:
      coral  = anything you tap to act (Plan it, Approve and shop, Swap)
      teal   = the chatbox's offset shadow, links and small accents
@@ -610,7 +610,7 @@ body.shopping .brand-confetti { display: none; }
 .ask { max-width: 860px; }
 .hero-title { margin: 22px 0 0; font-size: clamp(38px, 6.4vw, 56px); line-height: 1; white-space: nowrap; }
 .hero-title em { font-style: normal; color: var(--coral); position: relative; white-space: nowrap; }
-.hero-title em svg { position: absolute; left: 0; bottom: -12px; width: 100%; height: 12px; }
+.hero-title em svg { position: absolute; left: 0; bottom: -10px; width: 100%; height: 12px; }
 .hero-sub { margin: 26px 0 0; font-size: 18px; line-height: 1.45; max-width: 32em; color: #2A2622; }
 .ask-box { border: 3px solid var(--ink); border-radius: 0; padding: 0; gap: 0; background: #fff; box-shadow: 8px 8px 0 var(--teal), 8px 8px 0 3px var(--ink); margin-top: 22px; }
 .ask-box textarea { font-size: 20px; padding: 18px 20px; min-height: 120px; }
@@ -788,3 +788,6 @@ body:has(#ask:not([hidden])) #brand { display: none; }
 @keyframes hc-hop { 0%, 100% { transform: translateY(0) scale(1.06, .92); } 25% { transform: translateY(0) scale(1); } 55% { transform: translateY(-30px) scale(.96, 1.05); } 85% { transform: translateY(0) scale(1); } }
 .hero-cake.go-spin .hc { animation: lw-spin .9s ease-in-out 2; }
 @media (prefers-reduced-motion: reduce) { .hero-cake .hc, .hero-cake .l1, .hero-cake .l2, .hero-cake .hc-flame { animation: none !important; } }
+@media (max-width: 600px) { .hero-row .hero-title { font-size: 36px; } }
+@media (max-width: 380px) { .hero-row .hero-title { font-size: 33px; } .hero-cake { width: 92px; } }
+@media (max-width: 340px) { .hero-row .hero-title { font-size: 28px; } .hero-cake { width: 80px; } }
