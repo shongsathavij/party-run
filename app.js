@@ -36,14 +36,14 @@ async function api(path, body) {
 
 // A generic toy brick in the store's color: the badge for each store.
 // ---------- the agent's face ----------
-// One face, a few moods, on the cake's blue-and-white tier: thinking while it works, happy when a store is paid, an eyebrow
-// when it hands something to you, a wink when it ignores a hidden instruction.
+// One face, a few moods, on the cake's blue-and-white tier: thinking while it works, happy when a store is paid, one raised eyebrow
+// (curious, not cross) when it hands something to you, a wink when it ignores a hidden instruction.
 const INK = '#161412';
 const FACES = {
   idle: `<circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   working: `<circle cx="15.5" cy="12" r="2.2" fill="${INK}"/><circle cx="25.5" cy="12" r="2.2" fill="${INK}"/><path d="M12 23 q6 3 12 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M20.5 23.9 q2.5 4 4.5 -0.6" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
   happy: `<path d="M9.5 16 q3.5 -4.5 7 0 M19.5 16 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M10 20 q8 11 16 0 z" fill="${INK}"/>`,
-  brow: `<path d="M9 10.5 h7 M20 9.5 l7 -2.5" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M12 23 q6 2.5 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  brow: `<path d="M19.5 8.5 q3.5 -3.2 7 -0.6" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="14.5" r="2.2" fill="${INK}"/><path d="M12.5 21.5 q5.5 4 11 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   // While it thinks: one face per line, so it visibly reacts to what it's doing.
   read: `<circle cx="13" cy="17.5" r="2.2" fill="${INK}"/><circle cx="23" cy="17.5" r="2.2" fill="${INK}"/><path d="M14 25 h8" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
   right: `<circle cx="16.5" cy="14" r="2.2" fill="${INK}"/><circle cx="26.5" cy="14" r="2.2" fill="${INK}"/><path d="M13 23 q6 4 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
