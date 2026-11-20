@@ -748,7 +748,7 @@ body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { dis
 }
 @media (max-width: 600px) {
   .d-badge { right: -62px; top: 140px; width: 124px; }
-  .d-ball { left: -46px; right: auto; top: 480px; width: 104px; }
+  .d-ball { left: -34px; right: auto; top: 392px; width: 104px; }
 }
 @media (prefers-reduced-motion: reduce) { .deco svg { animation: none; } }
 
