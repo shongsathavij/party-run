@@ -580,7 +580,7 @@ async function shop() {
   try {
     await ensureWallet();
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false, dance: null });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
@@ -874,26 +874,14 @@ async function findAnother(e) {
   }
 }
 
-// ---------- the success view: the cake's victory dance, then the receipt ----------
-
-// One move per run, picked at random, and named on the receipt.
-const MOVES = { moonwalk: 'The Moonwalk', twist: 'The Twist', hop: 'The Bunny Hop', spin: 'The Spin', robot: 'The Robot', sprinkler: 'The Sprinkler' };
-const danceMove = () => (state.dance ||= Object.keys(MOVES)[Math.floor(Math.random() * Object.keys(MOVES).length)]);
+// ---------- the success view: Party's on (the cake moonwalks), then the receipt ----------
 
 function openSuccess() {
   renderReceipt();
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
   const complete = !miss.length && held;
-  // A complete party gets the victory dance (and confetti). Otherwise the cake taps its foot.
-  const move = complete ? danceMove() : 'wait';
-  const d = $('#dancer');
-  d.className = 'dancer';
-  void d.offsetWidth;
-  d.classList.add(`m-${move}`);
-  $('#danceMove').textContent = complete ? `Victory dance: ${MOVES[move]}` : 'Saving the victory dance for when the party is complete.';
-  $('#danceWrap').querySelectorAll('.confetti').forEach((x) => x.remove());
-  if (complete) $('#danceWrap').insertAdjacentHTML('beforeend', Array.from({ length: 16 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${200 + (i % 5) * 110}ms;background:${['#FF6B57', '#1FB5A8', '#FFD23F'][i % 3]}"></i>`).join(''));
+  // A complete party gets the cake's moonwalk up top. Nothing else moves.
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
   $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
@@ -901,6 +889,7 @@ function openSuccess() {
   $('#success').hidden = false;
   window.scrollTo(0, 0);
   $('#successTitle').focus({ preventScroll: true });
+  if (complete) setTimeout(moonwalk, 450);
 }
 
 function closeSuccess() {
@@ -1009,7 +998,7 @@ function renderReceipt() {
       : 'Never more than you approved. Every charge fit its pass.';
   const miss = missingNow();
   $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
-  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : `The party is complete: every part of it is paid for. Victory dance: ${MOVES[danceMove()]}.`;
+  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : `The party is complete: every part of it is paid for.`;
 }
 
 function copyReceipt() {

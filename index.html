@@ -228,29 +228,9 @@
   <!-- The end of the run: one brick per store that got paid, then the receipt. -->
   <section class="success" id="success" hidden aria-labelledby="successTitle">
     <button class="link-btn back" id="backToRun" type="button">← Back to the run</button>
-    <!-- The cake does a victory dance: a different move each time. -->
+    <!-- On a complete party the logo cake up top moonwalks. -->
     <div class="success-head" id="danceWrap">
-      <div class="dancer" id="dancer" aria-hidden="true">
-        <svg viewBox="0 0 120 150">
-          <g class="body">
-            <g class="legs"><path class="lg ll" d="M50 112 l-5 24 h-11"/><path class="lg lr" d="M70 112 l5 24 h11"/></g>
-            <g class="arms"><path class="arm al" d="M25 90 q-14 -4 -18 -20"/><path class="arm ar" d="M95 90 q14 -4 18 -20"/></g>
-            <defs><clipPath id="danceBot"><rect x="22" y="70" width="76" height="44" rx="16"/></clipPath><clipPath id="danceTop"><rect x="36" y="48" width="48" height="24" rx="10"/></clipPath></defs>
-            <g clip-path="url(#danceBot)"><rect x="0" y="70" width="120" height="44" fill="#fff"/><rect x="0" y="70" width="120" height="11" fill="#7CC5EE"/><rect x="0" y="103" width="120" height="11" fill="#7CC5EE"/></g>
-            <rect x="23" y="71" width="74" height="42" rx="15" fill="none" stroke="#111" stroke-opacity=".14" stroke-width="2"/>
-            <circle cx="50" cy="91" r="3.4" fill="#111"/><circle cx="70" cy="91" r="3.4" fill="#111"/>
-            <path class="smile" d="M54 97 q6 5 12 0" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round"/>
-            <ellipse cx="41" cy="98" rx="5" ry="3" fill="#FF9DB4"/><ellipse cx="79" cy="98" rx="5" ry="3" fill="#FF9DB4"/>
-            <g clip-path="url(#danceTop)"><rect x="0" y="48" width="120" height="24" fill="#DC2C2A"/><rect x="0" y="57" width="120" height="6" fill="#fff"/></g>
-            <rect x="56.5" y="27" width="7" height="22" rx="3.5" fill="#7CC5EE"/>
-            <path class="flame" d="M60 6c6 7 7 12 0 17c-7-5-6-10 0-17z" fill="#FFD23F"/>
-          </g>
-        </svg>
-      </div>
-      <div class="success-words">
-        <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
-        <p class="move" id="danceMove"></p>
-      </div>
+      <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
     </div>
     <p class="success-sub" id="successSub"></p>
     <div class="success-acts" id="successActs"></div>
