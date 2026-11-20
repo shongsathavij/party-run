@@ -754,3 +754,17 @@ body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { dis
   .d-ball { right: -40px; top: 610px; width: 120px; }
 }
 @media (prefers-reduced-motion: reduce) { .deco svg { animation: none; } }
+
+/* The agent's face is the cake's bottom tier: blue-white-blue bands, no outline, pink cheeks. */
+.avatar.face { width: 46px; height: 38px; border: 0; border-radius: 15px; background: linear-gradient(to bottom, var(--teal) 0 21%, #fff 21% 79%, var(--teal) 79%); box-shadow: inset 0 0 0 1.5px rgba(17, 17, 17, .12); }
+.avatar.face svg { width: 38px; height: 38px; }
+.avatar.face.big { width: 60px; height: 50px; border-radius: 19px; }
+.avatar.face.big svg { width: 50px; height: 50px; }
+
+/* After a worded change, what changed scrolls into view and flashes once. */
+#changed { scroll-margin-top: 24px; outline: none; }
+#changed.flash { animation: changed-flash 1.4s ease-out; }
+@keyframes changed-flash { 0%, 30% { background-color: #FFF3B8; } }
+@media (prefers-reduced-motion: reduce) { #changed.flash { animation: none; } }
+.changed { border: 2.5px solid var(--ink); border-radius: 0; background: #EEF7FD; }
+.changed .kicker { color: var(--teal-ink); }
