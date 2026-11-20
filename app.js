@@ -874,51 +874,14 @@ async function findAnother(e) {
   }
 }
 
-// ---------- the success view: a brick tower, then the receipt ----------
-
-// One brick per store that got paid (in its color), and a gray gap for anything still missing.
-function towerSvg() {
-  const got = (s) => state.paid[s] && !state.paid[s].refunded;
-  const bricks = [
-    ...state.cart.stores.filter((s) => got(s.store)).map((s) => ({ color: STORES[s.store].color, label: STORES[s.store].name })),
-    ...missingNow().map((m) => ({ color: null, label: `No ${WHAT[m]}` })),
-  ];
-  const W = 170, H = 50, SH = 9, GAPX = 26, n = bricks.length;
-  const width = W + GAPX * 2 + 20, height = n * H + SH + 12;
-  const g = bricks
-    .map((b, i) => {
-      const y = height - (i + 1) * H - 4;
-      const x = 10 + (i % 2 ? GAPX * 2 : i % 4 === 0 ? 0 : GAPX);
-      const fill = b.color || '#EFEBE6';
-      const stroke = b.color ? '#161412' : '#9C958C';
-      const dash = b.color ? '' : ' stroke-dasharray="6 5"';
-      const studs = [0.2, 0.5, 0.8].map((f) => `<rect x="${x + W * f - 13}" y="${y - SH + 2}" width="26" height="${SH + 2}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"${dash}/>`).join('');
-      return `<g class="b${b.color ? '' : ' gap'}" style="animation-delay:${i * 230}ms">${studs}<rect x="${x}" y="${y}" width="${W}" height="${H - 4}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.4"${dash}/><text x="${x + W / 2}" y="${y + H / 2 + 3}" text-anchor="middle" font-size="14" font-weight="700" fill="${b.color ? '#161412' : '#57524C'}">${esc(b.label)}</text></g>`;
-    })
-    .join('');
-  return { svg: `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">${g}</svg>`, n };
-}
+// ---------- the success view: Party's on (the cake moonwalks), then the receipt ----------
 
 function openSuccess() {
   renderReceipt();
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
-  const t = towerSvg();
   const complete = !miss.length && held;
-  // A complete party: the candles are blown out, then the bricks drop.
-  const lead = complete && !calm() && state.slots ? 1300 : 0;
-  $('#successCake').hidden = !lead;
-  if (lead) {
-    $('#successCake').innerHTML = cakeSvg(state.slots.length);
-    state.slots.forEach((x, i) => { const g = $(`#successCake [data-slot="${i}"]`); g.setAttribute('class', `candle ${x.state}`); g.style.setProperty('--c', STORES[x.store].color); });
-    $('#successCake').classList.remove('blowing');
-    void $('#successCake').offsetWidth;
-    $('#successCake').classList.add('blowing');
-  }
-  $('#tower').innerHTML = t.svg.replace(/animation-delay:(\d+)ms/g, (_, d) => `animation-delay:${Number(d) + lead}ms`);
-  $('#tower').style.setProperty('--done', `${t.n * 230 + 450 + lead}ms`);
-  // Confetti only when the party is complete.
-  $('#tower').insertAdjacentHTML('beforeend', !miss.length && held ? Array.from({ length: 14 }, (_, i) => `<i class="confetti" style="--x:${(i * 37) % 100}%;--d:${t.n * 230 + 300 + lead + (i % 5) * 90}ms;background:${Object.values(STORES)[i % 6].color}"></i>`).join('') : '');
+  // A complete party gets the cake's moonwalk up top. Nothing else moves.
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
   $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
@@ -926,6 +889,7 @@ function openSuccess() {
   $('#success').hidden = false;
   window.scrollTo(0, 0);
   $('#successTitle').focus({ preventScroll: true });
+  if (complete) setTimeout(moonwalk, 450);
 }
 
 function closeSuccess() {
@@ -1034,7 +998,7 @@ function renderReceipt() {
       : 'Never more than you approved. Every charge fit its pass.';
   const miss = missingNow();
   $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
-  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : 'The party is complete: every part of it is paid for.';
+  $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : `The party is complete: every part of it is paid for.`;
 }
 
 function copyReceipt() {
