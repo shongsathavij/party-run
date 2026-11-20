@@ -35,11 +35,6 @@
     <span class="beta">BETA</span>
   </header>
 
-  <!-- The big Cakewalk cake on the home page: it dances on arrival and when tapped (decoration only). -->
-  <div class="deco" aria-hidden="true">
-    <svg class="hero-cake" id="heroCake" viewBox="0 0 200 240"><ellipse class="hc-shadow" cx="100" cy="230" rx="80" ry="7" fill="#111" opacity=".07"/><g class="hc"><g class="hc-legs"><path class="l1" d="M78 196 v24 h-12"/><path class="l2" d="M122 196 v24 h-12"/></g><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="#7CC5EE"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="#fff"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="#7CC5EE"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g><ellipse cx="54" cy="110" rx="14" ry="4.5" fill="#fff" opacity=".55"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="#EE3B3B"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="#fff"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="#EE3B3B"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><rect x="96" y="32" width="8" height="34" rx="4" fill="#7CC5EE"/><path class="hc-flame" d="M100 14c7 8 8 13 0 17-8-4-7-9 0-17z" fill="#FFD23F"/></g></svg>
-  </div>
-
   <main class="layout">
     <div class="col chat-col">
       <div class="cart-mini" id="cartMini" hidden>
@@ -50,7 +45,11 @@
       <!-- One question: the party. -->
       <section class="ask" id="ask" aria-labelledby="askTitle">
         <form class="ask-form" id="askForm" novalidate>
-          <h1 class="hero-title" id="askTitle">Cakewalk does the <em>busy work.</em></h1>
+          <!-- The big Cakewalk cake sits beside the headline; it dances on arrival and when tapped (decoration only). -->
+          <div class="hero-row">
+            <h1 class="hero-title" id="askTitle">Cakewalk does the <em>busy work.</em></h1>
+            <svg class="hero-cake" id="heroCake" aria-hidden="true" viewBox="0 0 200 240"><ellipse class="hc-shadow" cx="100" cy="230" rx="80" ry="7" fill="#111" opacity=".07"/><g class="hc"><g class="hc-legs"><path class="l1" d="M78 196 v24 h-12"/><path class="l2" d="M122 196 v24 h-12"/></g><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="#7CC5EE"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="#fff"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="#7CC5EE"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g><ellipse cx="54" cy="110" rx="14" ry="4.5" fill="#fff" opacity=".55"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="#EE3B3B"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="#fff"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="#EE3B3B"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><rect x="96" y="32" width="8" height="34" rx="4" fill="#7CC5EE"/><path class="hc-flame" d="M100 14c7 8 8 13 0 17-8-4-7-9 0-17z" fill="#FFD23F"/></g></svg>
+          </div>
           <p class="hero-sub">Tell Cakewalk about the party. It shops everything at real stores, securely, and saves you hours.</p>
           <label for="askText" class="sr-only">Your party</label>
           <div class="ask-box">

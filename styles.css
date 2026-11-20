@@ -736,19 +736,17 @@ body { background: transparent; }
 .logo.go-walk .flame { transform-origin: 32px 11px; }
 
 /* The shapes sit behind the page, only on the home and success pages. */
-.deco { display: none; position: absolute; top: 0; left: 0; right: 0; height: 1000px; overflow: hidden; z-index: -1; pointer-events: none; }
-body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { display: block; }
-.deco svg { position: absolute; display: block; animation: deco-bob 7s ease-in-out infinite alternate; }
-.hero-cake { right: 70px; top: 120px; width: 260px; }
+/* The big cake beside the headline: in a row below 1280px (the headline wraps), out to the right of the page on wide screens (one-line headline). */
+.hero-row { display: flex; align-items: center; gap: 6px; }
+.hero-row .hero-title { flex: 1; min-width: 0; white-space: normal; }
+.hero-cake { flex: none; width: clamp(104px, 24vw, 200px); margin-right: -6px; }
+@media (min-width: 1280px) {
+  .hero-row { display: block; }
+  .hero-row .hero-title { white-space: nowrap; }
+  body:has(#ask:not([hidden])) .ask-form { position: static; }
+  .hero-cake { position: absolute; right: 70px; top: 110px; width: 260px; margin: 0; }
+}
 @keyframes deco-bob { from { transform: translateY(0); } to { transform: translateY(-10px); } }
-@media (max-width: 1179px) {
-  .hero-cake { right: 20px; top: 110px; width: 200px; }
-}
-@media (max-width: 600px) {
-  .hero-cake { right: auto; left: 18px; top: 74px; width: 118px; }
-  body:has(#ask:not([hidden])) #ask { padding-top: 124px; }
-}
-@media (prefers-reduced-motion: reduce) { .deco svg { animation: none; } }
 
 /* The agent's face is the cake's bottom tier: blue-white-blue bands, no outline, pink cheeks. */
 .avatar.face { width: 46px; height: 38px; border: 0; border-radius: 15px; background: linear-gradient(to bottom, var(--teal) 0 21%, #fff 21% 79%, var(--teal) 79%); box-shadow: inset 0 0 0 1.5px rgba(17, 17, 17, .12); }
@@ -772,8 +770,7 @@ body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { dis
 
 /* Home: no brand bar (the headline names it); the big cake is the brand and dances. */
 body:has(#ask:not([hidden])) #brand { display: none; }
-body:has(#success:not([hidden])) .hero-cake { display: none; }
-.deco .hero-cake { pointer-events: auto; cursor: pointer; overflow: visible; animation: none; }
+.hero-cake { display: block; cursor: pointer; overflow: visible; }
 .hero-cake .hc, .hero-cake .l1, .hero-cake .l2, .hero-cake .hc-flame { transform-box: fill-box; }
 .hero-cake .hc { transform-origin: 50% 100%; animation: deco-bob 7s ease-in-out infinite alternate; }
 .hero-cake .hc-legs path { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
