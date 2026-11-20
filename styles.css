@@ -702,6 +702,20 @@ body.shopping .brand-confetti { display: none; }
 }
 .success-head .confetti { z-index: -1; }
 
+/* The cake's other dances (a complete party picks one of walk, twist, hop, spin at random). */
+.logo.twist .legs, .logo.hop .legs, .logo.spin .legs { opacity: 1; }
+.logo.twist svg, .logo.hop svg, .logo.spin svg { transform-origin: 50% 90%; }
+.logo.twist svg { animation: lw-twist .36s ease-in-out 6 alternate; }
+.logo.twist .l1 { animation: stepA .36s ease-in-out 6 alternate; }
+.logo.twist .l2 { animation: stepB .36s ease-in-out 6 alternate-reverse; }
+@keyframes lw-twist { from { transform: rotate(-12deg); } to { transform: rotate(12deg); } }
+.logo.hop svg { animation: lw-hop .55s ease-in-out 4; }
+@keyframes lw-hop { 0%, 100% { transform: translateY(0) scale(1.08, .9); } 25% { transform: translateY(0) scale(1); } 55% { transform: translateY(-16px) scale(.95, 1.06); } 85% { transform: translateY(0) scale(1); } }
+.logo.spin svg { animation: lw-spin .9s ease-in-out 2; }
+@keyframes lw-spin { 0% { transform: scaleX(1); } 25% { transform: scaleX(0) translateY(-6px); } 50% { transform: scaleX(-1) translateY(-8px); } 75% { transform: scaleX(0) translateY(-6px); } 100% { transform: scaleX(1); } }
+.logo.twist .flame, .logo.hop .flame, .logo.spin .flame { animation: flick .22s ease-in-out 10 alternate; transform-origin: 32px 11px; }
+@media (prefers-reduced-motion: reduce) { .logo.twist svg, .logo.hop svg, .logo.spin svg, .logo.twist .l1, .logo.twist .l2, .logo .flame { animation: none; } }
+
 /* ---------- Candy layer: candy red and sky blue, stripes, and three puffy shapes ---------- */
 :root { --coral: #DC2C2A; --teal: #7CC5EE; --teal-ink: #1E6FA6; --violet: #1E6FA6; }
 html { background: var(--paper); }
