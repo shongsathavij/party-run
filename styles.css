@@ -757,3 +757,43 @@ body.shopping .brand-confetti { display: none; }
   .success-head .success-title { font-size: 44px; }
 }
 .success-head .confetti { z-index: -1; }
+
+/* ---------- Candy layer: candy red and sky blue, stripes, and three puffy shapes ---------- */
+:root { --coral: #DC2C2A; --teal: #7CC5EE; --teal-ink: #1E6FA6; --violet: #1E6FA6; }
+html { background: var(--paper); }
+body { background: transparent; }
+.go, .pay-btn { color: #fff; }
+.go:hover, .pay-btn:hover { background: #B82220; }
+.go svg, .pay-btn svg { stroke: currentColor; }
+
+/* Stripes: the chatbox's offset shadow, the BETA sticker, the dance circle. */
+.ask { isolation: isolate; }
+.ask-box { position: relative; box-shadow: none; }
+.ask-box::before { content: ''; position: absolute; inset: -3px; transform: translate(8px, 8px); z-index: -1; border: 3px solid var(--ink); background: repeating-linear-gradient(-45deg, var(--teal) 0 10px, #fff 10px 20px); }
+.beta { background: repeating-linear-gradient(-45deg, var(--yellow) 0 6px, #fff 6px 12px); }
+.dancer { background: repeating-linear-gradient(90deg, var(--yellow) 0 10px, #fff 10px 20px); }
+
+/* The logo: the same puffy cake as the shapes. */
+.logo { width: 44px; height: 52px; }
+.logo svg { width: 44px; height: 52px; }
+.logo.walk .flame { transform-origin: 32px 11px; }
+
+/* The shapes sit behind the page, only on the home and success pages. */
+.deco { display: none; position: absolute; top: 0; left: 0; right: 0; height: 1000px; overflow: hidden; z-index: -1; pointer-events: none; }
+body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { display: block; }
+.deco svg { position: absolute; display: block; animation: deco-bob 7s ease-in-out infinite alternate; }
+.d-badge { right: 90px; top: 190px; width: 200px; }
+.d-cloud { right: 250px; top: 400px; width: 270px; animation-delay: -2.5s; animation-duration: 8s; }
+.d-ball { right: -30px; top: 540px; width: 200px; animation-delay: -5s; }
+@keyframes deco-bob { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+@media (max-width: 1179px) {
+  .deco .d-cloud { display: none; }
+  .d-badge { right: -50px; top: 150px; width: 150px; }
+  .d-ball { right: -50px; top: 620px; width: 150px; }
+}
+@media (max-width: 600px) {
+  .d-badge { right: -62px; top: 140px; width: 124px; }
+  .deco .d-cloud { display: block; left: -70px; right: auto; top: 470px; width: 150px; }
+  .d-ball { right: -40px; top: 610px; width: 120px; }
+}
+@media (prefers-reduced-motion: reduce) { .deco svg { animation: none; } }
