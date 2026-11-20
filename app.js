@@ -1,4 +1,4 @@
-// Party Run: ask → the agent's cart → what it may spend → the shopping run → the ledger.
+// Cakewalk: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
@@ -15,7 +15,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Our real party: a building-brick 5th birthday in the backyard.
-const REAL = "Lego-themed 5th birthday in our backyard on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
+const REAL = "Lego-themed 5th birthday, a backyard party in 90210 on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
 
 const ASK_CHOICES = [
   { v: 5000, label: '$50' },
@@ -212,7 +212,7 @@ const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 function renderSteps() {
   const ask = pending().length + (state.locked ? 0 : askedMissing().length);
   $('#step2Lbl').textContent = `1 · Here's the party`;
-  $('#step3Lbl').textContent = `2 · Your go-ahead`;
+  $('#step3Lbl').textContent = `Step 2`;
   $('#permitSheet').classList.toggle('later', Boolean(ask));
   $('#permitSheet').inert = Boolean(ask);
   $('#waitNote').hidden = !ask;
@@ -440,7 +440,7 @@ function renderPermit() {
   $('#permitErr').hidden = true;
   const waiting = pending().length;
   $('#shopBtn').disabled = Boolean(waiting);
-  $('#shopBtn').textContent = 'Let the agent shop';
+  $('#shopBtn').textContent = `Approve ${money(c.total)} and shop`;
   renderSteps();
 }
 
@@ -578,6 +578,7 @@ async function shop() {
   btn.setAttribute('aria-busy', 'true');
   $('#permitErr').hidden = true;
   try {
+    await ensureWallet();
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
@@ -989,7 +990,7 @@ function renderReceipt() {
     ['Agent may spend', `${money(perm.total)} across ${Object.keys(perm.stores).length} stores, each with its own limit`],
     ['Ask me before', ask],
     ['Ends', `${prettyDate(perm.ends)}. Nothing can be bought after the party.`],
-    ['Paid with', state.wallet ? `${cap1(state.wallet.brand)} •••• ${state.wallet.last4}, saved to Stripe at setup${state.wallet.sample ? ' (simulated)' : ' (test mode)'}` : 'Stripe test Visa'],
+    ['Paid with', state.wallet ? `${cap1(state.wallet.brand)} •••• ${state.wallet.last4}, saved with Stripe when you approved${state.wallet.sample ? ' (simulated)' : ' (test mode)'}` : 'Stripe test Visa'],
     ['Delivering to', `ZIP ${DEMO_ZIP} (demo). Delivery and tax were estimates inside each store's limit.`],
     ['Each pass', 'One store, one charge, up to its limit, for 30 minutes'],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
@@ -1039,7 +1040,7 @@ function renderReceipt() {
 function copyReceipt() {
   const { c, perm, ask, charged, refunded, net } = receiptData();
   const out = [
-    `Party Run permission receipt (${perm.id}), test mode`,
+    `Cakewalk permission receipt (${perm.id}), test mode`,
     `Party: ${prettyDate(c.partyDate)}. Budget ${money(budgetOf(c))}. Ask before ${ask}.`,
     '',
     ...c.stores.map((s) => `${s.name}: ${storeStory(s.store).lines.join(' ') || 'Not reached.'}`),
@@ -1124,44 +1125,41 @@ function bind() {
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
-// ---------- onboarding: save a card, see how passes work ----------
+// ---------- the card: asked for at the go-ahead, saved when she approves ----------
 
 function showWallet() {
   const w = state.wallet;
-  $('#cardDone').hidden = false;
-  $('#cardDone').innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(cap1(w.brand))} •••• ${esc(w.last4)} saved to Stripe${w.sample ? ' (simulated)' : ', test mode'}.<small>Customer <code>${esc(w.customer)}</code> · card <code>${esc(w.paymentMethod)}</code></small></span>`;
-  $('#saveCard').hidden = true;
-  $('#sCard').classList.add('done');
-  $('#setupDone').disabled = false;
-  $('#walletLine').hidden = false;
-  $('#walletLine').innerHTML = `Paying with ${esc(cap1(w.brand))} •••• ${esc(w.last4)} · delivering to ${DEMO_ZIP}`;
+  if (!w) return;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Cakewalk never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
 }
-async function saveCard() {
-  $('#setupErr').hidden = true;
-  $('#saveCard').setAttribute('aria-busy', 'true');
-  try {
-    state.wallet = (await api('/api/setup', {})).wallet;
-    try { sessionStorage.setItem('partyRunWallet', JSON.stringify(state.wallet)); } catch {}
-    showWallet();
-  } catch (ex) {
-    $('#setupErr').textContent = ex.message;
-    $('#setupErr').hidden = false;
-  } finally {
-    $('#saveCard').removeAttribute('aria-busy');
-  }
+// Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
+async function ensureWallet() {
+  if (state.wallet) return state.wallet;
+  state.wallet = (await api('/api/setup', {})).wallet;
+  try { sessionStorage.setItem('partyRunWallet', JSON.stringify(state.wallet)); } catch {}
+  showWallet();
+  return state.wallet;
 }
-function finishSetup() {
-  $('#setup').hidden = true;
-  $('#ask').hidden = false;
-  $('#askBtn').focus();
+
+// The cake moonwalks when tapped. Reduced motion: it stays put.
+function moonwalk() {
+  const l = $('#logo');
+  if (calm()) return;
+  l.classList.remove('walk');
+  void l.offsetWidth;
+  l.classList.add('walk');
+  setTimeout(() => l.classList.remove('walk'), 2300);
 }
 
 async function init() {
   bind();
-  $('#saveCard').addEventListener('click', saveCard);
-  $('#setupDone').addEventListener('click', finishSetup);
+  $('#logo').addEventListener('click', moonwalk);
   try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
+  // The request is fixed, so the box is exactly as tall as the words.
+  const fit = () => { const t = $('#askText'); t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 4}px`; };
+  fit();
+  addEventListener('resize', fit);
   $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {
     state.config = await api('/api/config');
