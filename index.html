@@ -223,7 +223,7 @@
   <section class="success" id="success" hidden aria-labelledby="successTitle">
     <button class="link-btn back" id="backToRun" type="button">← Back to the run</button>
     <!-- The cake does a victory dance: a different move each time. -->
-    <div class="dance-wrap" id="danceWrap">
+    <div class="success-head" id="danceWrap">
       <div class="dancer" id="dancer" aria-hidden="true">
         <svg viewBox="0 0 120 150">
           <g class="body">
@@ -239,9 +239,11 @@
           </g>
         </svg>
       </div>
-      <p class="move" id="danceMove"></p>
+      <div class="success-words">
+        <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
+        <p class="move" id="danceMove"></p>
+      </div>
     </div>
-    <h1 class="success-title" id="successTitle" tabindex="-1"></h1>
     <p class="success-sub" id="successSub"></p>
     <div class="success-acts" id="successActs"></div>
         <!-- One record of the whole run: what you approved, what the agent did, what each store charged. -->

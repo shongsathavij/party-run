@@ -694,15 +694,18 @@ body.shopping .brand-confetti { display: none; }
 @media (prefers-reduced-motion: reduce) { .logo.walk svg, .logo.walk .l1, .logo.walk .l2, .logo.walk .flame { animation: none; } }
 
 /* The success page: the cake's victory dance. One move per run (MOVES in app.js). */
-.dance-wrap { position: relative; padding-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.dancer svg { width: 180px; height: 225px; overflow: visible; display: block; }
-.dancer .lg, .dancer .arm { fill: none; stroke: var(--ink); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.success-head { isolation: isolate; position: relative; display: flex; align-items: center; justify-content: center; gap: 18px; padding-top: 8px; }
+.success-words { text-align: left; display: flex; flex-direction: column; gap: 6px; }
+.success-head .success-title { margin: 0; }
+.dancer { flex: none; width: 96px; height: 96px; border-radius: 50%; background: #FFD23F; border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); display: grid; place-items: center; overflow: hidden; }
+.dancer svg { width: 54px; height: 68px; overflow: visible; display: block; margin-top: 6px; }
+.dancer .lg, .dancer .arm { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .dancer .body, .dancer .lg, .dancer .arm, .dancer .flame { transform-box: fill-box; }
 .dancer .body { transform-origin: 50% 100%; }
 .dancer .ll { transform-origin: 100% 0; } .dancer .lr { transform-origin: 0 0; }
 .dancer .al { transform-origin: 100% 100%; } .dancer .ar { transform-origin: 0 100%; }
 .dancer .flame { transform-origin: 50% 100%; animation: flick .3s ease-in-out infinite alternate; }
-.move { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.move { max-width: 30ch; margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .dancer, .dancer * { animation-iteration-count: 4; }
 .dancer .flame { animation-iteration-count: infinite; }
 
@@ -710,7 +713,7 @@ body.shopping .brand-confetti { display: none; }
 .m-moonwalk .body { animation: mw-glide 2.4s linear 4; }
 .m-moonwalk .ll { animation: mw-step .6s ease-in-out 16; }
 .m-moonwalk .lr { animation: mw-step .6s ease-in-out -.3s 16; }
-@keyframes mw-glide { 0%, 100% { transform: translateX(0) } 45% { transform: translateX(-70px) rotate(-3deg) } 50% { transform: translateX(-70px) rotate(6deg) } 55% { transform: translateX(-70px) } }
+@keyframes mw-glide { 0%, 100% { transform: translateX(0) } 45% { transform: translateX(-22px) rotate(-3deg) } 50% { transform: translateX(-22px) rotate(6deg) } 55% { transform: translateX(-22px) } }
 @keyframes mw-step { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(10px) rotate(-12deg) } }
 /* The Twist: hips one way, knees the other. */
 .m-twist .body { animation: tw-body .5s ease-in-out infinite alternate; animation-iteration-count: 16; }
@@ -723,7 +726,7 @@ body.shopping .brand-confetti { display: none; }
 /* The Bunny Hop: squash, jump, land. */
 .m-hop .body { animation: hop .7s cubic-bezier(.3, 0, .3, 1) 8; }
 .m-hop .al, .m-hop .ar { animation: hop-arms .7s ease-in-out 8; }
-@keyframes hop { 0%, 100% { transform: translateY(0) scale(1.06, .92) } 20% { transform: translateY(0) scale(1) } 50% { transform: translateY(-34px) scale(.96, 1.05) } 80% { transform: translateY(0) scale(1) } }
+@keyframes hop { 0%, 100% { transform: translateY(0) scale(1.06, .92) } 20% { transform: translateY(0) scale(1) } 50% { transform: translateY(-16px) scale(.96, 1.05) } 80% { transform: translateY(0) scale(1) } }
 @keyframes hop-arms { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-40deg) } }
 /* The Spin: a full turn, then a bow. */
 .m-spin .body { animation: spin-turn 1.6s ease-in-out 5; }
@@ -747,3 +750,10 @@ body.shopping .brand-confetti { display: none; }
 .m-wait .smile { transform: scaleY(-1); transform-box: fill-box; transform-origin: 50% 50%; }
 @keyframes tap { 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-22deg) } }
 @media (prefers-reduced-motion: reduce) { .dancer *, .dancer .body { animation: none !important; } }
+@media (max-width: 520px) {
+  .success-head { gap: 12px; }
+  .dancer { width: 72px; height: 72px; box-shadow: 3px 3px 0 var(--ink); }
+  .dancer svg { width: 40px; height: 50px; margin-top: 4px; }
+  .success-head .success-title { font-size: 44px; }
+}
+.success-head .confetti { z-index: -1; }
