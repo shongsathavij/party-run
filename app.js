@@ -36,7 +36,7 @@ async function api(path, body) {
 
 // A generic toy brick in the store's color: the badge for each store.
 // ---------- the agent's face ----------
-// One face, a few moods: thinking while it works, happy when a store is paid, an eyebrow
+// One face, a few moods, on the cake's blue-and-white tier: thinking while it works, happy when a store is paid, an eyebrow
 // when it hands something to you, a wink when it ignores a hidden instruction.
 const INK = '#161412';
 const FACES = {
@@ -55,7 +55,7 @@ const FACES = {
 function mood(el, m) {
   if (!el || el.dataset.mood === m) return;
   el.dataset.mood = m;
-  el.innerHTML = `<svg viewBox="0 0 36 36">${FACES[m] || FACES.idle}</svg>`;
+  el.innerHTML = `<svg viewBox="0 0 36 36"><ellipse cx="7" cy="21" rx="3.2" ry="2" fill="#FF9DB4"/><ellipse cx="29" cy="21" rx="3.2" ry="2" fill="#FF9DB4"/><g transform="translate(0 1.5)">${FACES[m] || FACES.idle}</g></svg>`;
   el.classList.remove('pop');
   void el.offsetWidth;
   el.classList.add('pop');
@@ -259,6 +259,15 @@ async function changeCart(body, said) {
     renderCart();
     renderPermit();
     $('#changeText').value = '';
+    // A worded change: bring what changed into view (it sits above the form) and flash it.
+    if (said) {
+      const c = $('#changed');
+      c.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
+      c.classList.remove('flash');
+      void c.offsetWidth;
+      c.classList.add('flash');
+      c.focus({ preventScroll: true });
+    }
   } catch (ex) {
     $('#changeErr').textContent = ex.message;
     $('#changeErr').hidden = false;
@@ -272,7 +281,7 @@ function renderChanged() {
   const last = state.changes.at(-1);
   $('#changed').hidden = !last;
   if (!last) return;
-  const who = last.mode === 'claude' ? 'Claude' : last.mode === 'tap' ? '' : 'The rules-based agent';
+  const who = last.mode === 'claude' ? 'Claude' : last.mode === 'tap' ? '' : 'the rules-based agent';
   $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'Your change'}</span>
     ${last.lines.length ? `<ul>${last.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul><p class="tot">New total ${money(last.total)}${who ? ` · changed by ${who}` : ''}</p>` : ''}
     ${last.note ? `<p>${esc(last.note)}</p>` : ''}
