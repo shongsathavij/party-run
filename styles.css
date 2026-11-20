@@ -717,7 +717,7 @@ body.shopping .brand-confetti { display: none; }
 @media (prefers-reduced-motion: reduce) { .logo.twist svg, .logo.hop svg, .logo.spin svg, .logo.twist .l1, .logo.twist .l2, .logo .flame { animation: none; } }
 
 /* ---------- Candy layer: candy red and sky blue, stripes, and three puffy shapes ---------- */
-:root { --coral: #DC2C2A; --teal: #7CC5EE; --teal-ink: #1E6FA6; --violet: #1E6FA6; }
+:root { --coral: #EE3B3B; --teal: #7CC5EE; --teal-ink: #1E6FA6; --violet: #1E6FA6; }
 html { background: var(--paper); }
 body { background: transparent; }
 .go, .pay-btn { color: #fff; }
@@ -740,15 +740,12 @@ body { background: transparent; }
 body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { display: block; }
 .deco svg { position: absolute; display: block; animation: deco-bob 7s ease-in-out infinite alternate; }
 .d-badge { right: 90px; top: 190px; width: 200px; }
-.d-ball { right: 310px; top: 450px; width: 170px; animation-delay: -3.5s; animation-duration: 8s; }
 @keyframes deco-bob { from { transform: translateY(0); } to { transform: translateY(-10px); } }
 @media (max-width: 1179px) {
   .d-badge { right: -50px; top: 150px; width: 150px; }
-  .d-ball { right: -50px; top: 620px; width: 150px; }
 }
 @media (max-width: 600px) {
   .d-badge { right: -62px; top: 140px; width: 124px; }
-  .d-ball { left: -34px; right: auto; top: 392px; width: 104px; }
 }
 @media (prefers-reduced-motion: reduce) { .deco svg { animation: none; } }
 
@@ -765,3 +762,9 @@ body:has(#ask:not([hidden])) .deco, body:has(#success:not([hidden])) .deco { dis
 @media (prefers-reduced-motion: reduce) { #changed.flash { animation: none; } }
 .changed { border: 2.5px solid var(--ink); border-radius: 0; background: #EEF7FD; }
 .changed .kicker { color: var(--teal-ink); }
+
+/* Red buttons: white text at 19px bold, large enough to read well on #EE3B3B. */
+.go, .pay-btn, .run .acts .go, .handoff .acts .go, .decide .acts .go, .go.sm { font-size: 19px; font-weight: 800; }
+/* Outlined buttons beside them sit a step down, on one line. */
+.handoff .acts .ghost-btn, .decide .acts .ghost-btn { font-size: 17px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 600px) { .decide .acts .go { font-size: 19px; } .decide .acts .ghost-btn { font-size: 17px; } }
