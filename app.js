@@ -3,6 +3,8 @@
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER } from './lib/rules.js';
+import { optionsFor, qtyFor } from './lib/options.js';
+import { offTheme } from './lib/catalog.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -23,7 +25,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { open: new Set(), config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { opts: null, config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -192,21 +194,8 @@ function renderCart() {
   $('#shieldText').innerHTML = c.ignored
     .map((x) => `I didn't follow it, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
-  // One line per store. Tap to see the items, the reasons and the + / −.
-  $('#cartStores').innerHTML = c.stores
-    .map((s) => {
-      const items = c.items.filter((i) => i.store === s.store);
-      const what = [...new Set(items.map((i) => (/plate|tableware/i.test(i.name) ? 'plates and cups' : WHAT[i.category] || i.category)))].join(', ');
-      return `<details class="store" data-store="${esc(s.store)}"${state.open.has(s.store) ? ' open' : ''}>
-        <summary class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(cap1(what))}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span><span class="chev" aria-hidden="true"></span></summary>
-        <ul class="items">${items
-          .map((i) => `<li><span>${(state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}${state.locked || !countable(i) ? '' : stepper(i)}</span>${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
-          .join('')}</ul>
-      </details>`;
-    })
-    .join('');
+  renderGroups();
   $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Nothing is ordered.`;
-  renderDecide();
   renderAskedMissing();
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
@@ -219,19 +208,14 @@ function renderCart() {
 
 const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
-// One thing at a time: her decisions first, then the party, then go.
+// Two steps: look over the party (and answer anything flagged), then the go-ahead.
 function renderSteps() {
   const ask = pending().length + (state.locked ? 0 : askedMissing().length);
-  const hadAsk = ask || $('#decided').textContent;
-  $('#step1').hidden = !hadAsk;
-  let n = 0;
-  if (hadAsk) $('#step1Lbl').textContent = `${++n} · ${ask ? 'One thing first' : 'Decided'}`;
-  $('#step2Lbl').textContent = `${++n} · Here's the party`;
-  $('#step3Lbl').textContent = `${++n} · Your go-ahead`;
-  // The party stays browsable while she decides; only the go-ahead waits.
-  $('#step2').classList.toggle('later', Boolean(ask));
+  $('#step2Lbl').textContent = `1 · Here's the party`;
+  $('#step3Lbl').textContent = `2 · Your go-ahead`;
   $('#permitSheet').classList.toggle('later', Boolean(ask));
   $('#permitSheet').inert = Boolean(ask);
+  $('#waitNote').hidden = !ask;
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
@@ -265,7 +249,10 @@ async function changeCart(body, said) {
     // Anything the parent took out on purpose isn't "missing" later.
     for (const cat of new Set(before.items.map((i) => i.category))) if (!r.cart.items.some((i) => i.category === cat)) state.declined.add(cat);
     state.cart = { ...r.cart, notes: r.cart.notes, theme: r.cart.theme };
-    const lines = [...r.diff];
+    if (body.swap) { state.decided[body.swap.to] = 'kept'; state.opts = null; }
+    const lines = body.swap
+      ? [`Swapped in ${byId[body.swap.to].name} from ${STORES[byId[body.swap.to].store].name} (${signed(r.cart.total - before.total)})`]
+      : [...r.diff];
     if (r.budgetChanged !== undefined) lines.unshift(`Budget: ${money(before.budget)} → ${money(r.budgetChanged)}`);
     state.changes.push({ said, lines, mode: r.mode, note: r.note, total: r.cart.total });
     renderChanged();
@@ -286,7 +273,7 @@ function renderChanged() {
   $('#changed').hidden = !last;
   if (!last) return;
   const who = last.mode === 'claude' ? 'Claude' : last.mode === 'tap' ? '' : 'The rules-based agent';
-  $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'You changed an amount'}</span>
+  $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'Your change'}</span>
     ${last.lines.length ? `<ul>${last.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul><p class="tot">New total ${money(last.total)}${who ? ` · changed by ${who}` : ''}</p>` : ''}
     ${last.note ? `<p>${esc(last.note)}</p>` : ''}
     ${state.changes.length > 1 ? `<p class="note">${state.changes.length} changes so far. Each one was checked like a new plan.</p>` : ''}`;
@@ -315,23 +302,69 @@ function renderAskedMissing() {
     .join('');
 }
 
-// Something they asked for by name came back off-theme: they decide before anything is approved.
+// Something they asked for by name came back off-theme: it's flagged on its own row, and the
+// go-ahead waits until she keeps it, swaps it or removes it.
 const pending = () => (state.cart?.items || []).filter((i) => i.needsOk && !state.decided[i.id]);
-function renderDecide() {
-  const asks = pending();
-  $('#decide').hidden = !asks.length;
-  $('#decide').innerHTML = asks
-    .map((i) => `<span class="kicker">Is this OK?</span>
-      <p>The only ${esc(WHAT[i.category])} I could get isn't ${esc(themeWord(state.cart.theme))}-themed: <b>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</b> from ${esc(i.storeName)}, ${money(i.amount)}. ${state.cart.notes.find((n) => /booked/i.test(n)) ? 'The themed one is booked that day.' : ''}</p>
-      <div class="acts"><button class="go" data-keep="${esc(i.id)}">Keep it</button><button class="ghost-btn" data-drop="${esc(i.id)}">No ${esc(WHAT[i.category])}</button></div>`)
-    .join('');
-  const done = Object.entries(state.decided).map(([id, how]) => {
-    const it = state.cart.items.find((i) => i.id === id) || byId[id];
-    return how === 'kept' ? `Keeping the ${esc(it.name)}.` : `No ${esc(WHAT[it.category])}, as you asked.`;
-  });
-  $('#decided').hidden = !done.length;
-  $('#decided').innerHTML = done.length ? `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${done.join(' ')}` : '';
+
+// The party by what it is, the way a parent thinks about it. Stores are a label on each item.
+const GROUPS = [
+  { title: 'Fun', cats: ['bounce', 'pinata'] },
+  { title: 'Food', cats: ['cake', 'food'] },
+  { title: 'Plates and napkins', cats: ['decor'] },
+  { title: 'Favors', cats: ['favors'] },
+];
+const link = (i) => (i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name));
+const signed = (n) => (n === 0 ? 'same price' : `${n > 0 ? '+' : '−'}${money(Math.abs(n))}`);
+
+function optionsOf(i) {
+  const c = state.cart;
+  return optionsFor({ category: i.category, date: c.partyDate, today: localISO(), theme: c.theme, little: c.little, exclude: c.items.map((x) => x.id) })
+    .map((p) => ({ ...p, qty: qtyFor(p, { kids: c.kids, was: i.qty }) }));
 }
+
+function renderGroups() {
+  const c = state.cart;
+  const theme = themeWord(c.theme);
+  $('#cartGroups').innerHTML = GROUPS.map((g) => {
+    const items = c.items.filter((i) => g.cats.includes(i.category));
+    if (!items.length) return '';
+    const sub = items.reduce((a, i) => a + i.amount, 0);
+    return `<section class="grp"><header class="grp-head"><h3>${g.title}</h3><span>${money(sub)}</span></header>
+      <ul class="grp-items">${items.map((i) => itemRow(i, theme)).join('')}</ul></section>`;
+  }).join('');
+}
+
+function itemRow(i, theme) {
+  const c = state.cart;
+  const live = !state.locked;
+  const opts = live ? optionsOf(i) : [];
+  const open = state.opts === i.id;
+  const asking = live && i.needsOk && !state.decided[i.id];
+  const booked = c.notes.some((n) => /booked/i.test(n)) && i.category === 'bounce';
+  const flag = asking
+    ? `<div class="flag" role="group" aria-label="Needs your OK">
+        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked Dec 5, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
+        <div class="acts"><button class="go sm" data-keep="${esc(i.id)}">Keep it</button>${opts.length ? `<button class="ghost-btn sm" data-opts="${esc(i.id)}" aria-expanded="${open}">See ${opts.length} other option${opts.length > 1 ? 's' : ''}</button>` : ''}<button class="link-btn sm" data-drop="${esc(i.id)}">Remove</button></div>
+      </div>`
+    : i.offTheme && c.theme ? `<span class="tag">Not ${esc(theme)}-themed${state.decided[i.id] === 'kept' ? ' · you OK’d it' : ''}</span>` : '';
+  const more = !live || asking ? ''
+    : opts.length ? `<button class="link-btn more" data-opts="${esc(i.id)}" aria-expanded="${open}">${open ? 'Hide' : `${opts.length} other option${opts.length > 1 ? 's' : ''}`}</button>`
+    : c.little && (i.category === 'favors' || i.category === 'pinata') ? `<span class="none">The only one here that's safe for 2-year-olds.</span>` : '';
+  const panel = !open ? '' : `<div class="opts">
+      <ul>${opts.map((p) => `<li>
+        <div class="o-main"><div class="o-name">${link(p)}</div><div class="it-store">${brick(p.store)}${esc(STORES[p.store].name)}${!offTheme(p, c.theme) && c.theme ? ` · <span class="ok">${esc(theme)}-themed</span>` : ''}</div></div>
+        <div class="o-amt">${money(p.price * p.qty)}<span class="diff">${signed(p.price * p.qty - i.amount)}</span></div>
+        <button class="ghost-btn sm" data-swap="${esc(p.id)}" data-from="${esc(i.id)}">Swap</button></li>`).join('')}</ul>
+      ${i.reason ? `<p class="note">Why I picked the one you have: ${esc(i.reason)}</p>` : ''}
+    </div>`;
+  const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
+  return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
+      ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
+    </li>`;
+}
+
 function decide(e) {
   const keep = e.target.closest('[data-keep]')?.dataset.keep;
   const drop = e.target.closest('[data-drop]')?.dataset.drop;
@@ -1022,8 +1055,8 @@ function startOver() {
   focusRun(false);
   document.body.classList.remove('reviewing');
   $('#changeForm').hidden = true;
-  $('#decided').textContent = '';
-  Object.assign(state, { open: new Set(), overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  state.opts = null;
+  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -1053,26 +1086,26 @@ function bind() {
     closeSuccess();
     $(`#missing [data-find="${cat}"]`)?.click();
   });
-  $('#decide').addEventListener('click', decide);
   $('#changeOpen').addEventListener('click', () => {
     const f = $('#changeForm');
     f.hidden = !f.hidden;
     $('#changeOpen').setAttribute('aria-expanded', String(!f.hidden));
     if (!f.hidden) $('#changeText').focus();
   });
-  $('#cartStores').addEventListener('toggle', (e) => {
-    const st = e.target.dataset?.store;
-    if (st) e.target.open ? state.open.add(st) : state.open.delete(st);
-  }, true);
   $('#askedMissing').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]')?.dataset.add;
     const no = e.target.closest('[data-nocat]')?.dataset.nocat;
     if (add) changeCart({ add }, `Add a ${WHAT[add]}`);
     if (no) { state.declined.add(no); renderAskedMissing(); }
   });
-  $('#cartStores').addEventListener('click', (e) => {
+  $('#cartGroups').addEventListener('click', (e) => {
     const b = e.target.closest('[data-q]');
-    if (b) changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
+    if (b) return changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
+    const o = e.target.closest('[data-opts]')?.dataset.opts;
+    if (o) { state.opts = state.opts === o ? null : o; return renderGroups(); }
+    const to = e.target.closest('[data-swap]');
+    if (to) return changeCart({ swap: { from: to.dataset.from, to: to.dataset.swap } }, null);
+    decide(e);
   });
   $('#changeForm').addEventListener('submit', (e) => {
     e.preventDefault();

@@ -239,10 +239,10 @@ button { font: inherit; color: inherit; }
 
 /* Changing the cart before approval. */
 .items .amt:has(.qty) { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.items .qty { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; border: 1.5px solid #CFC8BE; border-radius: 999px; padding: 1px; }
-.items .qty span { min-width: 18px; text-align: center; }
-.items .qty button { width: 24px; height: 24px; border: 0; border-radius: 999px; background: transparent; font: 600 15px/1 var(--sans); color: var(--muted); cursor: pointer; }
-.items .qty button:hover { background: #EDE7FF; color: #5B35D5; }
+.items .qty, .it-amt .qty { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; border: 1.5px solid #CFC8BE; border-radius: 999px; padding: 1px; }
+.items .qty span, .it-amt .qty span { min-width: 18px; text-align: center; }
+.items .qty button, .it-amt .qty button { width: 24px; height: 24px; border: 0; border-radius: 999px; background: transparent; font: 600 15px/1 var(--sans); color: var(--muted); cursor: pointer; }
+.items .qty button:hover, .it-amt .qty button:hover { background: #EDE7FF; color: #5B35D5; }
 .changed { border: 2px solid #5B35D5; background: #F3EFFF; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .changed .kicker { color: #5B35D5; }
 .changed ul { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 3px; }
@@ -462,3 +462,48 @@ details.fold .stack .lbl { margin-top: 0; }
 #thinkFace, body.shopping #runFace[data-mood="working"] { animation: bob 1.2s ease-in-out infinite; }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(0) } 25% { transform: translateY(-3px) rotate(-5deg) } 75% { transform: translateY(-1px) rotate(4deg) } }
 @media (prefers-reduced-motion: reduce) { #thinkFace, body.shopping #runFace[data-mood="working"] { animation: none; } }
+
+/* The party by what it is: Fun, Food, Plates and napkins, Favors. Stores are a label. */
+#cartGroups { display: flex; flex-direction: column; gap: 12px; }
+.grp { background: var(--paper); border-radius: 18px; padding: 4px 16px 4px; }
+.grp-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 8px; border-bottom: 1.5px solid var(--ink); }
+.grp-head h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 24px; letter-spacing: -0.01em; }
+.grp-head span { font-weight: 700; font-size: 15px; }
+.grp-items { list-style: none; margin: 0; padding: 0; }
+.it { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.it:last-child { border-bottom: 0; }
+.it-name { font-weight: 600; font-size: 15px; line-height: 1.35; }
+.it-name a, .o-name a { color: var(--ink); text-decoration-color: #CFC8BE; text-underline-offset: 3px; }
+.it-store { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-top: 3px; flex-wrap: wrap; }
+.it-store .brick { width: 18px; height: 14px; flex: none; }
+.it-store .ok { color: var(--ok); font-weight: 600; }
+.it-amt { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.it-more { grid-column: 1 / -1; }
+.it-more .more { font-size: 14px; color: var(--violet); padding: 2px 0; min-height: 0; text-decoration-color: var(--violet-soft); }
+.it-more .none { font-size: 13px; color: var(--muted); }
+.tag { display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--soft); color: var(--muted); }
+
+/* The flag sits on the row itself, like a store swap in a grocery app. */
+.flag { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: #FFF4D1; border: 1.5px solid #E2A600; }
+.flag p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.45; }
+.flag .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.go.sm, .ghost-btn.sm { padding: 8px 14px; font-size: 14px; }
+.link-btn.sm { font-size: 14px; min-height: 0; padding: 4px 6px; }
+.it.asking .it-amt { padding-top: 0; }
+
+/* Other options: compare in place, swap with one tap. */
+.opts { margin-top: 10px; background: var(--soft); border-radius: 14px; padding: 4px 14px 10px; }
+.opts ul { list-style: none; margin: 0; padding: 0; }
+.opts li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px dashed #D9D2C7; }
+.opts li:last-child { border-bottom: 0; }
+.o-name { font-weight: 600; font-size: 14px; line-height: 1.35; }
+.o-amt { text-align: right; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.o-amt .diff { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.opts .note { margin: 6px 0 0; font-size: 13px; }
+.wait-note { margin: -4px 0 0; text-align: center; font-size: 14px; color: var(--muted); }
+#permitSheet:has(.wait-note:not([hidden])) { }
+@media (max-width: 600px) {
+  .grp { padding: 2px 12px; }
+  .opts li { grid-template-columns: minmax(0, 1fr) auto; }
+  .opts li .ghost-btn { grid-column: 1 / -1; justify-self: start; }
+}

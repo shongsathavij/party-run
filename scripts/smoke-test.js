@@ -143,11 +143,25 @@ assert.equal(c.little, true);
 const noPinata = { ...c, items: c.items.filter((i) => i.category !== 'pinata') };
 const added = await run('edit', { prompt: REAL, today, cart: noPinata, add: 'pinata' });
 assert.ok(added.ok && added.cart.items.some((i) => i.id === 'mi-pinata'), 'adds the pull-string piñata');
-const altPinata = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: true });
+const otherPull = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: true });
+assert.equal(otherPull.item.id, 'tg-pinata-5', 'the other pull-string piñata');
+const altPinata = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels', 'target'], maxCents: 30000, theme: 'brick', little: true });
 assert.equal(altPinata.item, null, 'never a bat piñata with 2-year-olds');
 assert.match(altPinata.why, /safe with 2-year-olds/);
 const bigKids = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: false });
 assert.equal(bigKids.item.id, 'wm-pinata-5');
+
+// 12b. Other options: swap one item for another of the same kind. Rules only, checked like a new plan.
+const plates = c.items.find((i) => i.category === 'decor');
+const swapped = await run('edit', { prompt: REAL, today, cart: c, swap: { from: plates.id, to: 'tg-blockbash' } });
+assert.ok(swapped.ok && swapped.cart.items.some((i) => i.id === 'tg-blockbash') && !swapped.cart.items.some((i) => i.id === plates.id), 'swaps the plates');
+assert.ok(swapped.diff.length, 'shows what changed');
+const batSwap = await run('edit', { prompt: REAL, today, cart: c, swap: { from: 'mi-pinata', to: 'wm-pinata-5' } });
+assert.ok(batSwap.code === 400 && !batSwap.cart, 'no swapping in a bat piñata with 2-year-olds');
+const testSwap = await run('edit', { prompt: REAL, today, cart: c, swap: { from: plates.id, to: 'cf-table' } });
+assert.ok(testSwap.code === 400 && !testSwap.cart, 'never the test store');
+const crossSwap = await run('edit', { prompt: REAL, today, cart: c, swap: { from: plates.id, to: 'wf-choc-cake' } });
+assert.ok(crossSwap.code === 400 && !crossSwap.cart, 'only the same kind of thing');
 
 // 13. A parent can still choose the bat piñata in an edit; the cart says so.
 const batPick = await run('edit', { prompt: REAL, today, cart: c, change: 'Swap the piñata for the number 5 one' });

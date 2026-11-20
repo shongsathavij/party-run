@@ -66,18 +66,12 @@
           <span class="avatar face" id="cartFace" aria-hidden="true"></span>
           <div class="bubble cart" role="status">
             <p class="cart-summary" id="cartSummary"></p>
-            <!-- Step 1: only the decisions that are hers to make. -->
-            <div class="step" id="step1" hidden>
-              <span class="step-lbl" id="step1Lbl"></span>
-              <div class="decide" id="decide" hidden></div>
-              <div class="decide" id="askedMissing" hidden></div>
-              <p class="done-line" id="decided" hidden></p>
-            </div>
-            <!-- Step 2: the party, one line per store. -->
+            <!-- Step 1: the party, by what it is (food, fun, plates, favors). The run pays by store. -->
             <div class="step" id="step2">
               <span class="step-lbl" id="step2Lbl"></span>
+              <div class="decide" id="askedMissing" hidden></div>
               <div class="changed" id="changed" hidden></div>
-              <div id="cartStores"></div>
+              <div id="cartGroups"></div>
               <details class="shield" id="shield" hidden>
                 <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
                 <p id="shieldText"></p>
@@ -129,6 +123,7 @@
           <span class="note" id="permitOf"></span>
         </div>
         <p class="permit-line" id="permitLine"></p>
+        <p class="wait-note" id="waitNote" hidden>Answer the flagged item above first.</p>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
         <details class="fold" id="limitsFold">

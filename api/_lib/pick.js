@@ -1,15 +1,16 @@
 // Pick one item of a kind for the party: free on the date, enough notice, within the money
 // left, never the made-up test store, on theme when possible, and safe for little kids.
 import { PRODUCTS, STORES, offTheme } from '../../lib/catalog.js';
-import { daysBetween, dollars } from '../../lib/rules.js';
+import { dollars } from '../../lib/rules.js';
+import { fits as free, safeFor } from '../../lib/options.js';
 
 export const WHAT = { bounce: 'bounce house', cake: 'cake', pinata: 'piñata', decor: 'decorations', favors: 'favors', food: 'food' };
 
 export function pickFor({ category, date, today, room, theme = null, little = false, skipStores = [] }) {
   const skip = new Set(skipStores.map(String));
-  const fits = PRODUCTS.filter((p) => p.category === category && !STORES[p.store].test && !skip.has(p.store) && !p.booked.includes(date) && daysBetween(today, date) >= p.lead);
+  const fits = PRODUCTS.filter((p) => p.category === category && !skip.has(p.store) && free(p, { date, today }));
   // With kids under 4: pull-string piñatas only, and favors rated ages 2 and up.
-  const safe = fits.filter((p) => !little || (category === 'pinata' ? p.pull : category === 'favors' ? (p.ages || '').startsWith('2') : true));
+  const safe = fits.filter((p) => safeFor(p, little));
   const affordable = safe.filter((p) => p.price <= room);
   const pick = affordable.find((p) => !offTheme(p, theme)) || affordable.sort((a, b) => a.price - b.price)[0];
   if (pick) return { pick };
