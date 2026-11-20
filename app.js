@@ -1120,17 +1120,31 @@ const DANCES = ['walk', 'twist', 'hop', 'spin'];
 function dance(move = 'walk') {
   const l = $('#logo');
   if (calm()) return;
-  l.classList.remove(...DANCES);
+  // Prefixed so they never collide with other classes (.spin is the loading spinner).
+  l.classList.remove(...DANCES.map((d) => `go-${d}`));
   void l.offsetWidth;
-  l.classList.add(move);
-  setTimeout(() => l.classList.remove(move), 2300);
+  l.classList.add(`go-${move}`);
+  setTimeout(() => l.classList.remove(`go-${move}`), 2300);
 }
 const moonwalk = () => dance('walk');
 const randomDance = () => dance(DANCES[Math.floor(Math.random() * DANCES.length)]);
+// The big cake on the home page: one random dance on arrival, another each time it's tapped.
+function heroDance() {
+  const c = $('#heroCake');
+  if (!c || calm()) return;
+  // Prefixed so they never collide with other classes (.spin is the loading spinner).
+  const move = `go-${DANCES[Math.floor(Math.random() * DANCES.length)]}`;
+  c.classList.remove(...DANCES.map((d) => `go-${d}`));
+  void c.getBoundingClientRect();
+  c.classList.add(move);
+  setTimeout(() => c.classList.remove(move), 2300);
+}
 
 async function init() {
   bind();
   $('#logo').addEventListener('click', moonwalk);
+  $('#heroCake')?.addEventListener('click', heroDance);
+  setTimeout(heroDance, 700);
   try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
   // The request is fixed, so the box is exactly as tall as the words.
