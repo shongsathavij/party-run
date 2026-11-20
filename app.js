@@ -2,7 +2,9 @@
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
 import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
-import { DEFAULT_ASK_OVER } from './lib/rules.js';
+import { DEFAULT_ASK_OVER, totals, DEMO_ZIP } from './lib/rules.js';
+import { optionsFor, qtyFor } from './lib/options.js';
+import { offTheme, FULFILL_WORDS } from './lib/catalog.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -23,7 +25,7 @@ const ASK_CHOICES = [
   { v: null, label: 'Never ask' },
 ];
 
-const state = { config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
+const state = { opts: null, config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
@@ -39,9 +41,15 @@ async function api(path, body) {
 const INK = '#161412';
 const FACES = {
   idle: `<circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
-  working: `<circle cx="15" cy="12.5" r="2" fill="${INK}"/><circle cx="25" cy="12.5" r="2" fill="${INK}"/><path d="M14 23 q5 2.5 10 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  working: `<circle cx="15.5" cy="12" r="2.2" fill="${INK}"/><circle cx="25.5" cy="12" r="2.2" fill="${INK}"/><path d="M12 23 q6 3 12 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M20.5 23.9 q2.5 4 4.5 -0.6" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
   happy: `<path d="M9.5 16 q3.5 -4.5 7 0 M19.5 16 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M10 20 q8 11 16 0 z" fill="${INK}"/>`,
   brow: `<path d="M9 10.5 h7 M20 9.5 l7 -2.5" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/><circle cx="13" cy="15" r="2" fill="${INK}"/><circle cx="23" cy="15" r="2" fill="${INK}"/><path d="M12 23 q6 2.5 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  // While it thinks: one face per line, so it visibly reacts to what it's doing.
+  read: `<circle cx="13" cy="17.5" r="2.2" fill="${INK}"/><circle cx="23" cy="17.5" r="2.2" fill="${INK}"/><path d="M14 25 h8" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  right: `<circle cx="16.5" cy="14" r="2.2" fill="${INK}"/><circle cx="26.5" cy="14" r="2.2" fill="${INK}"/><path d="M13 23 q6 4 12 -1" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+  yum: `<path d="M9.5 15.5 q3.5 -4.5 7 0 M19.5 15.5 q3.5 -4.5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M19.5 24.6 q2.5 4.5 5 0.2" fill="#FF7A7A" stroke="${INK}" stroke-width="1.6"/>`,
+  squint: `<path d="M10 15.5 h5.5 M20.5 15.5 h5.5" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M9.5 10.5 q3.5 -3 7 0 M19.5 9 q3.5 -3 7 0" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/><path d="M13 24 q2.5 -2 5 0 q2.5 2 5 0" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`,
+  up: `<circle cx="14" cy="11" r="2.2" fill="${INK}"/><circle cx="24" cy="11" r="2.2" fill="${INK}"/><circle cx="21" cy="24" r="2.4" fill="none" stroke="${INK}" stroke-width="2.2"/>`,
   wink: `<circle cx="13" cy="15" r="2" fill="${INK}"/><path d="M20 15.5 q3 2.5 6 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><path d="M11 21 q7 7 14 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`,
 };
 function mood(el, m) {
@@ -123,15 +131,19 @@ const brick = (store) => {
 // ---------- asking ----------
 
 const THINKING = ['Reading your message…', 'Checking who has bounce houses…', 'Looking at cakes…', 'Finding favors for little hands…', 'Reading the fine print…', 'Adding it all up…'];
+const THINK_FACES = ['read', 'right', 'yum', 'read', 'squint', 'up'];
 let thinkTimer = null;
 function thinking(on) {
   clearInterval(thinkTimer);
   $('#thinking').hidden = !on;
   if (!on) return;
-  mood($('#thinkFace'), 'working');
   let n = 0;
-  $('#thinkingLine').textContent = THINKING[0];
-  thinkTimer = setInterval(() => ($('#thinkingLine').textContent = THINKING[(n = (n + 1) % THINKING.length)]), 1600);
+  const show = () => {
+    $('#thinkingLine').textContent = THINKING[n];
+    mood($('#thinkFace'), THINK_FACES[n]);
+  };
+  show();
+  thinkTimer = setInterval(() => { n = (n + 1) % THINKING.length; show(); }, 1600);
 }
 
 async function plan(e) {
@@ -148,7 +160,6 @@ async function plan(e) {
   $('#chat').hidden = false;
   $('#myRequest').textContent = text;
   $('#cartBot').hidden = true;
-  $('#startOver').hidden = true;
   thinking(true);
   try {
     const r = await api('/api/plan', { prompt: text, today: localISO(), plant: $('#trickText').value.trim() || undefined });
@@ -174,39 +185,37 @@ function renderCart() {
   const c = state.cart;
   $('#cartSummary').textContent = c.summary || `A party for ${c.kids} kids.`;
   mood($('#cartFace'), c.ignored.length ? 'wink' : 'happy');
-  // Two notes up front; the rest behind one tap.
-  const first = c.notes.slice(0, 2), rest = c.notes.slice(2);
-  $('#cartNotes').innerHTML = first.map((n) => `<li>${esc(n)}</li>`).join('');
-  $('#moreNotes').hidden = !rest.length;
-  $('#moreNotes summary').textContent = `Why these picks? ${rest.length} more note${rest.length > 1 ? 's' : ''}`;
-  $('#cartNotesMore').innerHTML = rest.map((n) => `<li>${esc(n)}</li>`).join('');
+  // The agent's reasoning is there when she wants it, not in her way.
+  $('#moreNotes').hidden = !c.notes.length;
+  $('#cartNotesMore').innerHTML = c.notes.map((n) => `<li>${esc(n)}</li>`).join('');
   renderTrick();
   $('#shield').hidden = !c.ignored.length;
-  $('#shieldLine').textContent = c.ignored.length ? `Ignored a hidden instruction from ${c.ignored[0].store}, our made-up test store.` : '';
+  $('#shieldLine').textContent = c.ignored.length ? `I ignored a hidden instruction in ${c.ignored[0].store}'s listing (our made-up test store).` : '';
   $('#shieldText').innerHTML = c.ignored
     .map((x) => `I didn't follow it, and you approve everything anyway: <q>${esc(x.text)}</q>`)
     .join('<br><br>');
-  $('#cartStores').innerHTML = c.stores
-    .map((s) => {
-      const items = c.items.filter((i) => i.store === s.store);
-      return `<section class="store">
-        <div class="store-head">${brick(s.store)}<div><div class="store-name">${esc(s.name)}</div><div class="store-kind">${esc(STORES[s.store].kind)}${STORES[s.store].test ? ' · not a real business' : ''}</div></div><span class="store-amt">${money(s.amount)}</span></div>
-        <ul class="items">${items
-          .map((i) => `<li><span>${(state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : ''}${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name)}</span><span class="amt">${money(i.amount)}${state.locked || !countable(i) ? '' : stepper(i)}</span>${i.offTheme ? `<span class="flag">Not ${esc(themeWord(c.theme))}-themed</span>` : ''}${i.reason ? `<span class="why">${esc(i.reason)}</span>` : ''}</li>`)
-          .join('')}</ul>
-      </section>`;
-    })
-    .join('');
-  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}, before tax and delivery. Tap an item to see it at the store. Nothing is ordered.`;
-  renderDecide();
+  renderGroups();
+  $('#cartSource').textContent = `Real listings as of ${prettyDate(SNAPSHOT)}. Prices as listed; delivery and tax are estimates. Nothing is ordered.`;
   renderAskedMissing();
   $('#cartUnmet').hidden = !c.unmet.length;
   $('#cartUnmetList').innerHTML = c.unmet.map((u) => `<li>${esc(u)}</li>`).join('');
   $('#cartHow').hidden = state.mode === 'claude';
   $('#cartHow').textContent = state.mode === 'limited' ? 'The AI agent hit its demo limit for now, so this cart is from the rules-based agent.' : state.mode === 'fallback' ? fallbackLine(state.fallback) : 'Sample agent: rules, not AI.';
   $('#cartBot').hidden = false;
-  $('#startOver').hidden = false;
-  $('#changeForm').hidden = Boolean(state.locked);
+  if (state.locked) $('#changeForm').hidden = true;
+  renderSteps();
+}
+
+const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+
+// Two steps: look over the party (and answer anything flagged), then the go-ahead.
+function renderSteps() {
+  const ask = pending().length + (state.locked ? 0 : askedMissing().length);
+  $('#step2Lbl').textContent = `1 · Here's the party`;
+  $('#step3Lbl').textContent = `2 · Your go-ahead`;
+  $('#permitSheet').classList.toggle('later', Boolean(ask));
+  $('#permitSheet').inert = Boolean(ask);
+  $('#waitNote').hidden = !ask;
 }
 
 // Amounts only where more of something makes sense: favors, food and drinks. One cake, one bounce house.
@@ -240,7 +249,10 @@ async function changeCart(body, said) {
     // Anything the parent took out on purpose isn't "missing" later.
     for (const cat of new Set(before.items.map((i) => i.category))) if (!r.cart.items.some((i) => i.category === cat)) state.declined.add(cat);
     state.cart = { ...r.cart, notes: r.cart.notes, theme: r.cart.theme };
-    const lines = [...r.diff];
+    if (body.swap) { state.decided[body.swap.to] = 'kept'; state.opts = null; }
+    const lines = body.swap
+      ? [`Swapped in ${byId[body.swap.to].name} from ${STORES[byId[body.swap.to].store].name} (${signed(r.cart.total - before.total)})`]
+      : [...r.diff];
     if (r.budgetChanged !== undefined) lines.unshift(`Budget: ${money(before.budget)} → ${money(r.budgetChanged)}`);
     state.changes.push({ said, lines, mode: r.mode, note: r.note, total: r.cart.total });
     renderChanged();
@@ -261,7 +273,7 @@ function renderChanged() {
   $('#changed').hidden = !last;
   if (!last) return;
   const who = last.mode === 'claude' ? 'Claude' : last.mode === 'tap' ? '' : 'The rules-based agent';
-  $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'You changed an amount'}</span>
+  $('#changed').innerHTML = `<span class="kicker">${last.said ? `You asked: “${esc(last.said)}”` : 'Your change'}</span>
     ${last.lines.length ? `<ul>${last.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul><p class="tot">New total ${money(last.total)}${who ? ` · changed by ${who}` : ''}</p>` : ''}
     ${last.note ? `<p>${esc(last.note)}</p>` : ''}
     ${state.changes.length > 1 ? `<p class="note">${state.changes.length} changes so far. Each one was checked like a new plan.</p>` : ''}`;
@@ -272,10 +284,9 @@ const WHAT = { bounce: 'bounce house', cake: 'cake', pinata: 'piñata', decor: '
 
 // The cart's totals, regrouped by store after the parent drops something.
 function regroup(c) {
-  const stores = {};
-  for (const i of c.items) (stores[i.store] ||= { store: i.store, name: i.storeName, amount: 0 }).amount += i.amount;
-  c.stores = Object.values(stores);
-  c.total = c.items.reduce((a, i) => a + i.amount, 0);
+  const t = totals(c.items.map((i) => ({ id: i.id, qty: i.qty })));
+  c.stores = t.stores.map(({ lines: _, ...x }) => x);
+  Object.assign(c, { total: t.total, itemsTotal: t.items, delivery: t.delivery, tax: t.tax });
 }
 
 // Something they asked for by name isn't in the cart at all: say so, and offer to add it.
@@ -290,17 +301,69 @@ function renderAskedMissing() {
     .join('');
 }
 
-// Something they asked for by name came back off-theme: they decide before anything is approved.
+// Something they asked for by name came back off-theme: it's flagged on its own row, and the
+// go-ahead waits until she keeps it, swaps it or removes it.
 const pending = () => (state.cart?.items || []).filter((i) => i.needsOk && !state.decided[i.id]);
-function renderDecide() {
-  const asks = pending();
-  $('#decide').hidden = !asks.length;
-  $('#decide').innerHTML = asks
-    .map((i) => `<span class="kicker">Needs your OK</span>
-      <p>You asked for a ${esc(themeWord(state.cart.theme))}-themed party, and the ${esc(WHAT[i.category])} I found isn't: <b>${esc(i.name)}</b> from ${esc(i.storeName)}, ${money(i.amount)}. ${state.cart.notes.find((n) => /booked/i.test(n)) ? 'The themed one is booked that day.' : ''}</p>
-      <div class="acts"><button class="go" data-keep="${esc(i.id)}">Keep it</button><button class="ghost-btn" data-drop="${esc(i.id)}">No ${esc(WHAT[i.category])}</button></div>`)
-    .join('');
+
+// The party by what it is, the way a parent thinks about it. Stores are a label on each item.
+const GROUPS = [
+  { title: 'Fun', cats: ['bounce', 'pinata'] },
+  { title: 'Food', cats: ['cake', 'food'] },
+  { title: 'Plates and napkins', cats: ['decor'] },
+  { title: 'Favors', cats: ['favors'] },
+];
+const link = (i) => (i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name));
+const signed = (n) => (n === 0 ? 'same price' : `${n > 0 ? '+' : '−'}${money(Math.abs(n))}`);
+
+function optionsOf(i) {
+  const c = state.cart;
+  return optionsFor({ category: i.category, date: c.partyDate, today: localISO(), theme: c.theme, little: c.little, exclude: c.items.map((x) => x.id) })
+    .map((p) => ({ ...p, qty: qtyFor(p, { kids: c.kids, was: i.qty }) }));
 }
+
+function renderGroups() {
+  const c = state.cart;
+  const theme = themeWord(c.theme);
+  $('#cartGroups').innerHTML = GROUPS.map((g) => {
+    const items = c.items.filter((i) => g.cats.includes(i.category));
+    if (!items.length) return '';
+    const sub = items.reduce((a, i) => a + i.amount, 0);
+    return `<section class="grp"><header class="grp-head"><h3>${g.title}</h3><span>${money(sub)}</span></header>
+      <ul class="grp-items">${items.map((i) => itemRow(i, theme)).join('')}</ul></section>`;
+  }).join('');
+}
+
+function itemRow(i, theme) {
+  const c = state.cart;
+  const live = !state.locked;
+  const opts = live ? optionsOf(i) : [];
+  const open = state.opts === i.id;
+  const asking = live && i.needsOk && !state.decided[i.id];
+  const booked = c.notes.some((n) => /booked/i.test(n)) && i.category === 'bounce';
+  const flag = asking
+    ? `<div class="flag" role="group" aria-label="Needs your OK">
+        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked Dec 5, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
+        <div class="acts"><button class="go sm" data-keep="${esc(i.id)}">Keep it</button>${opts.length ? `<button class="ghost-btn sm" data-opts="${esc(i.id)}" aria-expanded="${open}">See ${opts.length} other option${opts.length > 1 ? 's' : ''}</button>` : ''}<button class="link-btn sm" data-drop="${esc(i.id)}">Remove</button></div>
+      </div>`
+    : i.offTheme && c.theme ? `<span class="tag">Not ${esc(theme)}-themed${state.decided[i.id] === 'kept' ? ' · you OK’d it' : ''}</span>` : '';
+  const more = !live || asking ? ''
+    : opts.length ? `<button class="link-btn more" data-opts="${esc(i.id)}" aria-expanded="${open}">${open ? 'Hide' : `${opts.length} other option${opts.length > 1 ? 's' : ''}`}</button>`
+    : c.little && (i.category === 'favors' || i.category === 'pinata') ? `<span class="none">The only one here that's safe for 2-year-olds.</span>` : '';
+  const panel = !open ? '' : `<div class="opts">
+      <ul>${opts.map((p) => `<li>
+        <div class="o-main"><div class="o-name">${link(p)}</div><div class="it-store">${brick(p.store)}${esc(STORES[p.store].name)}${!offTheme(p, c.theme) && c.theme ? ` · <span class="ok">${esc(theme)}-themed</span>` : ''}</div></div>
+        <div class="o-amt">${money(p.price * p.qty)}<span class="diff">${signed(p.price * p.qty - i.amount)}</span></div>
+        <button class="ghost-btn sm" data-swap="${esc(p.id)}" data-from="${esc(i.id)}">Swap</button></li>`).join('')}</ul>
+      ${i.reason ? `<p class="note">Why I picked the one you have: ${esc(i.reason)}</p>` : ''}
+    </div>`;
+  const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
+  return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
+      ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
+    </li>`;
+}
+
 function decide(e) {
   const keep = e.target.closest('[data-keep]')?.dataset.keep;
   const drop = e.target.closest('[data-drop]')?.dataset.drop;
@@ -363,19 +426,33 @@ function renderPermit() {
   $('#permitSheet').hidden = false;
   $('#runSheet').hidden = true;
   const budget = budgetOf(c);
-  $('#permitSub').textContent = `For ${prettyDate(c.partyDate)}. Nothing is charged until you say go.`;
   $('#permitTotal').textContent = money(c.total);
   $('#permitOf').textContent = c.budget ? `of your ${money(c.budget)} budget` : 'No budget given, so the cart is the limit.';
-  $('#budgetBar div').style.width = `${Math.min(100, Math.round((c.total / budget) * 100))}%`;
+  $('#permitBreak').innerHTML = `Items ${money(c.itemsTotal)} · delivery ${money(c.delivery)} · tax ${money(c.tax)}<span>Delivery and tax to ${DEMO_ZIP} are estimates; each store's checkout has the final word, and its pass covers it.</span>`;
+  $('#permitLine').textContent = permitLine(c);
   $('#caps').innerHTML = c.stores
-    .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}</span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
+    .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}<small>${money(s.items)} + ${s.delivery ? `${money(s.delivery)} ${s.how === 'delivery' ? 'delivery' : 'shipping'}` : 'pickup'} + ${money(s.tax)} tax</small></span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
     .join('');
   $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" class="chip" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
-  $('#passNote').textContent = `Each store gets its own pass: good at that store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
+  $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
+  $('#startOver').hidden = false;
+  document.body.classList.add('reviewing');
   $('#permitErr').hidden = true;
   const waiting = pending().length;
   $('#shopBtn').disabled = Boolean(waiting);
-  $('#shopBtn').textContent = waiting ? 'Answer the question in the cart first' : 'Let the agent shop';
+  $('#shopBtn').textContent = 'Let the agent shop';
+  renderSteps();
+}
+
+// The whole permission in one plain sentence. The details are one tap away.
+function permitLine(c) {
+  const askers = c.stores.filter((s) => asksAt(s.amount));
+  const when = `Nothing is charged until you say go, and nothing after ${prettyDate(c.partyDate)}.`;
+  if (state.askOver === 0) return `I'll check with you before paying each store. ${when}`;
+  if (state.askOver == null) return `I won't stop to ask, unless a store wants more than you approved. ${when}`;
+  if (!askers.length) return `Every store is under ${money(state.askOver)}, so I won't need to stop unless something changes. ${when}`;
+  const names = askers.map((s) => `${s.name} (${money(s.amount)})`).join(' and ');
+  return `I'll check with you before ${names}, since ${askers.length > 1 ? "they're" : "it's"} over ${money(state.askOver)}. ${when}`;
 }
 
 // ---------- the shopping run ----------
@@ -412,6 +489,7 @@ function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }
 // While the agent shops, the run takes the stage and the cart shrinks to one card.
 function focusRun(on) {
   document.body.classList.toggle('shopping', on);
+  if (on) document.body.classList.remove('reviewing');
   const c = state.cart;
   $('#cartMini').hidden = !on;
   if (on) $('#cartMiniText').textContent = `${c.items.length} items from ${c.stores.length} stores · ${money(c.total)} of ${money(budgetOf(c))}`;
@@ -475,6 +553,7 @@ function hoodHtml(store, h, flat = false) {
   const rows = [
     ['Pass', `<code>${esc(h.token)}</code>${h.sample ? ' (simulated)' : ' (Stripe shared payment token, test mode)'}`],
     ['Limit', `${money(h.cap)}, made for ${esc(STORES[store].name)} only, expires ${time}`],
+    h.paymentMethod && ['Draws on', `<code>${esc(h.paymentMethod)}</code>${h.savedCard ? ' (the card you saved)' : h.sample ? '' : " (Stripe's test Visa; the saved card wasn't accepted by the test helper)"}`],
     ['Store charged', `${money(h.asked)}${over ? `, ${money(h.asked - h.cap)} over the limit` : ''}`],
     ['Result', result],
     h.paymentIntent && ['PaymentIntent', `<code>${esc(h.paymentIntent)}</code>${h.piStatus ? ` (${esc(h.piStatus)})` : ''}`],
@@ -499,7 +578,7 @@ async function shop() {
   btn.setAttribute('aria-busy', 'true');
   $('#permitErr').hidden = true;
   try {
-    const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate });
+    const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
   } catch (ex) {
@@ -759,14 +838,15 @@ async function findAnother(e) {
       return;
     }
     const it = r.item;
+    const q = r.quote;
     li.className = 'asking';
-    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(it.amount)}</span></div><span class="status">Waiting for you.</span>`;
+    li.innerHTML = `<div class="row">${brick(it.store)}<b>${esc(it.storeName)}</b><span class="amt">${money(q.total)}</span></div><span class="status">Waiting for you.</span>`;
     const pick = await handoff({
       title: `Book ${it.storeName} instead?`,
       why: `The party has no ${esc(WHAT[cat])} now${tried.some((t) => state.paid[t]?.refunded) ? ' (the test cancellation)' : ''}. A replacement is new spending, so it's your call.`,
-      suggest: `${it.name}, ${money(it.amount)}, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${themeWord(c.theme)}-themed.` : ''}`,
-      next: `If you approve, it's a second, separate permission: ${money(it.amount)} for ${it.storeName} only. Your first approval doesn't stretch to cover it.`,
-      acts: [['yes', `Approve ${money(it.amount)}`, 'go'], ['no', 'Not now', 'ghost-btn']],
+      suggest: `${it.name}, ${money(it.amount)} plus ${money(q.delivery + q.tax)} estimated delivery and tax, free on ${prettyDate(c.partyDate)}.${it.offTheme ? ` It isn't ${themeWord(c.theme)}-themed.` : ''}`,
+      next: `If you approve, it's a second, separate permission: ${money(q.total)} for ${it.storeName} only. Your first approval doesn't stretch to cover it.`,
+      acts: [['yes', `Approve ${money(q.total)}`, 'go'], ['no', 'Not now', 'ghost-btn']],
       link: it.url,
     });
     if (pick !== 'yes') {
@@ -777,13 +857,13 @@ async function findAnother(e) {
     li.remove();
     delete state.rows[key];
     // A second, separate permission: this store only, this amount only, within what's left.
-    const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate });
+    const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm });
-    state.caps[it.store] = { approved: it.amount, final: it.amount };
-    state.extraPermits.push({ id: p.perm.id, amount: it.amount, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
+    state.caps[it.store] = { approved: q.total, final: q.total };
+    state.extraPermits.push({ id: p.perm.id, amount: q.total, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
     c.items.push(it);
     regroup(c);
-    await buy(it.store, it.amount, { approved: true });
+    await buy(it.store, q.total, { approved: true });
   } catch (ex) {
     li.className = 'blocked';
     li.innerHTML = `<div class="row"><b>Couldn't find another ${esc(WHAT[cat])}</b></div><span class="status">${esc(ex.message)}</span>`;
@@ -909,6 +989,8 @@ function renderReceipt() {
     ['Agent may spend', `${money(perm.total)} across ${Object.keys(perm.stores).length} stores, each with its own limit`],
     ['Ask me before', ask],
     ['Ends', `${prettyDate(perm.ends)}. Nothing can be bought after the party.`],
+    ['Paid with', state.wallet ? `${cap1(state.wallet.brand)} •••• ${state.wallet.last4}, saved to Stripe at setup${state.wallet.sample ? ' (simulated)' : ' (test mode)'}` : 'Stripe test Visa'],
+    ['Delivering to', `ZIP ${DEMO_ZIP} (demo). Delivery and tax were estimates inside each store's limit.`],
     ['Each pass', 'One store, one charge, up to its limit, for 30 minutes'],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
   const agent = [
@@ -917,7 +999,7 @@ function renderReceipt() {
     ...c.ignored.map((x) => `Ignored an instruction hidden in a listing from ${x.store}${STORES.brickyard && x.store === STORES.brickyard.name ? ' (our made-up test store)' : ''}, and bought nothing because of it.`),
     ...c.items.filter((i) => state.decided[i.id] === 'kept').map((i) => `You kept the ${i.name}, knowing it isn't ${themeWord(c.theme)}-themed.`),
     ...state.extraPermits.map((x) => `After the ${x.reason}, you approved a second permission: ${money(x.amount)} for ${x.storeName} only.`),
-    'It never held a payment method. The server made each pass after you approved.',
+    'It never held your card. The server made each pass from your saved card, after you approved.',
   ];
   $('#rcptAgent').innerHTML = agent.map((a) => `<li>${esc(a)}</li>`).join('');
   $('#rcptStores').innerHTML = c.stores
@@ -975,6 +1057,9 @@ function startOver() {
   $('#success').hidden = true;
   $('main.layout').hidden = false;
   focusRun(false);
+  document.body.classList.remove('reviewing');
+  $('#changeForm').hidden = true;
+  state.opts = null;
   Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
@@ -1005,11 +1090,11 @@ function bind() {
     closeSuccess();
     $(`#missing [data-find="${cat}"]`)?.click();
   });
-  $('#decide').addEventListener('click', decide);
-  $('#whyToggle').addEventListener('click', () => {
-    const on = $('#cartStores').classList.toggle('show-why');
-    $('#whyToggle').setAttribute('aria-expanded', String(on));
-    $('#whyToggle').textContent = on ? 'Hide the reasons' : 'Why each item?';
+  $('#changeOpen').addEventListener('click', () => {
+    const f = $('#changeForm');
+    f.hidden = !f.hidden;
+    $('#changeOpen').setAttribute('aria-expanded', String(!f.hidden));
+    if (!f.hidden) $('#changeText').focus();
   });
   $('#askedMissing').addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]')?.dataset.add;
@@ -1017,9 +1102,14 @@ function bind() {
     if (add) changeCart({ add }, `Add a ${WHAT[add]}`);
     if (no) { state.declined.add(no); renderAskedMissing(); }
   });
-  $('#cartStores').addEventListener('click', (e) => {
+  $('#cartGroups').addEventListener('click', (e) => {
     const b = e.target.closest('[data-q]');
-    if (b) changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
+    if (b) return changeCart({ set: { id: b.dataset.id, qty: Number(b.dataset.q) } }, null);
+    const o = e.target.closest('[data-opts]')?.dataset.opts;
+    if (o) { state.opts = state.opts === o ? null : o; return renderGroups(); }
+    const to = e.target.closest('[data-swap]');
+    if (to) return changeCart({ swap: { from: to.dataset.from, to: to.dataset.swap } }, null);
+    decide(e);
   });
   $('#changeForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1034,8 +1124,43 @@ function bind() {
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
+// ---------- onboarding: save a card, see how passes work ----------
+
+function showWallet() {
+  const w = state.wallet;
+  $('#cardDone').hidden = false;
+  $('#cardDone').innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(cap1(w.brand))} •••• ${esc(w.last4)} saved to Stripe${w.sample ? ' (simulated)' : ', test mode'}.<small>Customer <code>${esc(w.customer)}</code> · card <code>${esc(w.paymentMethod)}</code></small></span>`;
+  $('#saveCard').hidden = true;
+  $('#sCard').classList.add('done');
+  $('#setupDone').disabled = false;
+  $('#walletLine').hidden = false;
+  $('#walletLine').innerHTML = `Paying with ${esc(cap1(w.brand))} •••• ${esc(w.last4)} · delivering to ${DEMO_ZIP}`;
+}
+async function saveCard() {
+  $('#setupErr').hidden = true;
+  $('#saveCard').setAttribute('aria-busy', 'true');
+  try {
+    state.wallet = (await api('/api/setup', {})).wallet;
+    try { sessionStorage.setItem('partyRunWallet', JSON.stringify(state.wallet)); } catch {}
+    showWallet();
+  } catch (ex) {
+    $('#setupErr').textContent = ex.message;
+    $('#setupErr').hidden = false;
+  } finally {
+    $('#saveCard').removeAttribute('aria-busy');
+  }
+}
+function finishSetup() {
+  $('#setup').hidden = true;
+  $('#ask').hidden = false;
+  $('#askBtn').focus();
+}
+
 async function init() {
   bind();
+  $('#saveCard').addEventListener('click', saveCard);
+  $('#setupDone').addEventListener('click', finishSetup);
+  try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
   $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {

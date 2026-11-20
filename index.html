@@ -22,8 +22,57 @@
         <p id="cartMiniText"></p>
         <p class="note">Locked while the agent shops. You approved it; only you can change it.</p>
       </div>
-      <!-- First screen: one question. -->
-      <section class="ask" id="ask" aria-labelledby="askTitle">
+      <!-- Before anything: set up how the agent pays. Once. -->
+      <section class="setup" id="setup" aria-labelledby="setupTitle">
+        <h1 class="ask-title" id="setupTitle">First, set up <span class="ul"><i>Party Run</i><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 Q30 2 58 7 T114 7 T170 6 T198 5" fill="none" stroke="#5B35D5" stroke-width="3.5" stroke-linecap="round"/></svg></span></h1>
+        <p class="ask-sub">You do this once, before the agent ever shops. Your card stays with Stripe. The agent and the stores never see it: each store only gets a one-time pass for an amount you approve.</p>
+        <ol class="setup-steps">
+          <li class="s-card" id="sCard">
+            <span class="s-num">1</span>
+            <div class="s-body">
+              <h2>Save a card</h2>
+              <div class="cardbox" aria-label="Stripe test card">
+                <div class="cb-row"><span class="cb-lbl">Card number</span><span class="cb-val">4242 4242 4242 4242</span><svg class="cb-visa" viewBox="0 0 40 14" aria-hidden="true"><text x="0" y="12" font-family="Inter Tight, sans-serif" font-size="14" font-weight="800" font-style="italic" fill="#1A1F71">VISA</text></svg></div>
+                <div class="cb-split"><div><span class="cb-lbl">Expires</span><span class="cb-val">12 / 34</span></div><div><span class="cb-lbl">CVC</span><span class="cb-val">123</span></div></div>
+              </div>
+              <p class="note">Stripe's test card. This demo never takes a real one.</p>
+              <button class="go" id="saveCard" type="button">Save card</button>
+              <p class="s-done" id="cardDone" hidden></p>
+              <p class="err" id="setupErr" role="alert" hidden></p>
+            </div>
+          </li>
+          <li id="sZip">
+            <span class="s-num">2</span>
+            <div class="s-body">
+              <h2>Where's the party?</h2>
+              <div class="zip"><span class="cb-lbl">ZIP code</span><span class="cb-val">90210</span><span class="note">Beverly Hills, CA</span></div>
+              <p class="note">A demo ZIP: the real party's address is never asked for. Stores use it to work out delivery and tax.</p>
+            </div>
+          </li>
+          <li id="sHow">
+            <span class="s-num">3</span>
+            <div class="s-body">
+              <h2>How the agent pays</h2>
+              <div class="flow" aria-hidden="true">
+                <span class="f-card">Your card<small>kept by Stripe</small></span>
+                <span class="f-arrow"></span>
+                <span class="f-agent">Party Run<small>makes passes</small></span>
+                <span class="f-arrow"></span>
+                <span class="f-passes"><span>Pass · one store · up to $X</span><span>Pass · one store · up to $Y</span></span>
+              </div>
+              <ul class="s-list">
+                <li>Each store gets its own pass: that store only, up to the amount you approve, good for 30 minutes.</li>
+                <li>You see the cart and approve the amounts before any pass exists.</li>
+                <li>If a store asks for more than its pass, Stripe refuses it, not the agent.</li>
+              </ul>
+            </div>
+          </li>
+        </ol>
+        <button class="pay-btn" id="setupDone" type="button" disabled>Start planning</button>
+      </section>
+
+      <!-- Then one question. -->
+      <section class="ask" id="ask" aria-labelledby="askTitle" hidden>
         <form class="ask-form" id="askForm" novalidate>
           <svg class="sticker" viewBox="0 0 118 118" aria-hidden="true">
             <circle cx="59" cy="59" r="57" fill="#FFD23F" stroke="#161412" stroke-width="2"/>
@@ -37,6 +86,7 @@
             <rect x="64" y="46" width="10" height="7" rx="2" fill="#FF8A80" stroke="#161412" stroke-width="2"/>
           </svg>
           <label for="askText" class="ask-title" id="askTitle">What's the <span class="ul"><i>party?</i><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M2 8 Q30 2 58 7 T114 7 T170 6 T198 5" fill="none" stroke="#5B35D5" stroke-width="3.5" stroke-linecap="round"/></svg></span></label>
+          <p class="wallet-line" id="walletLine" hidden></p>
           <p class="ask-sub">This demo plans one real party: ours. The agent shops real store listings and shows you the cart, and it can only spend what you approve. Nothing is actually ordered.</p>
           <div class="ask-box">
             <textarea id="askText" rows="4" maxlength="1200" readonly aria-describedby="askFixed"></textarea>
@@ -66,45 +116,48 @@
           <span class="avatar face" id="cartFace" aria-hidden="true"></span>
           <div class="bubble cart" role="status">
             <p class="cart-summary" id="cartSummary"></p>
-            <ul class="notes" id="cartNotes"></ul>
-            <details class="more-notes" id="moreNotes" hidden><summary></summary><ul class="notes" id="cartNotesMore"></ul></details>
-            <details class="shield" id="shield" hidden>
-              <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
-              <p id="shieldText"></p>
-            </details>
-            <div class="trick-result" id="trickResult" hidden>
-              <span class="kicker">Your trick</span>
-              <p id="trickQuote"></p>
-              <ol id="trickSteps"></ol>
+            <!-- Step 1: the party, by what it is (food, fun, plates, favors). The run pays by store. -->
+            <div class="step" id="step2">
+              <span class="step-lbl" id="step2Lbl"></span>
+              <div class="decide" id="askedMissing" hidden></div>
+              <div class="changed" id="changed" hidden></div>
+              <div id="cartGroups"></div>
+              <details class="shield" id="shield" hidden>
+                <summary><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1 L15 4 V9 C15 13 12 16 8 17 C4 16 1 13 1 9 V4 Z" fill="currentColor"/></svg><span id="shieldLine"></span> <u>See it</u></summary>
+                <p id="shieldText"></p>
+              </details>
+              <div class="trick-result" id="trickResult" hidden>
+                <span class="kicker">Your trick</span>
+                <p id="trickQuote"></p>
+                <ol id="trickSteps"></ol>
+              </div>
+              <div class="unmet" id="cartUnmet" hidden>
+                <span class="kicker">What I couldn't do</span>
+                <ul id="cartUnmetList"></ul>
+              </div>
+              <div class="quiet-links">
+                <button type="button" class="link-btn" id="changeOpen" aria-expanded="false">Ask for a change</button>
+                <details class="more-notes" id="moreNotes" hidden><summary>Why these picks?</summary><ul class="notes" id="cartNotesMore"></ul></details>
+              </div>
+              <form class="ask-change" id="changeForm" hidden>
+                <label class="lbl" for="changeText">What should change?</label>
+                <div class="change-row">
+                  <input id="changeText" maxlength="300" autocomplete="off" placeholder="Snacks for the grown-ups">
+                  <button class="go" id="changeBtn" type="submit">Change it</button>
+                </div>
+                <div class="chips" id="changeChips">
+                  <button type="button" class="chip" data-say="Make the cake chocolate">Chocolate cake</button>
+                  <button type="button" class="chip" data-say="Keep it under $350">Under $350</button>
+                  <button type="button" class="chip" data-say="Add cookies">Add cookies</button>
+                </div>
+                <p class="note">Every change is checked like a new plan, and you approve the final cart.</p>
+                <p class="err" id="changeErr" role="alert" hidden></p>
+              </form>
+              <p class="note" id="cartSource"></p>
+              <p class="how" id="cartHow" hidden></p>
             </div>
-            <div class="changed" id="changed" hidden></div>
-            <div class="decide" id="decide" hidden></div>
-            <div class="decide" id="askedMissing" hidden></div>
-            <button type="button" class="link-btn why-toggle" id="whyToggle" aria-expanded="false">Why each item?</button>
-            <div id="cartStores"></div>
-            <p class="note" id="cartSource"></p>
-            <div class="unmet" id="cartUnmet" hidden>
-              <span class="kicker">What I couldn't do</span>
-              <ul id="cartUnmetList"></ul>
-            </div>
-            <p class="how" id="cartHow" hidden></p>
           </div>
         </div>
-        <form class="ask-change" id="changeForm" hidden>
-          <label class="lbl" for="changeText">Ask for a change</label>
-          <div class="change-row">
-            <input id="changeText" maxlength="300" autocomplete="off" placeholder="Snacks for the grown-ups">
-            <button class="go" id="changeBtn" type="submit">Change it</button>
-          </div>
-          <div class="chips" id="changeChips">
-            <button type="button" class="chip" data-say="Make the cake chocolate">Chocolate cake</button>
-            <button type="button" class="chip" data-say="Keep it under $250">Under $250</button>
-            <button type="button" class="chip" data-say="Add cookies">Add cookies</button>
-          </div>
-          <p class="note">Change amounts of favors and snacks with + and −. Every change is checked like a new plan, and you approve the final cart.</p>
-          <p class="err" id="changeErr" role="alert" hidden></p>
-        </form>
-        <button class="link-btn" id="startOver" type="button" hidden>Start over</button>
       </section>
     </div>
 
@@ -112,32 +165,39 @@
     <aside class="col money-col" id="moneyCol" hidden>
       <section class="sheet" id="permitSheet" aria-labelledby="permitTitle">
         <div>
-          <h2 class="h" id="permitTitle">What the agent <i>may spend</i></h2>
-          <p class="note" id="permitSub"></p>
+          <span class="step-lbl" id="step3Lbl"></span>
+          <h2 class="h" id="permitTitle">Ready when <i>you are</i></h2>
         </div>
         <div class="total-row">
           <span class="total-amt" id="permitTotal"></span>
           <span class="note" id="permitOf"></span>
         </div>
-        <div class="budget-bar" id="budgetBar" aria-hidden="true"><div></div></div>
-        <ul class="caps" id="caps"></ul>
-        <div class="stack">
-          <span class="lbl" id="askLbl">Ask me before any purchase over</span>
-          <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
-        </div>
-        <p class="note" id="passNote"></p>
-        <div class="stops">
-          <span class="lbl">The agent stops and hands it to you when</span>
-          <ul>
-            <li>a purchase is over your ask-me amount</li>
-            <li>a store asks for more than you approved</li>
-            <li>part of the party falls through</li>
-          </ul>
-          <p class="note">Everything else it handles, and you can see each step.</p>
-        </div>
+        <p class="permit-break" id="permitBreak"></p>
+        <p class="permit-line" id="permitLine"></p>
+        <p class="wait-note" id="waitNote" hidden>Answer the flagged item above first.</p>
         <button class="pay-btn" id="shopBtn" type="button">Let the agent shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
+        <details class="fold" id="limitsFold">
+          <summary>Change limits</summary>
+          <div class="stack">
+            <span class="lbl" id="askLbl">Ask me before any purchase over</span>
+            <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
+          </div>
+          <span class="lbl">Each store's pass</span>
+          <ul class="caps" id="caps"></ul>
+          <p class="note" id="passNote"></p>
+        </details>
+        <details class="fold">
+          <summary>When I'll stop and ask you</summary>
+          <ul class="stops-list">
+            <li>A purchase is over your ask-me amount</li>
+            <li>A store asks for more than you approved</li>
+            <li>Part of the party falls through</li>
+          </ul>
+          <p class="note">Everything else I handle, and you can watch each step.</p>
+        </details>
         <p class="note center" id="testNote">Test mode. No real money moves.</p>
+        <button class="link-btn center" id="startOver" type="button" hidden>Start over</button>
       </section>
 
       <section class="sheet" id="runSheet" hidden aria-labelledby="runTitle">

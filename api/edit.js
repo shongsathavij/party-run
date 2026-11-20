@@ -7,12 +7,13 @@ import { claudeAgent, rulesEdit, rebuild, diffCarts, flagTheme, readRequest, saf
 import { pickFor } from './_lib/pick.js';
 import { checkCart, dollars } from '../lib/rules.js';
 import { byId } from '../lib/catalog.js';
+import { optionsFor, qtyFor } from '../lib/options.js';
 import { post, fail, isoDate, serverToday } from './_lib/http.js';
 import { allowClaude } from './_lib/limits.js';
 
 const clean = (t) => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 300);
 
-export default post(async ({ prompt, today: day, cart: raw, set, change, add }, req) => {
+export default post(async ({ prompt, today: day, cart: raw, set, change, add, swap }, req) => {
   const text = String(prompt || '').trim().slice(0, 1200);
   const today = isoDate(day) || serverToday();
   if (!raw || !Array.isArray(raw.items) || !isoDate(raw.partyDate)) throw fail('Missing the cart.');
@@ -21,7 +22,17 @@ export default post(async ({ prompt, today: day, cart: raw, set, change, add }, 
   const cart = rebuild({ ...raw, budget: Number.isInteger(raw.budget) ? raw.budget : null, kids: Math.max(1, Math.min(60, Number(raw.kids) | 0 || 10)) }, lines);
 
   let next, mode, note = null, usage = null;
-  if (add) {
+  if (swap) {
+    // "Swap": one of the other options the page showed, for the same part of the party. Rules, no tokens.
+    const from = cart.items.find((i) => i.id === swap.from);
+    const to = byId[swap.to];
+    if (!from || !to || to.category !== from.category) throw fail("That swap doesn't fit.");
+    const asked = readRequest(text, today);
+    const allowed = optionsFor({ category: from.category, date: cart.partyDate, today, theme: asked.theme, little: asked.little, exclude: cart.items.map((i) => i.id) });
+    if (!allowed.some((p) => p.id === to.id)) throw fail(`${to.name} can't be had for this party.`);
+    next = rebuild(cart, cart.items.map((i) => (i.id === from.id ? { id: to.id, qty: qtyFor(to, { kids: cart.kids, was: from.qty }) } : { id: i.id, qty: i.qty, reason: i.reason })));
+    mode = 'tap';
+  } else if (add) {
     // "Add a piñata": the same picker as a replacement, within what the budget leaves.
     const asked = readRequest(text, today);
     const room = (cart.budget || Infinity) - cart.total;
@@ -60,7 +71,7 @@ export default post(async ({ prompt, today: day, cart: raw, set, change, add }, 
   const chk = checkCart(next.items.map((i) => ({ id: i.id, qty: i.qty })), { partyDate: next.partyDate, today, kids: next.kids, budget: next.budget });
   const over = next.budget && next.total > next.budget;
   if (chk.hard.length || over) {
-    return { ok: false, cart: flagTheme(cart, text, today), why: over ? `That would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
+    return { ok: false, cart: flagTheme(cart, text, today), why: over ? `With delivery and tax, that would bring the cart to ${dollars(next.total)}, over your ${dollars(next.budget)} budget. Raise the budget or take something out.` : chk.hard[0], mode };
   }
   // If the parent picks something not meant for 2-year-olds, it's their call; the cart says so.
   const safety = safetyProblems(next.items, text, today).map((m) => m.replace(/ Use a pull-string.*| Pick favors.*/, ''));

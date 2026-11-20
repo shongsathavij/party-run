@@ -24,7 +24,7 @@ export default post(async ({ permission, signature, store, approved = false, cur
   const isRental = /rental/i.test(STORES[store].kind);
   const asked = test === true ? s.cap + PRICE_UP : curveball === 'price_up' && isRental ? quoted + PRICE_UP : quoted;
 
-  const token = await mint({ store, cap: s.cap, ref: perm.id });
+  const token = await mint({ store, cap: s.cap, ref: perm.id, wallet: perm.wallet });
   const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Party Run test, simulated order: ${STORES[store].name}` });
   const pass = { id: token.id, cap: token.cap, expiresAt: token.expiresAt, sample: token.sample };
   // "Under the hood": the real objects behind this row, so the claim can be checked.
@@ -33,6 +33,8 @@ export default post(async ({ permission, signature, store, approved = false, cur
     token: token.id,
     cap: token.cap,
     expiresAt: token.expiresAt,
+    paymentMethod: token.paymentMethod || null,
+    savedCard: Boolean(perm.wallet) && !token.fellBack,
     asked,
     decidedBy: r.blocked ? r.by || 'stripe' : 'stripe',
     paymentIntent: r.blocked ? r.pi || null : r.id,
