@@ -813,3 +813,36 @@ body:has(#ask:not([hidden])) .layout { padding-top: 8px; }
 .hero-title { margin-top: 0; }
 .hero-row + .hero-sub, .hero-sub { margin-top: 10px; }
 body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
+
+/* ---------- Calm flow: the cart, the go-ahead, the run and the receipt get the home page's restraint.
+   Rounded cards, hairlines instead of heavy outlines, soft shadows instead of hard ones, store labels in
+   small mono capitals. The striped shadow stays the chatbox's alone; red buttons keep their chunky edge. */
+:root { --hair: #E6E0D6; --lift: 0 18px 40px -22px rgba(40, 25, 10, .28); --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+.bubble { border: 2px solid var(--ink); border-radius: 22px 22px 22px 8px; box-shadow: var(--lift); }
+.me { border-radius: 18px 18px 6px 18px; }
+.grp { border: 1px solid var(--hair); border-radius: 16px; }
+.grp-head { border-bottom: 1px solid var(--hair); }
+.it-store { font: 600 11px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.flag { border: 1px solid #F2CFC8; border-left: 5px solid var(--coral); border-radius: 14px; background: #FFF7F5; }
+.opts { border: 1px solid var(--hair); border-radius: 14px; }
+.decide { border-radius: 16px; box-shadow: var(--lift); }
+.tag { border-radius: 999px; }
+.shield { border-radius: 14px; }
+.changed { border: 1px solid #CFE6F6; border-radius: 14px; }
+.cart-mini { border: 1px solid var(--hair) !important; border-radius: 16px !important; box-shadow: var(--lift); }
+.sheet { border: 1px solid var(--hair); border-radius: 22px; box-shadow: var(--lift); }
+.handoff { border-radius: 22px; border-width: 2px; }
+.run li { border: 1px solid var(--hair); border-radius: 14px; }
+.queue li { border-radius: 999px !important; }
+.pay-with .cardbox { border: 1.5px solid var(--ink); border-radius: 14px; overflow: hidden; }
+.cb-f { border-right: 1px solid var(--hair); }
+.ghost-btn { border-width: 1.5px; }
+
+/* The receipt reads like an order confirmation: mono labels and ids, hairline rules, a clear total. */
+.receipt .lbl, .receipt .rcpt-kv dt { font: 600 11px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #8A8379; }
+.rcpt-block { border-top: 1px solid var(--hair); }
+.rcpt-totals { border-top: 1.5px solid var(--ink); }
+.rcpt-totals .big { font-size: 24px; font-weight: 800; }
+.rcpt-stores p.mono, .receipt #rcptId { font-family: var(--mono); font-size: 12px; }
+.rcpt-verdict, .rcpt-complete { border-radius: 14px; }
+.faq details { border-bottom: 1px solid var(--hair); }
