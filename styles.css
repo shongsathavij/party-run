@@ -808,8 +808,7 @@ body:has(#ask:not([hidden])) .hero-row { max-width: 780px; }
   .hero-row + .hero-sub, .hero-sub { margin-top: 18px; }
 }
 .faq { border-top-width: 1px; border-top-color: #E3DDD3; }
-/* No candle on the home cake (the candle is saved for the success page), and the hero sits higher and tighter. */
-.hero-cake .hc-candle, .hero-cake .hc-flame { display: none; }
+/* A short candle on the home cake, and the hero sits higher and tighter. */
 body:has(#ask:not([hidden])) .layout { padding-top: 8px; }
 .hero-title { margin-top: 0; }
 .hero-row + .hero-sub, .hero-sub { margin-top: 10px; }
