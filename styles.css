@@ -740,12 +740,6 @@ body { background: transparent; }
 .hero-row { display: flex; align-items: center; gap: 6px; }
 .hero-row .hero-title { flex: 1; min-width: 0; white-space: normal; }
 .hero-cake { flex: none; width: clamp(104px, 24vw, 200px); margin-right: -6px; }
-@media (min-width: 1280px) {
-  .hero-row { display: block; }
-  .hero-row .hero-title { white-space: nowrap; }
-  body:has(#ask:not([hidden])) .ask-form { position: static; }
-  .hero-cake { position: absolute; right: 70px; top: 110px; width: 260px; margin: 0; }
-}
 @keyframes deco-bob { from { transform: translateY(0); } to { transform: translateY(-10px); } }
 
 /* The agent's face is the cake's bottom tier: blue-white-blue bands, no outline, pink cheeks. */
@@ -791,3 +785,26 @@ body:has(#ask:not([hidden])) #brand { display: none; }
 @media (max-width: 600px) { .hero-row .hero-title { font-size: 36px; } }
 @media (max-width: 380px) { .hero-row .hero-title { font-size: 33px; } .hero-cake { width: 92px; } }
 @media (max-width: 340px) { .hero-row .hero-title { font-size: 28px; } .hero-cake { width: 80px; } }
+
+/* Elevated: calmer and more crafted, still warm. A bigger headline with no underline, a rounded chatbox
+   on its striped shadow, a hairline trick box, a mono note, and a still cake (legs only while it dances). */
+.hero-title { font-size: clamp(40px, 7.2vw, 64px); letter-spacing: -0.035em; line-height: .98; }
+.hero-sub { font-size: 20px; max-width: 34ch; color: #3D3833; }
+.ask-box, .ask-box::before { border-radius: 22px; }
+.ask-box #askFixed { font: 600 11px/1.5 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; color: #8A8379; }
+.trick { border: 1px solid #E3DDD3 !important; border-radius: 14px !important; background: #FFFDF9; }
+.hero-cake:not([class*="go-"]) .hc-legs { display: none; }
+/* Home is one column (the money column only appears once there's a cart), so the headline row spans
+   the page with the cake at its right end; the rest of the form stays a readable width. */
+body:has(#ask:not([hidden])) .layout { grid-template-columns: minmax(0, 1fr); }
+body:has(#ask:not([hidden])) .ask-form > :not(.hero-row) { max-width: 680px; }
+body:has(#ask:not([hidden])) .hero-row { max-width: 780px; }
+.hero-row { justify-content: space-between; }
+/* Two lines: "Party planning?" then "Piece of cake." */
+.hero-row .hero-title em { display: block; }
+@media (min-width: 760px) {
+  .hero-row .hero-title { flex: none; white-space: nowrap; }
+  .hero-cake { width: clamp(160px, 17vw, 200px); }
+  .hero-row + .hero-sub, .hero-sub { margin-top: 18px; }
+}
+.faq { border-top-width: 1px; border-top-color: #E3DDD3; }
