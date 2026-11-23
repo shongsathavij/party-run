@@ -65,14 +65,16 @@
     .stripes { position: relative; isolation: isolate; border: 2.5px solid var(--ink); box-shadow: none; border-radius: 22px; }
     .stripes::before { content: ''; position: absolute; inset: -2.5px; transform: translate(8px, 8px); z-index: -1; border: 2.5px solid var(--ink); border-radius: 22px; background: repeating-linear-gradient(-45deg, var(--sky) 0 10px, #fff 10px 20px); }
 
-    header.hero { padding-block: 44px 28px; display: flex; flex-direction: column; gap: 16px; }
+    header.hero { padding-block: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .hero-row { margin-top: -6px; }
     .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .cake { width: clamp(96px, 22vw, 150px); height: auto; flex: none; }
+    .cake { width: clamp(80px, 18vw, 120px); height: auto; flex: none; }
     .cake .hc-legs { display: none; }
     .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); }
     .meta b { color: var(--ink); }
-    .cta { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; color: var(--ink); text-decoration: none; font-weight: 700; font-size: 15px; padding: 9px 18px; border: 1.5px solid var(--ink); border-radius: 999px; }
-    .cta:hover { background: var(--ink); color: #fff; }
+    .cta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; background: var(--red); color: #fff; text-decoration: none; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; padding: 12px 24px; border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 4px 4px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
+    .cta:hover { color: #fff; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+    .cta:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
     .shots { margin: 10px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .shots img { width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 20px; background: #fff; box-shadow: var(--lift); }
     .shots figcaption { grid-column: 1 / -1; }
@@ -131,7 +133,7 @@
       <h1>Piece of <span class="red">Cake</span></h1>
       <svg class="cake" aria-hidden="true" viewBox="0 26 200 206"><defs><linearGradient id="hcShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#3a1d0a" stop-opacity=".10"/><stop offset="1" stop-color="#3a1d0a" stop-opacity=".22"/></linearGradient><radialGradient id="hcGloss" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient><filter id="hcBlur" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="5"/></filter></defs><ellipse class="hc-shadow" cx="100" cy="212" rx="80" ry="6" fill="#111" opacity=".16" filter="url(#hcBlur)"/><g class="hc"><g class="hc-legs"><path class="l1" d="M78 196 v24 h-12"/><path class="l2" d="M122 196 v24 h-12"/></g><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="#7CC5EE"/><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="url(#hcShade)"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="#fff"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="url(#hcShade)"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="#7CC5EE"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="url(#hcShade)"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="url(#hcGloss)"/><g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g><ellipse cx="54" cy="110" rx="14" ry="4.5" fill="#fff" opacity=".55"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="#EE3B3B"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="url(#hcShade)"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="#fff"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="url(#hcShade)"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="#EE3B3B"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="url(#hcShade)"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="url(#hcGloss)"/><rect class="hc-candle" x="96" y="46" width="8" height="20" rx="4" fill="#7CC5EE"/><path class="hc-flame" d="M100 28c7 8 8 13 0 17-8-4-7-9 0-17z" fill="#FFD23F"/></g></svg>
     </div>
-    <p class="lede">An AI agent that shops my son's real birthday party from real store listings, and can only spend what I approve. The limits live in the payment itself, not in the prompt.</p>
+    <p class="lede">I wanted to showcase a problem I had that AI could easily solve: planning my son's birthday party, with an agent that checks out from real store listings. It can only spend what I approve, because the limits live in the payment, not the prompt.</p>
     <div class="meta">
       <span>Built by <b>Stephanie Hongsathavij</b>, Senior PM, Checkout</span>
       <span>Status: <b>live, Stripe test mode</b></span>
@@ -158,8 +160,9 @@
     <span class="kicker">Why I built it</span>
     <h2 id="why">The buyer is about to be software</h2>
     <div class="prose">
-      <p>I've spent seven years in payments, most recently owning checkout at HubSpot: payment links, invoices and quotes for about 40,000 sellers. Every checkout I've built assumes a person is at the keyboard. Agentic commerce breaks that assumption, and the hard question isn't whether an agent can find a bounce house. It's whether a parent can let it pay.</p>
-      <p>My son turns five on December 5. I had a real party to shop for: building-brick theme, backyard, 6 to 10 kids aged 2 to 5, a bounce house and a piñata, under $600. So I used it. A real brief keeps a demo honest: the toddler coming means the piñata needs pull strings, and a bounce house that's already booked is a real problem, not a contrived one.</p>
+      <p>I've spent seven years in payments as a product manager, and the most exciting recent development is agentic commerce. I wanted to take what I learned building an AI-first billing portal and build an app that helped me shop for my son's birthday party.</p>
+      <p>Every checkout I've built assumes a person is at the keyboard. With an agent, the hard question isn't whether it can find a bounce house. It's whether a parent can let it pay.</p>
+      <p>The party is real: December 5, building-brick theme, backyard, 6 to 10 kids aged 2 to 5, a bounce house and a piñata, under $600. A real brief keeps a demo honest: a toddler coming means the piñata needs pull strings, and a booked bounce house is a real problem, not a contrived one.</p>
     </div>
   </section>
 
