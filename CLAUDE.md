@@ -11,6 +11,8 @@ The pitch: party planning? Piece of cake. The agent can shop, but it can't overs
 - Vercel functions in `api/`: `plan` (the agent), `permit` (sign the parent's permission), `buy` (mint a pass and charge one store), `raise` (parent OKs a higher price), `refund` (store cancels), `replace` (find the same kind of item at a different store, within what's left of the budget; rules, not AI), `edit` (change the cart before approval), `config`. `api/_lib/` isn't routed.
 - No dependencies. Stripe and Anthropic are called with `fetch`.
 
+- `case-study.html`, served at /case-study (`cleanUrls`), linked from the footer: the portfolio write-up, about 2,000 words, mirroring date.sirinrut.com/case-study (What this shows, why, what it does, the payment with the verified Stripe refusal, the agent and its evals, five decision cards plus a "Smaller calls" table, how I worked with AI, metrics, business, next, stack). Same look as the app (calm cards; the striped shadow only on "What this shows"). Three phone screenshots in `img/case-home.jpg`, `case-cart.jpg`, `case-go.jpg` (585x1140); retake them when those screens change visibly. Update the eval numbers after each Claude run, and the rules and decisions when the product changes.
+
 ## Commands
 
 - `node scripts/serve.js` (PORT to change from 3000): local server, reads `.env.local`.
