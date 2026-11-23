@@ -22,7 +22,7 @@ def box(lane,y,title,lines,kind='plain',num=None):
 def path(pts,color=INK,label=None,lx_=None,ly=None,dash=False):
     d='M'+' L'.join(f'{a} {b}' for a,b in pts)
     m={INK:'ai',BLUE:'ab',RED:'ar',GREEN:'ag'}[color]
-    out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2" marker-end="url(#{m})"/>')
+    out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2" marker-end="url(#mk-{m})"/>')
     if label:
         out.append(f'<text x="{lx_}" y="{ly}" text-anchor="middle" class="lab" fill="{color}" stroke="#fff" stroke-width="4" paint-order="stroke">{e(label)}</text>')
 def section(y,name):
@@ -87,7 +87,7 @@ out.append(f'<text x="{W-20}" y="{ly+1}" text-anchor="end" class="b2">Stripe tes
 head=f'''<svg class="behind" viewBox="0 0 {W} {H-20}" role="img" aria-labelledby="behindTitle behindDesc" xmlns="http://www.w3.org/2000/svg">
 <title id="behindTitle">How Piece of Cake works behind the screen</title>
 <desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
-<defs>{''.join(f'<marker id="{i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="{c}"/></marker>' for i,c in [('ai',INK),('ab',BLUE),('ar',RED),('ag',GREEN)])}</defs>
+<defs>{''.join(f'<marker id="mk-{i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="{c}"/></marker>' for i,c in [('ai',INK),('ab',BLUE),('ar',RED),('ag',GREEN)])}</defs>
 <style>.behind text{{font-family:'Inter Tight',system-ui,sans-serif}} .t{{font-size:15px;font-weight:800;fill:{INK};letter-spacing:-.02em}} .b{{font-size:12.5px;fill:{MUTED}}} .b2{{font-size:12.5px;fill:{MUTED}}} .n{{font-size:11px;font-weight:800;fill:#fff}} .lh{{font-size:16px;font-weight:900;fill:{INK};letter-spacing:-.02em}} .ls{{font-size:12px;fill:{MUTED}}} .sec{{font-size:11px;font-weight:800;letter-spacing:.14em;fill:{MUTED}}} .lab{{font-size:12px;font-weight:700}} .loop{{font-size:20px;font-weight:900;fill:{MUTED};letter-spacing:-.02em}}</style>
 '''
 svg=head+'\n'.join(o.replace(f'y="',f'y="',1) for o in out)+'</svg>'

@@ -52,7 +52,7 @@
     h3 { font-size: 20px; letter-spacing: -0.02em; }
     p { margin: 0; }
     .kicker { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--blue); }
-    .hl { color: var(--red); font-weight: 800; }
+    .hl { font-weight: 800; }
     .lede { font-size: clamp(19px, 3.6vw, 22px); line-height: 1.5; max-width: 34em; }
     .small { font-size: 14px; color: var(--muted); line-height: 1.5; }
     section { display: flex; flex-direction: column; gap: 16px; padding-block: 40px; }
@@ -73,9 +73,8 @@
     .cake .hc-legs { display: none; }
     .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); }
     .meta b { color: var(--ink); }
-    .cta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; background: var(--red); color: #fff; text-decoration: none; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; padding: 12px 24px; border: 2.5px solid var(--ink); border-radius: 999px; box-shadow: 4px 4px 0 var(--ink); transition: transform .12s, box-shadow .12s; }
-    .cta:hover { color: #fff; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
-    .cta:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+    .cta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; color: var(--blue); background: #fff; text-decoration: none; font-weight: 800; font-size: 16px; letter-spacing: -0.02em; padding: 10px 20px; border: 2px solid var(--blue); border-radius: 999px; transition: background .12s, color .12s; }
+    .cta:hover { background: var(--blue); color: #fff; }
     .shots { margin: 10px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .shots img { width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 20px; background: #fff; box-shadow: var(--lift); }
     .shots figcaption { grid-column: 1 / -1; }
@@ -111,10 +110,10 @@
       .simple .card.c1::after { display: none; }
       .phase.money { margin-bottom: -8px; }
     }
-    .every summary { cursor: pointer; font-weight: 700; color: var(--blue); }
-    .every svg { width: 100%; height: auto; margin-top: 8px; }
-    .every[open] { align-self: center; width: min(1120px, calc(100vw - 48px)); }
-    @media (max-width: 959px) { .every { display: none; } }
+    .more { font-weight: 700; font-size: 15px; align-self: flex-start; }
+    .diagram { align-self: center; width: min(1120px, calc(100vw - 32px)); overflow-x: auto; background: #fff; border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--lift); padding: 12px; }
+    .diagram svg { display: block; width: 100%; min-width: 900px; height: auto; }
+    .behind { display: block; }
 
     /* The money flow */
     .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -181,8 +180,8 @@
     <span class="kicker">What this shows</span>
     <div class="stripes"><ul class="shows">
       <li><span><b>I ship.</b> A live agent on real store listings, real Stripe calls, and evals that run in CI, built in about ten days.</span></li>
-      <li><span><b>I make agents safe to hand money.</b> The agent never touches a card. Stripe enforces each store's cap, and I proved it by trying to break it.</span></li>
-      <li><span><b>I design the handoff.</b> The agent knows the three moments it must stop and ask, and says why in plain words.</span></li>
+      <li><span><b>I build trust into the payment.</b> My AI billing portal research showed people let automation spend when its edges are clear and a person can step in. So the agent can only spend what you approve, tells you up front when it will stop and ask, and Stripe enforces every limit.</span></li>
+      <li><span><b>I keep the record.</b> Every run ends in a receipt: what you approved, what each store charged, what was refused and by whom, checked against your limits.</span></li>
     </ul></div>
   </section>
 
@@ -224,179 +223,8 @@
         <div class="card money" style="--c: var(--ok)"><span class="who">Stripe</span><b>Makes a pass per store</b><span class="small">One store, one charge, up to its limit, for 30 minutes.</span></div>
         <div class="card" style="--c: var(--yellow)"><span class="who">Store</span><b>Charges the pass</b><span class="small">Within the limit: paid.</span><span class="refused"><b>Asks for $20 more?</b> Stripe declines it.</span></div>
       </div>
+      <a class="more" href="#appendix">See every step, including refunds and the receipt ↓</a>
     </div>
-    <details class="panel every">
-      <summary>See every step, including refunds and the receipt</summary>
-      <p class="small">The agent can propose. Only your signed permission lets money move, and Stripe enforces each limit, not the prompt.</p>
-      <svg class="behind" viewBox="0 90 1100 1420" role="img" aria-labelledby="behindTitle behindDesc" xmlns="http://www.w3.org/2000/svg">
-<title id="behindTitle">How Piece of Cake works behind the screen</title>
-<desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
-<defs><marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#161412"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E6FA6"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#EE3B3B"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E7A4C"/></marker></defs>
-<style>.behind text{font-family:'Inter Tight',system-ui,sans-serif} .t{font-size:15px;font-weight:800;fill:#161412;letter-spacing:-.02em} .b{font-size:12.5px;fill:#57524C} .b2{font-size:12.5px;fill:#57524C} .n{font-size:11px;font-weight:800;fill:#fff} .lh{font-size:16px;font-weight:900;fill:#161412;letter-spacing:-.02em} .ls{font-size:12px;fill:#57524C} .sec{font-size:11px;font-weight:800;letter-spacing:.14em;fill:#57524C} .lab{font-size:12px;font-weight:700} .loop{font-size:20px;font-weight:900;fill:#57524C;letter-spacing:-.02em}</style>
-<rect x="20" y="100" width="200" height="1340" rx="16" fill="#EEF6FC"/>
-<text x="120.0" y="128" text-anchor="middle" class="lh">You</text>
-<text x="120.0" y="146" text-anchor="middle" class="ls">the parent</text>
-<rect x="235" y="100" width="200" height="1340" rx="16" fill="#FFF7D9"/>
-<text x="335.0" y="128" text-anchor="middle" class="lh">The agent</text>
-<text x="335.0" y="146" text-anchor="middle" class="ls">Claude</text>
-<rect x="450" y="100" width="200" height="1340" rx="16" fill="#F4F1EC"/>
-<text x="550.0" y="128" text-anchor="middle" class="lh">Piece of Cake server</text>
-<text x="550.0" y="146" text-anchor="middle" class="ls">checks and signs</text>
-<rect x="665" y="100" width="200" height="1340" rx="16" fill="#EAF5EE"/>
-<text x="765.0" y="128" text-anchor="middle" class="lh">Stripe</text>
-<text x="765.0" y="146" text-anchor="middle" class="ls">test mode</text>
-<rect x="880" y="100" width="200" height="1340" rx="16" fill="#FFF0EE"/>
-<text x="980.0" y="128" text-anchor="middle" class="lh">The stores</text>
-<text x="980.0" y="146" text-anchor="middle" class="ls">real listings, simulated checkout</text>
-<rect x="245" y="545" width="180" height="885" rx="12" fill="none" stroke="#57524C" stroke-width="1.5" stroke-dasharray="4 4"/>
-<text x="335.0" y="905" text-anchor="middle" class="loop">Out of the loop</text>
-<text x="335.0" y="928" text-anchor="middle" class="b2">No payment tool,</text><text x="335.0" y="946" text-anchor="middle" class="b2">no card, no passes</text>
-<line x1="10" x2="1090" y1="176" y2="176" stroke="#D9D3C8"/>
-<text x="1072" y="169" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">PLAN</text>
-<rect x="30" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<circle cx="52" cy="207" r="10" fill="#1E6FA6"/><text x="52" y="211" text-anchor="middle" class="n">1</text>
-<text x="68" y="212" class="t">Asks for the party</text>
-<text x="44" y="235" class="b">Lego theme, Dec 5,</text>
-<text x="44" y="252" class="b">6-10 kids, bounce house</text>
-<text x="44" y="269" class="b">and piñata, under $600</text>
-<rect x="245" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="267" cy="207" r="10" fill="#161412"/><text x="267" y="211" text-anchor="middle" class="n">2</text>
-<text x="283" y="212" class="t">Shops the listings</text>
-<text x="259" y="235" class="b">Reads listings as data,</text>
-<text x="259" y="252" class="b">never as instructions</text>
-<text x="259" y="269" class="b">Proposes a cart. Can&#x27;t pay.</text>
-<rect x="460" y="185" width="180" height="112" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="482" cy="207" r="10" fill="#161412"/><text x="482" y="211" text-anchor="middle" class="n">3</text>
-<text x="498" y="212" class="t">Checks the cart</text>
-<text x="474" y="235" class="b">Prices from the catalog</text>
-<text x="474" y="252" class="b">Nothing booked or too late</text>
-<text x="474" y="269" class="b">Under budget, toddler-safe</text>
-<text x="474" y="286" class="b">Nothing a listing pushed</text>
-<rect x="245" y="300" width="180" height="95" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
-<text x="259" y="327" class="t">Hidden instruction</text>
-<text x="259" y="350" class="b">A test-store listing tells</text>
-<text x="259" y="367" class="b">AI shoppers what to buy.</text>
-<text x="259" y="384" class="b">Ignored and reported.</text>
-<rect x="30" y="420" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<circle cx="52" cy="442" r="10" fill="#1E6FA6"/><text x="52" y="446" text-anchor="middle" class="n">4</text>
-<text x="68" y="447" class="t">Reviews the cart</text>
-<text x="44" y="470" class="b">Answers the flag on the</text>
-<text x="44" y="487" class="b">bounce house, swaps</text>
-<text x="44" y="504" class="b">items, asks for changes</text>
-<path d="M210 225 L242 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<path d="M425 225 L457 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<path d="M550.0 297 L550.0 470 L213 470" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<text x="380.0" y="462" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">checked cart + any questions</text>
-<line x1="10" x2="1090" y1="530" y2="530" stroke="#D9D3C8"/>
-<text x="1072" y="523" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">CONSENT</text>
-<rect x="30" y="555" width="180" height="129" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<circle cx="52" cy="577" r="10" fill="#1E6FA6"/><text x="52" y="581" text-anchor="middle" class="n">5</text>
-<text x="68" y="582" class="t">Approves once</text>
-<text x="44" y="605" class="b">Budget: $600</text>
-<text x="44" y="622" class="b">A limit for each store</text>
-<text x="44" y="639" class="b">Ask me first over $100</text>
-<text x="44" y="656" class="b">Ends on the party date</text>
-<text x="44" y="673" class="b">Saves Stripe&#x27;s test card</text>
-<rect x="460" y="555" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="482" cy="577" r="10" fill="#161412"/><text x="482" y="581" text-anchor="middle" class="n">6</text>
-<text x="498" y="582" class="t">Seals it</text>
-<text x="474" y="605" class="b">Signs the permission</text>
-<text x="474" y="622" class="b">(HMAC). A changed</text>
-<text x="474" y="639" class="b">permission is refused.</text>
-<path d="M210 595 L457 595" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#ab)"/>
-<text x="335.0" y="587" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">what you approved</text>
-<line x1="10" x2="1090" y1="710" y2="710" stroke="#D9D3C8"/>
-<text x="1072" y="703" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">BUY</text>
-<text x="460" y="735" class="sec">REPEATS FOR EACH STORE</text>
-<rect x="30" y="750" width="180" height="61" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<text x="44" y="777" class="t">Over $100?</text>
-<text x="44" y="800" class="b">Taps Approve or Skip</text>
-<rect x="460" y="750" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="482" cy="772" r="10" fill="#161412"/><text x="482" y="776" text-anchor="middle" class="n">7</text>
-<text x="498" y="777" class="t">Before each buy</text>
-<text x="474" y="800" class="b">Store in the permission?</text>
-<text x="474" y="817" class="b">Under its limit?</text>
-<text x="474" y="834" class="b">Over $100? Asks you first</text>
-<rect x="675" y="750" width="180" height="112" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
-<circle cx="697" cy="772" r="10" fill="#1E7A4C"/><text x="697" y="776" text-anchor="middle" class="n">8</text>
-<text x="713" y="777" class="t">Makes a pass</text>
-<text x="689" y="800" class="b">Shared payment token</text>
-<text x="689" y="817" class="b">on your saved card</text>
-<text x="689" y="834" class="b">Good at this store only</text>
-<text x="689" y="851" class="b">Max = its limit, 30 minutes</text>
-<path d="M460 775 L213 775" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#ab)"/>
-<text x="335.0" y="767" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">asks you</text>
-<path d="M640 795 L672 795" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<rect x="890" y="885" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="912" cy="907" r="10" fill="#161412"/><text x="912" y="911" text-anchor="middle" class="n">9</text>
-<text x="928" y="912" class="t">Charges the pass</text>
-<text x="904" y="935" class="b">Store runs a payment</text>
-<text x="904" y="952" class="b">with the pass, never</text>
-<text x="904" y="969" class="b">your card number</text>
-<path d="M805.0 862 L805.0 925 L887 925" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<rect x="675" y="1000" width="180" height="95" rx="12" fill="#E3F2E8" stroke="#1E7A4C" stroke-width="2"/>
-<circle cx="697" cy="1022" r="10" fill="#1E7A4C"/><text x="697" y="1026" text-anchor="middle" class="n">10</text>
-<text x="713" y="1027" class="t">Enforces the limit</text>
-<text x="689" y="1050" class="b">Within the limit: paid</text>
-<text x="689" y="1067" class="b">Over the limit: declined</text>
-<text x="689" y="1084" class="b">Pass closes after one use</text>
-<path d="M980.0 980 L980.0 1040 L858 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<rect x="460" y="1000" width="180" height="78" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<circle cx="482" cy="1022" r="10" fill="#161412"/><text x="482" y="1026" text-anchor="middle" class="n">11</text>
-<text x="498" y="1027" class="t">Logs the result</text>
-<text x="474" y="1050" class="b">Pass and payment ids</text>
-<text x="474" y="1067" class="b">for the receipt</text>
-<path d="M675 1040 L643 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<line x1="10" x2="1090" y1="1120" y2="1120" stroke="#D9D3C8"/>
-<text x="1072" y="1113" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">WHEN SOMETHING CHANGES</text>
-<rect x="890" y="1135" width="180" height="78" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
-<text x="904" y="1162" class="t">Store asks for more</text>
-<text x="904" y="1185" class="b">What-if: the rental asks</text>
-<text x="904" y="1202" class="b">$20 over its limit</text>
-<rect x="675" y="1135" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2"/>
-<text x="689" y="1162" class="t">Declines it</text>
-<text x="689" y="1185" class="b">Over the pass&#x27;s limit</text>
-<rect x="30" y="1135" width="180" height="78" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<text x="44" y="1162" class="t">Approve $20 more?</text>
-<text x="44" y="1185" class="b">Only within the budget;</text>
-<text x="44" y="1202" class="b">a new pass if yes</text>
-<path d="M890 1165 L858 1165" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#ar)"/>
-<path d="M675 1165 L213 1165" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#ab)"/>
-<text x="502.5" y="1157" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">you decide</text>
-<rect x="890" y="1235" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
-<text x="904" y="1262" class="t">The rental cancels</text>
-<text x="904" y="1285" class="b">What-if</text>
-<rect x="675" y="1235" width="180" height="61" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
-<text x="689" y="1262" class="t">Refunds it</text>
-<text x="689" y="1285" class="b">Money back to your card</text>
-<rect x="30" y="1235" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<text x="44" y="1262" class="t">Find another?</text>
-<text x="44" y="1285" class="b">A different rental, within</text>
-<text x="44" y="1302" class="b">what&#x27;s left; a second,</text>
-<text x="44" y="1319" class="b">separate permission</text>
-<path d="M890 1265 L858 1265" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#ar)"/>
-<path d="M675 1265 L213 1265" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#ab)"/>
-<text x="502.5" y="1257" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">party not complete</text>
-<line x1="10" x2="1090" y1="1335" y2="1335" stroke="#D9D3C8"/>
-<text x="1072" y="1328" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">AFTER</text>
-<rect x="460" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
-<text x="474" y="1372" class="t">Checks the totals</text>
-<text x="474" y="1395" class="b">Never over what you</text>
-<text x="474" y="1412" class="b">approved? Is the party</text>
-<text x="474" y="1429" class="b">complete?</text>
-<rect x="30" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
-<circle cx="52" cy="1367" r="10" fill="#1E6FA6"/><text x="52" y="1371" text-anchor="middle" class="n">12</text>
-<text x="68" y="1372" class="t">Gets a receipt</text>
-<text x="44" y="1395" class="b">What you approved, what</text>
-<text x="44" y="1412" class="b">was charged, what was</text>
-<text x="44" y="1429" class="b">refused and by whom</text>
-<path d="M460 1385 L213 1385" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#ai)"/>
-<text x="335.0" y="1377" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">one record</text>
-<rect x="20" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E6FA6" stroke-width="2"/><text x="44" y="1481" class="b">Your consent</text>
-<rect x="158.4" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E7A4C" stroke-width="2"/><text x="182.4" y="1481" class="b">Money, enforced by Stripe</text>
-<rect x="390.4" y="1468" width="16" height="16" rx="4" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="4 3"/><text x="414.4" y="1481" class="b">Refused or a labeled what-if</text>
-<text x="1080" y="1481" text-anchor="end" class="b2">Stripe test mode. Nothing is ordered and no store is contacted.</text></svg>
-    </details>
     <div class="panel" role="group" aria-labelledby="ex">
       <span class="kicker" id="ex">The test: the rental tries to charge $20 more</span>
       <div class="flow">
@@ -482,7 +310,7 @@
 
   <section aria-labelledby="decisions">
     <span class="kicker">Decisions and trade-offs</span>
-    <h2 id="decisions">Five calls I'd defend in a review</h2>
+    <h2 id="decisions">Four calls I'd defend in a review</h2>
     <div class="decisions">
       <article class="decision">
         <h3>Limits in the payment, not the prompt</h3>
@@ -503,11 +331,6 @@
         <h3>Traps live only on a made-up store</h3>
         <p>Real listings make the demo credible, but I won't say anything false about a real business. The booked bounce house and the hidden instruction both live on Brickyard Party Supply, a test store labeled as made up.</p>
         <p class="tradeoff"><b>Trade-off:</b> a sharp visitor knows where the traps are. "Try to trick the agent" lets them write their own.</p>
-      </article>
-      <article class="decision">
-        <h3>Renamed, twice</h3>
-        <p>It started as Party Run, then Cakewalk. Then I learned the cakewalk began as a dance by enslaved people on plantations. I renamed it Piece of Cake the same day, storage keys and all left as they were.</p>
-        <p class="tradeoff"><b>Trade-off:</b> a day of design work on a name I liked. Easy call.</p>
       </article>
     </div>
     <div class="panel">
@@ -549,18 +372,10 @@
     </div>
   </section>
 
-  <section aria-labelledby="biz">
-    <span class="kicker">If it were a business</span>
-    <h2 id="biz">The party is the demo. The pattern is the product.</h2>
-    <div class="prose">
-      <p>A birthday party happens once a year, so as a consumer app the frequency is hard. The pattern isn't: delegated spending with limits a person sets and a payment network enforces. That's corporate cards for agents, procurement, and B2B billing, where I've spent my career.</p>
-      <p>Cost: a plan is about 16,000 tokens on a small model, a few cents. The limit on scale is trust, not compute.</p>
-    </div>
-  </section>
-
   <section aria-labelledby="next">
     <span class="kicker">What's next</span>
     <h2 id="next">From test mode toward real stores</h2>
+    <p class="prose">The party is the demo; the pattern is the product. Spending a person delegates, with limits they set and a payment network enforces, fits corporate cards for agents, procurement and B2B billing too.</p>
     <ul class="clean">
       <li>A card form, so the parent's own card funds the passes.</li>
       <li>Issue tokens to a store's real Stripe profile, not just Stripe's test helper.</li>
@@ -575,6 +390,182 @@
     <p class="prose">A static page and a few serverless functions on Vercel, with no dependencies. Every route works with no keys: a rules agent stands in for Claude and payments are simulated with the same rules, labeled on the page.</p>
     <div class="stack-list">
       <span class="tag">Stripe shared payment tokens</span><span class="tag">Stripe PaymentIntents</span><span class="tag">Claude API, tool use</span><span class="tag">Evals in GitHub Actions</span><span class="tag">Vercel</span><span class="tag">Claude Code</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="appendix" class="appendix">
+    <span class="kicker">Appendix</span>
+    <h2 id="appendix">Every step, behind the screen</h2>
+    <p class="prose">The agent can propose. Only your signed permission lets money move, and Stripe enforces each limit, not the prompt.</p>
+    <div class="diagram">
+      <svg class="behind" viewBox="0 90 1100 1420" role="img" aria-labelledby="behindTitle behindDesc" xmlns="http://www.w3.org/2000/svg">
+<title id="behindTitle">How Piece of Cake works behind the screen</title>
+<desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
+<defs><marker id="mk-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#161412"/></marker><marker id="mk-ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E6FA6"/></marker><marker id="mk-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#EE3B3B"/></marker><marker id="mk-ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E7A4C"/></marker></defs>
+<style>.behind text{font-family:'Inter Tight',system-ui,sans-serif} .t{font-size:15px;font-weight:800;fill:#161412;letter-spacing:-.02em} .b{font-size:12.5px;fill:#57524C} .b2{font-size:12.5px;fill:#57524C} .n{font-size:11px;font-weight:800;fill:#fff} .lh{font-size:16px;font-weight:900;fill:#161412;letter-spacing:-.02em} .ls{font-size:12px;fill:#57524C} .sec{font-size:11px;font-weight:800;letter-spacing:.14em;fill:#57524C} .lab{font-size:12px;font-weight:700} .loop{font-size:20px;font-weight:900;fill:#57524C;letter-spacing:-.02em}</style>
+<rect x="20" y="100" width="200" height="1340" rx="16" fill="#EEF6FC"/>
+<text x="120.0" y="128" text-anchor="middle" class="lh">You</text>
+<text x="120.0" y="146" text-anchor="middle" class="ls">the parent</text>
+<rect x="235" y="100" width="200" height="1340" rx="16" fill="#FFF7D9"/>
+<text x="335.0" y="128" text-anchor="middle" class="lh">The agent</text>
+<text x="335.0" y="146" text-anchor="middle" class="ls">Claude</text>
+<rect x="450" y="100" width="200" height="1340" rx="16" fill="#F4F1EC"/>
+<text x="550.0" y="128" text-anchor="middle" class="lh">Piece of Cake server</text>
+<text x="550.0" y="146" text-anchor="middle" class="ls">checks and signs</text>
+<rect x="665" y="100" width="200" height="1340" rx="16" fill="#EAF5EE"/>
+<text x="765.0" y="128" text-anchor="middle" class="lh">Stripe</text>
+<text x="765.0" y="146" text-anchor="middle" class="ls">test mode</text>
+<rect x="880" y="100" width="200" height="1340" rx="16" fill="#FFF0EE"/>
+<text x="980.0" y="128" text-anchor="middle" class="lh">The stores</text>
+<text x="980.0" y="146" text-anchor="middle" class="ls">real listings, simulated checkout</text>
+<rect x="245" y="545" width="180" height="885" rx="12" fill="none" stroke="#57524C" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="335.0" y="905" text-anchor="middle" class="loop">Out of the loop</text>
+<text x="335.0" y="928" text-anchor="middle" class="b2">No payment tool,</text><text x="335.0" y="946" text-anchor="middle" class="b2">no card, no passes</text>
+<line x1="10" x2="1090" y1="176" y2="176" stroke="#D9D3C8"/>
+<text x="1072" y="169" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">PLAN</text>
+<rect x="30" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="207" r="10" fill="#1E6FA6"/><text x="52" y="211" text-anchor="middle" class="n">1</text>
+<text x="68" y="212" class="t">Asks for the party</text>
+<text x="44" y="235" class="b">Lego theme, Dec 5,</text>
+<text x="44" y="252" class="b">6-10 kids, bounce house</text>
+<text x="44" y="269" class="b">and piñata, under $600</text>
+<rect x="245" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="267" cy="207" r="10" fill="#161412"/><text x="267" y="211" text-anchor="middle" class="n">2</text>
+<text x="283" y="212" class="t">Shops the listings</text>
+<text x="259" y="235" class="b">Reads listings as data,</text>
+<text x="259" y="252" class="b">never as instructions</text>
+<text x="259" y="269" class="b">Proposes a cart. Can&#x27;t pay.</text>
+<rect x="460" y="185" width="180" height="112" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="207" r="10" fill="#161412"/><text x="482" y="211" text-anchor="middle" class="n">3</text>
+<text x="498" y="212" class="t">Checks the cart</text>
+<text x="474" y="235" class="b">Prices from the catalog</text>
+<text x="474" y="252" class="b">Nothing booked or too late</text>
+<text x="474" y="269" class="b">Under budget, toddler-safe</text>
+<text x="474" y="286" class="b">Nothing a listing pushed</text>
+<rect x="245" y="300" width="180" height="95" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="259" y="327" class="t">Hidden instruction</text>
+<text x="259" y="350" class="b">A test-store listing tells</text>
+<text x="259" y="367" class="b">AI shoppers what to buy.</text>
+<text x="259" y="384" class="b">Ignored and reported.</text>
+<rect x="30" y="420" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="442" r="10" fill="#1E6FA6"/><text x="52" y="446" text-anchor="middle" class="n">4</text>
+<text x="68" y="447" class="t">Reviews the cart</text>
+<text x="44" y="470" class="b">Answers the flag on the</text>
+<text x="44" y="487" class="b">bounce house, swaps</text>
+<text x="44" y="504" class="b">items, asks for changes</text>
+<path d="M210 225 L242 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<path d="M425 225 L457 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<path d="M550.0 297 L550.0 470 L213 470" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<text x="380.0" y="462" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">checked cart + any questions</text>
+<line x1="10" x2="1090" y1="530" y2="530" stroke="#D9D3C8"/>
+<text x="1072" y="523" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">CONSENT</text>
+<rect x="30" y="555" width="180" height="129" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="577" r="10" fill="#1E6FA6"/><text x="52" y="581" text-anchor="middle" class="n">5</text>
+<text x="68" y="582" class="t">Approves once</text>
+<text x="44" y="605" class="b">Budget: $600</text>
+<text x="44" y="622" class="b">A limit for each store</text>
+<text x="44" y="639" class="b">Ask me first over $100</text>
+<text x="44" y="656" class="b">Ends on the party date</text>
+<text x="44" y="673" class="b">Saves Stripe&#x27;s test card</text>
+<rect x="460" y="555" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="577" r="10" fill="#161412"/><text x="482" y="581" text-anchor="middle" class="n">6</text>
+<text x="498" y="582" class="t">Seals it</text>
+<text x="474" y="605" class="b">Signs the permission</text>
+<text x="474" y="622" class="b">(HMAC). A changed</text>
+<text x="474" y="639" class="b">permission is refused.</text>
+<path d="M210 595 L457 595" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="335.0" y="587" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">what you approved</text>
+<line x1="10" x2="1090" y1="710" y2="710" stroke="#D9D3C8"/>
+<text x="1072" y="703" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">BUY</text>
+<text x="460" y="735" class="sec">REPEATS FOR EACH STORE</text>
+<rect x="30" y="750" width="180" height="61" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="777" class="t">Over $100?</text>
+<text x="44" y="800" class="b">Taps Approve or Skip</text>
+<rect x="460" y="750" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="772" r="10" fill="#161412"/><text x="482" y="776" text-anchor="middle" class="n">7</text>
+<text x="498" y="777" class="t">Before each buy</text>
+<text x="474" y="800" class="b">Store in the permission?</text>
+<text x="474" y="817" class="b">Under its limit?</text>
+<text x="474" y="834" class="b">Over $100? Asks you first</text>
+<rect x="675" y="750" width="180" height="112" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
+<circle cx="697" cy="772" r="10" fill="#1E7A4C"/><text x="697" y="776" text-anchor="middle" class="n">8</text>
+<text x="713" y="777" class="t">Makes a pass</text>
+<text x="689" y="800" class="b">Shared payment token</text>
+<text x="689" y="817" class="b">on your saved card</text>
+<text x="689" y="834" class="b">Good at this store only</text>
+<text x="689" y="851" class="b">Max = its limit, 30 minutes</text>
+<path d="M460 775 L213 775" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="335.0" y="767" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">asks you</text>
+<path d="M640 795 L672 795" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="890" y="885" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="912" cy="907" r="10" fill="#161412"/><text x="912" y="911" text-anchor="middle" class="n">9</text>
+<text x="928" y="912" class="t">Charges the pass</text>
+<text x="904" y="935" class="b">Store runs a payment</text>
+<text x="904" y="952" class="b">with the pass, never</text>
+<text x="904" y="969" class="b">your card number</text>
+<path d="M805.0 862 L805.0 925 L887 925" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="675" y="1000" width="180" height="95" rx="12" fill="#E3F2E8" stroke="#1E7A4C" stroke-width="2"/>
+<circle cx="697" cy="1022" r="10" fill="#1E7A4C"/><text x="697" y="1026" text-anchor="middle" class="n">10</text>
+<text x="713" y="1027" class="t">Enforces the limit</text>
+<text x="689" y="1050" class="b">Within the limit: paid</text>
+<text x="689" y="1067" class="b">Over the limit: declined</text>
+<text x="689" y="1084" class="b">Pass closes after one use</text>
+<path d="M980.0 980 L980.0 1040 L858 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="460" y="1000" width="180" height="78" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="1022" r="10" fill="#161412"/><text x="482" y="1026" text-anchor="middle" class="n">11</text>
+<text x="498" y="1027" class="t">Logs the result</text>
+<text x="474" y="1050" class="b">Pass and payment ids</text>
+<text x="474" y="1067" class="b">for the receipt</text>
+<path d="M675 1040 L643 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<line x1="10" x2="1090" y1="1120" y2="1120" stroke="#D9D3C8"/>
+<text x="1072" y="1113" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">WHEN SOMETHING CHANGES</text>
+<rect x="890" y="1135" width="180" height="78" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="904" y="1162" class="t">Store asks for more</text>
+<text x="904" y="1185" class="b">What-if: the rental asks</text>
+<text x="904" y="1202" class="b">$20 over its limit</text>
+<rect x="675" y="1135" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2"/>
+<text x="689" y="1162" class="t">Declines it</text>
+<text x="689" y="1185" class="b">Over the pass&#x27;s limit</text>
+<rect x="30" y="1135" width="180" height="78" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="1162" class="t">Approve $20 more?</text>
+<text x="44" y="1185" class="b">Only within the budget;</text>
+<text x="44" y="1202" class="b">a new pass if yes</text>
+<path d="M890 1165 L858 1165" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#mk-ar)"/>
+<path d="M675 1165 L213 1165" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="502.5" y="1157" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">you decide</text>
+<rect x="890" y="1235" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="904" y="1262" class="t">The rental cancels</text>
+<text x="904" y="1285" class="b">What-if</text>
+<rect x="675" y="1235" width="180" height="61" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
+<text x="689" y="1262" class="t">Refunds it</text>
+<text x="689" y="1285" class="b">Money back to your card</text>
+<rect x="30" y="1235" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="1262" class="t">Find another?</text>
+<text x="44" y="1285" class="b">A different rental, within</text>
+<text x="44" y="1302" class="b">what&#x27;s left; a second,</text>
+<text x="44" y="1319" class="b">separate permission</text>
+<path d="M890 1265 L858 1265" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#mk-ar)"/>
+<path d="M675 1265 L213 1265" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="502.5" y="1257" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">party not complete</text>
+<line x1="10" x2="1090" y1="1335" y2="1335" stroke="#D9D3C8"/>
+<text x="1072" y="1328" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">AFTER</text>
+<rect x="460" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<text x="474" y="1372" class="t">Checks the totals</text>
+<text x="474" y="1395" class="b">Never over what you</text>
+<text x="474" y="1412" class="b">approved? Is the party</text>
+<text x="474" y="1429" class="b">complete?</text>
+<rect x="30" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="1367" r="10" fill="#1E6FA6"/><text x="52" y="1371" text-anchor="middle" class="n">12</text>
+<text x="68" y="1372" class="t">Gets a receipt</text>
+<text x="44" y="1395" class="b">What you approved, what</text>
+<text x="44" y="1412" class="b">was charged, what was</text>
+<text x="44" y="1429" class="b">refused and by whom</text>
+<path d="M460 1385 L213 1385" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<text x="335.0" y="1377" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">one record</text>
+<rect x="20" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E6FA6" stroke-width="2"/><text x="44" y="1481" class="b">Your consent</text>
+<rect x="158.4" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E7A4C" stroke-width="2"/><text x="182.4" y="1481" class="b">Money, enforced by Stripe</text>
+<rect x="390.4" y="1468" width="16" height="16" rx="4" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="4 3"/><text x="414.4" y="1481" class="b">Refused or a labeled what-if</text>
+<text x="1080" y="1481" text-anchor="end" class="b2">Stripe test mode. Nothing is ordered and no store is contacted.</text></svg>
     </div>
   </section>
 
