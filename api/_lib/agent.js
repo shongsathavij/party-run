@@ -141,6 +141,11 @@ export function rulesAgent(prompt, today, { plant } = {}) {
     if (req.named.includes(p.category)) unmet.push(`${p.name}: left out to stay under ${dollars(req.budget)}.`);
   }
   if (req.budget && totals(qtyLines()).total > req.budget) unmet.push(`Even the basics come to ${dollars(totals(qtyLines()).total)}, over your ${dollars(req.budget)} budget.`);
+  // They wanted a bounce house and it didn't fit (booked, too late, or over budget): offer something fun that does.
+  const bounceIn = lines.some((l) => byId[l.product_id]?.category === 'bounce');
+  if (req.named.includes('bounce') && (!bounceIn || (req.budget && totals(qtyLines()).total > req.budget))) {
+    notes.push('Instead of a bounce house: bubbles (wands or a bubble machine) and running games like freeze dance, relay races or a treasure hunt keep 5-year-olds busy for little or nothing.');
+  }
 
   return finish({
     summary: summaryFor(req, lines),
@@ -381,6 +386,7 @@ How to work:
 - Party date: from the request (YYYY-MM-DD, the next one after today). Kids: from the request; with a range, plan for the top of it; if none, 10.
 - Never pick an item that is booked on the party date or needs more notice than the days left. If a themed item is booked, pick the closest alternative, explain the swap in notes, and say plainly if the alternative isn't on theme: the parent decides whether to keep it.
 - Favors come in packs: buy enough packs for one favor per kid. Only pick favors whose age rating covers the youngest guest (with 2-year-olds coming, ages 2 and up only), and say so in the reason.
+- If something they asked for can't happen (booked, can't arrive in time, or over budget), say so in unmet and suggest a cheaper or free alternative in notes (for a bounce house: bubbles, or running games like freeze dance or a treasure hunt).
 - Stay within the budget if they gave one. Listing prices are before delivery and tax: each store order adds its delivery estimate (delivery_estimate) and about 9.75% sales tax on everything but food, and the budget has to cover all of it. Fewer stores means fewer delivery fees. If you can't stay within it, leave out extras first, and list in unmet only the things they asked for.
 - Reasons read like a friend's tip, about 15 words, using only facts from the listing or the request. Never invent details.
 
