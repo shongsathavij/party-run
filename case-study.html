@@ -88,28 +88,33 @@
     .shows li:nth-child(3)::before { background: var(--yellow); border: 1.5px solid var(--ink); }
 
 
-    /* The flow: who does what, and where the AI stops */
-    .seq { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; counter-reset: s; }
-    .seq li { position: relative; display: grid; grid-template-columns: 34px 92px minmax(0, 1fr); gap: 4px 12px; align-items: start; padding: 10px 0; }
-    .seq li::before { counter-increment: s; content: counter(s); width: 28px; height: 28px; border-radius: 999px; border: 2px solid var(--ink); background: #fff; display: grid; place-items: center; font-weight: 900; font-size: 13px; position: relative; z-index: 1; }
-    .seq li:not(:last-child)::after { content: ''; position: absolute; left: 13px; top: 38px; bottom: -10px; width: 2px; background: var(--hair); }
-    .who { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding-top: 5px; white-space: nowrap; }
-    .who::before { content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--c); border: 1.5px solid var(--ink); }
-    .seq b { display: block; line-height: 1.3; }
-    .seq .small { display: block; }
-    .seq .line { grid-template-columns: minmax(0, 1fr); padding: 6px 0 6px 46px; }
-    .seq .line::before { display: none; }
-    .seq .line span { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 800; color: var(--red); letter-spacing: .02em; }
-    .seq .line span::before, .seq .line span::after { content: ''; flex: 1; border-top: 2px dashed var(--red); }
-    @media (max-width: 520px) { .seq li { grid-template-columns: 34px minmax(0, 1fr); } .seq li > div { grid-column: 2; } .who { padding-top: 5px; } }
-
-
-    .behind { display: none; width: 100%; height: auto; }
-    @media (min-width: 960px) {
-      .behind-panel { align-self: center; width: min(1120px, calc(100vw - 48px)); }
-      .behind { display: block; }
-      .behind-panel .seq { display: none; }
+    /* The flow, simple: four cards, AI's part vs the money's part */
+    .simple { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 26px; }
+    .phase { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .phase::after { content: ''; flex: 1; border-top: 2px solid currentColor; opacity: .5; }
+    .phase.ai { color: #4E9BC7; }
+    .phase.money { grid-column: span 3; color: var(--ok); }
+    .simple .card { position: relative; border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .simple .card.consent { border-color: var(--blue); }
+    .simple .card.money { border-color: var(--ok); }
+    .simple .card b { font-size: 17px; line-height: 1.25; letter-spacing: -0.02em; }
+    .simple .card:not(:last-child)::after { content: '→'; position: absolute; right: -21px; top: 50%; transform: translateY(-50%); font-weight: 900; font-size: 18px; }
+    .simple .who { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .simple .who::before { content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--c); border: 1.5px solid var(--ink); }
+    .simple .refused { margin-top: 8px; font-size: 14px; line-height: 1.4; background: #FDECEA; border: 1.5px dashed var(--red); border-radius: 10px; padding: 8px 10px; }
+    .simple .refused b { font-size: 14px; color: var(--red); display: block; }
+    @media (max-width: 720px) {
+      .simple { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+      .phase.money { grid-column: auto; order: 2; }
+      .phase.ai { order: 0; } .simple .card.c1 { order: 1; } .simple .card { order: 3; }
+      .simple .card:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -24px; transform: translateX(-50%); }
+      .simple .card.c1::after { display: none; }
+      .phase.money { margin-bottom: -8px; }
     }
+    .every summary { cursor: pointer; font-weight: 700; color: var(--blue); }
+    .every svg { width: 100%; height: auto; margin-top: 8px; }
+    .every[open] { align-self: center; width: min(1120px, calc(100vw - 48px)); }
+    @media (max-width: 959px) { .every { display: none; } }
 
     /* The money flow */
     .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -209,9 +214,20 @@
     <div class="prose">
       <p>Most agent demos put the budget in the prompt and hope. Prompts can be talked out of things; a store listing can even carry hidden instructions. So the agent never gets a payment tool. It proposes a cart, the parent approves a signed permission, and the server buys, minting a <b>Stripe shared payment token</b> for one store, capped at that store's approved amount, that expires in 30 minutes.</p>
     </div>
-    <div class="panel behind-panel">
-      <span class="kicker">How it works behind the screen</span>
-      <p class="small behind-sub">The agent can propose. Only your signed permission lets money move, and Stripe enforces each limit, not the prompt.</p>
+    <div class="panel">
+      <span class="kicker">How a party gets paid for</span>
+      <div class="simple">
+        <div class="phase ai"><span>The AI's part</span></div>
+        <div class="phase money"><span>The money's part: your rules, enforced by Stripe</span></div>
+        <div class="card c1" style="--c: var(--sky)"><span class="who">Agent</span><b>Proposes a cart</b><span class="small">Shops real listings. Has no payment tool.</span></div>
+        <div class="card consent" style="--c: var(--blue)"><span class="who">You</span><b>Approve once</b><span class="small">A limit for each store, ending on the party date.</span></div>
+        <div class="card money" style="--c: var(--ok)"><span class="who">Stripe</span><b>Makes a pass per store</b><span class="small">One store, one charge, up to its limit, for 30 minutes.</span></div>
+        <div class="card" style="--c: var(--yellow)"><span class="who">Store</span><b>Charges the pass</b><span class="small">Within the limit: paid.</span><span class="refused"><b>Asks for $20 more?</b> Stripe declines it.</span></div>
+      </div>
+    </div>
+    <details class="panel every">
+      <summary>See every step, including refunds and the receipt</summary>
+      <p class="small">The agent can propose. Only your signed permission lets money move, and Stripe enforces each limit, not the prompt.</p>
       <svg class="behind" viewBox="0 90 1100 1420" role="img" aria-labelledby="behindTitle behindDesc" xmlns="http://www.w3.org/2000/svg">
 <title id="behindTitle">How Piece of Cake works behind the screen</title>
 <desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
@@ -380,17 +396,7 @@
 <rect x="158.4" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E7A4C" stroke-width="2"/><text x="182.4" y="1481" class="b">Money, enforced by Stripe</text>
 <rect x="390.4" y="1468" width="16" height="16" rx="4" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="4 3"/><text x="414.4" y="1481" class="b">Refused or a labeled what-if</text>
 <text x="1080" y="1481" text-anchor="end" class="b2">Stripe test mode. Nothing is ordered and no store is contacted.</text></svg>
-      <ol class="seq">
-        <li><span class="who" style="--c: var(--red)">Parent</span><div><b>Describes the party</b><span class="small">One request: date, theme, kids, budget.</span></div></li>
-        <li><span class="who" style="--c: var(--sky)">Agent</span><div><b>Shops the listings, proposes a cart</b><span class="small">Claude, with search tools and a submit tool. No payment tool.</span></div></li>
-        <li><span class="who" style="--c: #D9D3C8">Code</span><div><b>Checks the cart</b><span class="small">Prices from the catalog, budget, favors for every kid, toddler-safe. A bad cart goes back once.</span></div></li>
-        <li class="line" aria-hidden="true"><span>The AI's part ends here</span></li>
-        <li><span class="who" style="--c: var(--red)">Parent</span><div><b>Approves once</b><span class="small">A cap per store, an ask-me amount, ends on the party date. The server signs it.</span></div></li>
-        <li><span class="who" style="--c: var(--blue)">Stripe</span><div><b>Makes a pass for one store</b><span class="small">Drawn on her saved card, capped at that store's amount, good for 30 minutes.</span></div></li>
-        <li><span class="who" style="--c: var(--yellow)">Store</span><div><b>Charges the pass</b><span class="small">Up to the cap goes through. Over it, Stripe says no.</span></div></li>
-        <li><span class="who" style="--c: var(--red)">Parent</span><div><b>Gets the receipt</b><span class="small">Every pass and charge, checked against what she approved.</span></div></li>
-      </ol>
-    </div>
+    </details>
     <div class="panel" role="group" aria-labelledby="ex">
       <span class="kicker" id="ex">The test: the rental tries to charge $20 more</span>
       <div class="flow">
