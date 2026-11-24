@@ -852,3 +852,17 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .success .receipt { position: relative; border: 2.5px solid var(--ink); border-radius: 22px; box-shadow: none; }
 .success .receipt::before { content: ''; position: absolute; inset: -2.5px; transform: translate(9px, 9px); z-index: -1; border: 2.5px solid var(--ink); border-radius: 22px; background: repeating-linear-gradient(-45deg, var(--teal) 0 10px, #fff 10px 20px); }
 @media print { .success .receipt::before { display: none; } }
+
+/* Footer link: dark blue, like every other link. */
+.foot a { color: var(--teal-ink); font-weight: 600; text-underline-offset: 3px; }
+
+/* No brick badges: the queue chips keep their padding even. */
+.queue li { padding: 4px 10px; }
+
+/* The run's cake: the logo cake, one candle per store. A lit candle makes it hop once. */
+.cake { width: 120px; }
+.cake .rc { transform-box: fill-box; transform-origin: 50% 100%; }
+.cake.hop .rc { animation: rc-hop .55s cubic-bezier(.3,.7,.4,1); }
+@keyframes rc-hop { 0% { transform: translateY(0) scale(1, 1); } 25% { transform: translateY(0) scale(1.06, .92); } 55% { transform: translateY(-14px) scale(.97, 1.04); } 80% { transform: translateY(0) scale(1.03, .97); } 100% { transform: none; } }
+.cake .candle.out rect { fill: #CFC8BE; filter: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cake.hop .rc { animation: none; } }
