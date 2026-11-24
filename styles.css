@@ -894,7 +894,7 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .card-dialog .h { margin: 0; }
 .card-dialog .note { margin: 0; }
 .card-dialog .go { align-self: stretch; }
-.card-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .card-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); min-width: 0; }
 .card-fields label:first-child { grid-column: 1 / -1; }
 .card-fields input { font: inherit; font-size: 16px; font-weight: 600; color: var(--ink); padding: 10px 12px; border: 1px solid var(--hair); border-radius: 10px; background: #FAF7F1; font-variant-numeric: tabular-nums; width: 100%; box-sizing: border-box; min-width: 0; }
