@@ -508,6 +508,7 @@ export async function claudeAgent(prompt, today, { model = DEFAULT_MODEL, call, 
   return { ...rulesAgent(prompt, today, { plant }), mode: 'fallback', fallback: 'no_cart', why: ['The model never submitted a cart.'], usage, model };
 }
 
+const TEST_NAMES = new RegExp(Object.values(STORES).filter((x) => x.test).map((x) => x.name.split(' ')[0]).join('|') || '$^', 'i');
 // The cart as the page gets it: catalog facts filled in from ids, never from the model.
 function finish(c, today, mode) {
   const items = (c.items || []).filter((i) => byId[i.product_id]).map((i) => {
@@ -518,7 +519,10 @@ function finish(c, today, mode) {
   return {
     mode,
     cart: {
-      summary: plain(String(c.summary || '').slice(0, 160)),
+      // The summary never names the made-up test store (it once read "Brickyard-style decor").
+      summary: TEST_NAMES.test(String(c.summary || ''))
+        ? summaryFor({ theme: (c.items || []).some((i) => byId[i.product_id]?.themes.includes('brick')) ? 'brick' : null, kids: c.kids || 10 }, c.items || [])
+        : plain(String(c.summary || '').slice(0, 160)),
       partyDate: c.party_date,
       kids: c.kids,
       budget: c.budget_dollars ? Math.round(c.budget_dollars * 100) : null,

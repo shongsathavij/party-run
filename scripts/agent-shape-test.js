@@ -180,4 +180,12 @@ assert.ok(k.cart.items.some((i) => i.id === 'mi-pinata') && !k.cart.items.some((
   assert.ok(!t.cart.items.some((i) => i.store === 'brickyard'));
 }
 
+// 12. The summary never names the made-up test store.
+{
+  const v = await claudeAgent(REAL, today, {
+    call: async () => ({ content: [{ type: 'tool_use', id: 'v1', name: 'submit_cart', input: cart(good, { summary: 'Building-brick party, Dec 5, Brickyard-style decor.' }) }], usage: {} }),
+  });
+  assert.ok(!/brickyard/i.test(v.cart.summary), v.cart.summary);
+}
+
 console.log('Agent tool-loop checks passed.');

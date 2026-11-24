@@ -679,7 +679,9 @@ async function buy(store, amount, { approved = false } = {}) {
     queueSet(store, 'skipped');
     candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: 'You chose Skip when I checked with you.' });
-    paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
+    // She can change her mind later: her approval still covers this store, so paying it is one tap.
+    (state.skipped ||= {})[store] = amount;
+    paint(store, { amount: null, status: `Skipped. Nothing charged. <button class="link-btn sm" data-unskip="${esc(store)}">Pay ${esc(STORES[store].name)} after all</button>` });
     return;
   }
 
@@ -747,6 +749,10 @@ function finishRun() {
   const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind) && !state.paid[s].refunded);
   $('#cancelRental').hidden = !rental || state.cancelUsed;
   renderMissing();
+  // One loud button at a time: while the party is missing something, fixing it leads and the receipt steps back.
+  const incomplete = missingList.length > 0;
+  $('#seeReceipt').className = incomplete ? 'ghost-btn receipt-quiet' : 'go';
+  $('#seeReceipt').textContent = incomplete ? 'See the receipt so far' : 'See your receipt';
   $('#cancelRental').dataset.store = rental || '';
   // The overcharge test needs a paid store that's in the current permission; the rental if there is one.
   const target = [rental, ...Object.keys(state.paid)].find((s) => s && state.perm?.stores[s] && !state.paid[s].refunded);
@@ -833,10 +839,16 @@ function renderMissing() {
   box.hidden = !miss.length;
   if (!miss.length) return;
   const spent = spentTotal();
+  // A store she skipped still has it: offer that first, then another store.
+  const skippedFor = (m) => Object.keys(state.skipped || {}).find((s) => state.cart.items.some((i) => i.store === s && i.category === m));
   box.innerHTML = `<span class="kicker">The party isn't complete</span>
     <p>No ${miss.map((m) => WHAT[m]).join(', no ')}. ${money(Math.max(0, budgetOf(state.cart) - spent))} of your budget is left.</p>
-    ${miss.filter((m) => state.noneLeft[m]).map((m) => `<p class="note">${esc(state.noneLeft[m])}</p>`).join('')}
-    <div class="acts">${miss.filter((m) => !state.noneLeft[m]).map((m) => `<button class="go" data-find="${m}">Find another ${esc(WHAT[m])}</button>`).join('')}</div>`;
+    ${miss.filter((m) => state.noneLeft[m]).map((m) => `<p class="note">${esc(state.noneLeft[m])}${skippedFor(m) ? ` ${esc(STORES[skippedFor(m)].name)}, which you skipped, still has one.` : ''}</p>`).join('')}
+    <div class="acts">${miss.map((m) => {
+      const s = skippedFor(m);
+      const back = s ? `<button class="go" data-unskip="${esc(s)}">Pay ${esc(STORES[s].name)} after all (${money(state.skipped[s])})</button>` : '';
+      return back + (state.noneLeft[m] ? '' : `<button class="${s ? 'ghost-btn' : 'go'}" data-find="${m}">Find another ${esc(WHAT[m])}</button>`);
+    }).join('')}</div>`;
 }
 
 async function findAnother(e) {
@@ -1119,6 +1131,25 @@ function bind() {
     if (b) changeCart({ change: b.dataset.say }, b.dataset.say);
   });
   $('#missing').addEventListener('click', findAnother);
+  // Changed her mind about a store she skipped: her first approval still covers it.
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-unskip]');
+    if (!b || state.busy) return;
+    const store = b.dataset.unskip;
+    const amount = state.skipped?.[store];
+    if (amount == null) return;
+    state.busy = true;
+    delete state.skipped[store];
+    for (const i of state.cart.items.filter((x) => x.store === store)) {
+      delete state.noneLeft[i.category];
+      const k = `find-${i.category}`;
+      state.rows[k]?.remove();
+      delete state.rows[k];
+    }
+    logEvent(store, { kind: 'asked', amount });
+    try { await buy(store, amount, { approved: true }); } finally { state.busy = false; }
+    finishRun();
+  });
   $('#rcptCopy').addEventListener('click', copyReceipt);
 }
 
