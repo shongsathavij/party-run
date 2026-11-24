@@ -24,10 +24,15 @@ def path(pts,color=INK,label=None,lx_=None,ly=None,dash=False):
     m={INK:'ai',BLUE:'ab',RED:'ar',GREEN:'ag'}[color]
     out.append(f'<path d="{d}" fill="none" stroke="{color}" stroke-width="2" marker-end="url(#mk-{m})"/>')
     if label:
-        out.append(f'<text x="{lx_}" y="{ly}" text-anchor="middle" class="lab" fill="{color}" stroke="#fff" stroke-width="4" paint-order="stroke">{e(label)}</text>')
+        # A plain white tag behind the label (no stroke halo: Safari draws those blurry).
+        w=len(label)*6.9+14
+        out.append(f'<rect x="{lx_-w/2:.1f}" y="{ly-13}" width="{w:.1f}" height="18" rx="4" fill="#fff"/>')
+        out.append(f'<text x="{lx_}" y="{ly}" text-anchor="middle" class="lab" fill="{color}">{e(label)}</text>')
 def section(y,name):
     out.append(f'<line x1="10" x2="{W-10}" y1="{y}" y2="{y}" stroke="#D9D3C8"/>')
-    out.append(f'<text x="{W-28}" y="{y-7}" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">{e(name)}</text>')
+    w=len(name)*8.2+10
+    out.append(f'<rect x="{W-28-w+5:.1f}" y="{y-19}" width="{w:.1f}" height="16" fill="#FFF0EE"/>')
+    out.append(f'<text x="{W-28}" y="{y-7}" text-anchor="end" class="sec">{e(name)}</text>')
 H=1530; TOP=100; BOT=1440
 # lanes
 for i,(n,s,c) in enumerate(lanes):
@@ -42,7 +47,7 @@ section(176,'PLAN')
 b1=box(0,185,'Asks for the party',['Lego theme, Dec 5,','6-10 kids, bounce house','and piñata, under $600'],'consent',1)
 b2=box(1,185,'Shops the listings',['Reads listings as data,','never as instructions.','Proposes a cart;','can\'t pay.'],'plain',2)
 b3=box(2,185,'Checks the cart',['Prices from the catalog','Nothing booked or late','In budget, toddler-safe','Nothing a listing pushed'],'plain',3)
-bh=box(1,300,'Hidden instruction',['A test-store listing tells','AI shoppers what to buy.','Ignored and reported.'],'whatif')
+bh=box(1,300,'Hidden instruction',['A test-store listing','tells AI shoppers what','to buy. Ignored and','reported.'],'whatif')
 b4=box(0,420,'Reviews the cart',['Answers the flag on the','bounce house, swaps','items, asks for changes'],'consent',4)
 path([(b1['r'],225),(b2['x']-3,225)]); path([(b2['r'],225),(b3['x']-3,225)])
 path([(b3['cx'],b3['b']),(b3['cx'],470),(b4['r']+3,470)],label='checked cart + any questions',lx_=(b4['r']+b3['cx'])/2,ly=462)
@@ -88,7 +93,7 @@ head=f'''<svg class="behind" viewBox="0 0 {W} {H-20}" role="img" aria-labelledby
 <title id="behindTitle">How Piece of Cake works behind the screen</title>
 <desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
 <defs>{''.join(f'<marker id="mk-{i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="{c}"/></marker>' for i,c in [('ai',INK),('ab',BLUE),('ar',RED),('ag',GREEN)])}</defs>
-<style>.behind{{text-rendering:geometricPrecision}} .behind text{{font-family:'Inter Tight',system-ui,sans-serif}} .t{{font-size:14.5px;font-weight:800;fill:{INK};letter-spacing:-.02em}} .b{{font-size:12px;fill:{MUTED}}} .b2{{font-size:12.5px;fill:{MUTED}}} .n{{font-size:11px;font-weight:800;fill:#fff}} .lh{{font-size:16px;font-weight:900;fill:{INK};letter-spacing:-.02em}} .ls{{font-size:12px;fill:{MUTED}}} .sec{{font-size:11px;font-weight:800;letter-spacing:.14em;fill:{MUTED}}} .lab{{font-size:12px;font-weight:700}} .loop{{font-size:20px;font-weight:900;fill:{MUTED};letter-spacing:-.02em}}</style>
+<style>.behind{{text-rendering:geometricPrecision}} .behind text{{font-family:'Inter Tight',system-ui,sans-serif}} .t{{font-size:15px;font-weight:800;fill:{INK};letter-spacing:-.02em}} .b{{font-size:13px;fill:{MUTED}}} .b2{{font-size:13px;fill:{MUTED}}} .n{{font-size:11px;font-weight:800;fill:#fff}} .lh{{font-size:16px;font-weight:900;fill:{INK};letter-spacing:-.02em}} .ls{{font-size:12px;fill:{MUTED}}} .sec{{font-size:11px;font-weight:800;letter-spacing:.14em;fill:{MUTED}}} .lab{{font-size:12.5px;font-weight:700}} .loop{{font-size:20px;font-weight:900;fill:{MUTED};letter-spacing:-.02em}}</style>
 '''
 svg=head+'\n'.join(o.replace(f'y="',f'y="',1) for o in out)+'</svg>'
 # shift everything up: lanes start at TOP=100; no title inside svg (the page has it)
