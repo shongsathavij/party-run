@@ -1,7 +1,7 @@
 // Piece of Cake: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
-import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
+import { STORES, SNAPSHOT, byId, PRODUCTS } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER, totals, DEMO_ZIP } from './lib/rules.js';
 import { optionsFor, qtyFor } from './lib/options.js';
 import { offTheme, FULFILL_WORDS } from './lib/catalog.js';
@@ -348,10 +348,11 @@ function itemRow(i, theme) {
   const opts = live ? optionsOf(i) : [];
   const open = state.opts === i.id;
   const asking = live && i.needsOk && !state.decided[i.id];
-  const booked = c.notes.some((n) => /booked/i.test(n)) && i.category === 'bounce';
+  // From the catalog, not the agent's notes: the themed one really is booked that day.
+  const booked = i.category === 'bounce' && PRODUCTS.some((p) => p.category === 'bounce' && p.themes.length && p.booked.includes(c.partyDate));
   const flag = asking
     ? `<div class="flag" role="group" aria-label="Needs your OK">
-        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked Dec 5, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
+        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked ${esc(prettyDate(c.partyDate).replace(/^\w+, /, ''))}, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
         <div class="acts"><button class="go sm" data-keep="${esc(i.id)}">Keep it</button>${opts.length ? `<button class="ghost-btn sm" data-opts="${esc(i.id)}" aria-expanded="${open}">See ${opts.length} other option${opts.length > 1 ? 's' : ''}</button>` : ''}<button class="link-btn sm" data-drop="${esc(i.id)}">Remove</button></div>
       </div>`
     : i.offTheme && c.theme ? `<span class="tag">Not ${esc(theme)}-themed${state.decided[i.id] === 'kept' ? ' · you OK’d it' : ''}</span>` : '';
