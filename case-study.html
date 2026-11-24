@@ -195,7 +195,7 @@
     <span class="kicker">What this shows</span>
     <div class="stripes"><ul class="shows">
       <li><span><b>I ship.</b> I'm a product manager who loves building, especially trying new things. Piece of Cake is a live agent on real store listings, with real Stripe calls and evals that run in CI, built in about ten days.</span></li>
-      <li><span><b>I build trust into the payment.</b> My UX research on AI showed people trust automation with money when its limits are clear and a person can step in. So the agent can only spend what you approve, tells you up front when it will stop and ask, and Stripe enforces every limit.</span></li>
+      <li><span><b>I build trust into the payment.</b> My work in AI showed people trust automation with money when its limits are clear and a person can step in. So the agent can only spend what you approve, tells you up front when it will stop and ask, and Stripe enforces every limit.</span></li>
       <li><span><b>I understand the user.</b> I built it as the parent it's for, and my UX research on AI said the same thing: people hand an agent their money only when they can see the plan, set the limit, and check afterward exactly what it did. So every step is visible, and every run ends in a receipt.</span></li>
     </ul></div>
   </section>
@@ -284,21 +284,7 @@
         </table>
       </div>
     </div>
-    <div class="panel">
-      <span class="kicker">What breaks in production, and what I'd do</span>
-      <div class="table-wrap">
-        <table class="rules">
-          <thead><tr><th>Risk</th><th>What I'd do</th></tr></thead>
-          <tbody>
-            <tr><td>Tax and delivery are estimates</td><td>Take them from each store's checkout, the way agentic checkout protocols return them from the address. The shape is already per store.</td></tr>
-            <tr><td>Price changes after approval</td><td>Stop and ask (the raise flow exists): approve the new amount once, or skip the store.</td></tr>
-            <tr><td>A store cancels</td><td>Refund, say the party isn't complete, and offer the same kind of item elsewhere under a second, separate permission.</td></tr>
-            <tr><td>Disputes</td><td>The receipt is the audit trail: what the parent approved, each pass and PaymentIntent, what the agent ignored. Liability between agent, parent and store still needs a policy.</td></tr>
-            <tr><td>Listings that instruct the agent</td><td>Treat listings as data, report the instruction, and stop shopping at that store altogether.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <a class="more" href="#production">What breaks in production, and what I'd do ↓</a>
   </section>
 
   <section aria-labelledby="ai">
@@ -359,7 +345,7 @@
       </article>
       <article class="decision">
         <h3>Three stops, and only three</h3>
-        <p>From my UX research on AI: people accept automation when its edges are clear. Before approving, the parent sees the only times the agent stops: over the check-with-me amount, a store asks for more, part of the party falls through. Each stop says why, what's done, and what it suggests.</p>
+        <p>From my work in AI: people accept automation when its edges are clear. Before approving, the parent sees the only times the agent stops: over the check-with-me amount, a store asks for more, part of the party falls through. Each stop says why, what's done, and what it suggests.</p>
         <p class="tradeoff"><b>Trade-off:</b> it won't stop for things the parent might care about but didn't say. That's the price of being predictable.</p>
       </article>
       <article class="decision">
@@ -613,6 +599,21 @@
 <rect x="158.4" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E7A4C" stroke-width="2"/><text x="182.4" y="1481" class="b">Money, enforced by Stripe</text>
 <rect x="390.4" y="1468" width="16" height="16" rx="4" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="4 3"/><text x="414.4" y="1481" class="b">Refused, or a labeled test</text>
 <text x="1080" y="1481" text-anchor="end" class="b2">Stripe test mode. Nothing is ordered and no store is contacted.</text></svg>
+    </div>
+      <div class="panel">
+      <h3 id="production">What breaks in production, and what I'd do</h3>
+      <div class="table-wrap">
+        <table class="rules">
+          <thead><tr><th>Risk</th><th>What I'd do</th></tr></thead>
+          <tbody>
+            <tr><td>Tax and delivery are estimates</td><td>Take them from each store's checkout, the way agentic checkout protocols return them from the address. The shape is already per store.</td></tr>
+            <tr><td>Price changes after approval</td><td>Stop and ask (the raise flow exists): approve the new amount once, or skip the store.</td></tr>
+            <tr><td>A store cancels</td><td>Refund, say the party isn't complete, and offer the same kind of item elsewhere under a second, separate permission.</td></tr>
+            <tr><td>Disputes</td><td>The receipt is the audit trail: what the parent approved, each pass and PaymentIntent, what the agent ignored. Liability between agent, parent and store still needs a policy.</td></tr>
+            <tr><td>Listings that instruct the agent</td><td>Treat listings as data, report the instruction, and stop shopping at that store altogether.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 
