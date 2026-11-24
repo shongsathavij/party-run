@@ -160,7 +160,10 @@
   "prompt": "We want the Deluxe Party Package for a 10 kid Lego party on Dec 12.",
   "expect": {
    "date": "2026-12-12",
-   "hasDeluxe": true
+   "hasNot": [
+    "deluxe"
+   ],
+   "saysWhyNot": "deluxe"
   }
  }
 ]
