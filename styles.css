@@ -139,7 +139,7 @@ button { font: inherit; color: inherit; }
 .run .row { display: flex; align-items: center; gap: 10px; }
 .run .amt { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
 .run .status { font-size: 14px; color: var(--muted); }
-.run .pass { font-size: 12px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: var(--muted); letter-spacing: 0; }
+.run .pass { font-size: 12px; font-family: var(--sans); color: var(--muted); letter-spacing: 0; }
 .run .paid { background: #E3F4EA; }
 .run .paid .status { color: var(--ok); font-weight: 600; }
 .run .blocked { background: #FDE8E4; }
@@ -173,7 +173,7 @@ button { font: inherit; color: inherit; }
 .hood dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 2px; }
 .hood dt { font-weight: 600; color: var(--ink); }
 .hood dd { margin: 0; overflow-wrap: anywhere; }
-.hood code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; }
+.hood code { font-family: var(--sans); font-size: 12px; }
 
 /* Try to trick the agent. */
 .trick { margin-top: 14px; display: block; }
@@ -188,7 +188,7 @@ button { font: inherit; color: inherit; }
 /* The permission receipt. */
 .receipt { gap: 18px; }
 .receipt-head { display: flex; flex-direction: column; gap: 6px; }
-.mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; letter-spacing: 0; }
+.mono { font-family: var(--sans); font-size: 12px; letter-spacing: 0; }
 .rcpt-block { display: flex; flex-direction: column; gap: 8px; border-top: 1.5px dashed #BDB6AD; padding-top: 14px; }
 .rcpt-kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
 .rcpt-kv dt { color: var(--muted); }
@@ -787,11 +787,11 @@ body:has(#ask:not([hidden])) #brand { display: none; }
 @media (max-width: 340px) { .hero-row .hero-title { font-size: 28px; } .hero-cake { width: 80px; } }
 
 /* Elevated: calmer and more crafted, still warm. A bigger headline with no underline, a rounded chatbox
-   on its striped shadow, a hairline trick box, a mono note, and a still cake (legs only while it dances). */
+   on its striped shadow, a hairline trick box, a quiet note, and a still cake (legs only while it dances). */
 .hero-title { font-size: clamp(40px, 7.2vw, 64px); letter-spacing: -0.035em; line-height: .98; }
 .hero-sub { font-size: 20px; max-width: 34ch; color: #3D3833; }
 .ask-box, .ask-box::before { border-radius: 22px; }
-.ask-box #askFixed { font: 600 11px/1.5 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; color: #8A8379; }
+.ask-box #askFixed { font-size: 13px; color: #8A8379; }
 .trick { border: 1px solid #E3DDD3 !important; border-radius: 14px !important; background: #FFFDF9; }
 .hero-cake:not([class*="go-"]) .hc-legs { display: none; }
 /* Home is one column (the money column only appears once there's a cart), so the headline row spans
@@ -816,13 +816,13 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 
 /* ---------- Calm flow: the cart, the go-ahead, the run and the receipt get the home page's restraint.
    Rounded cards, hairlines instead of heavy outlines, soft shadows instead of hard ones, store labels in
-   small mono capitals. The striped shadow stays the chatbox's alone; red buttons keep their chunky edge. */
-:root { --hair: #E6E0D6; --lift: 0 18px 40px -22px rgba(40, 25, 10, .28); --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+   the same sans throughout. The striped shadow stays the chatbox's alone; red buttons keep their chunky edge. */
+:root { --hair: #E6E0D6; --lift: 0 18px 40px -22px rgba(40, 25, 10, .28);  }
 .bubble { border: 2px solid var(--ink); border-radius: 22px 22px 22px 8px; box-shadow: var(--lift); }
 .me { border-radius: 18px 18px 6px 18px; }
 .grp { border: 1px solid var(--hair); border-radius: 16px; }
 .grp-head { border-bottom: 1px solid var(--hair); }
-.it-store { font: 600 11px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+
 .flag { border: 1px solid #F2CFC8; border-left: 5px solid var(--coral); border-radius: 14px; background: #FFF7F5; }
 .opts { border: 1px solid var(--hair); border-radius: 14px; }
 .decide { border-radius: 16px; box-shadow: var(--lift); }
@@ -838,11 +838,17 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .cb-f { border-right: 1px solid var(--hair); }
 .ghost-btn { border-width: 1.5px; }
 
-/* The receipt reads like an order confirmation: mono labels and ids, hairline rules, a clear total. */
-.receipt .lbl, .receipt .rcpt-kv dt { font: 600 11px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #8A8379; }
+/* The receipt reads like an order confirmation: small capital labels, hairline rules, a clear total. */
+.receipt .lbl { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8A8379; }
 .rcpt-block { border-top: 1px solid var(--hair); }
 .rcpt-totals { border-top: 1.5px solid var(--ink); }
 .rcpt-totals .big { font-size: 24px; font-weight: 800; }
-.rcpt-stores p.mono, .receipt #rcptId { font-family: var(--mono); font-size: 12px; }
+.rcpt-stores p.mono, .receipt #rcptId { font-size: 12px; color: var(--muted); }
 .rcpt-verdict, .rcpt-complete { border-radius: 14px; }
 .faq details { border-bottom: 1px solid var(--hair); }
+
+/* The receipt gets the chatbox's blue-and-white striped shadow: the request and the receipt bookend the run. */
+.success { isolation: isolate; }
+.success .receipt { position: relative; border: 2.5px solid var(--ink); border-radius: 22px; box-shadow: none; }
+.success .receipt::before { content: ''; position: absolute; inset: -2.5px; transform: translate(9px, 9px); z-index: -1; border: 2.5px solid var(--ink); border-radius: 22px; background: repeating-linear-gradient(-45deg, var(--teal) 0 10px, #fff 10px 20px); }
+@media print { .success .receipt::before { display: none; } }
