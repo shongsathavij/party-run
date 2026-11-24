@@ -64,24 +64,33 @@ function mood(el, m) {
 // ---------- the candles ----------
 // One candle per store (this party has five). Paid lights it; refused, skipped or
 // cancelled leaves it out. A replacement relights the candle it stands in for.
+// The run's cake is the logo cake from the home page, with one candle per store.
+// Paid lights a candle (and the cake does a little hop); refused, skipped or cancelled puts it out.
 function cakeSvg(n) {
-  const W = 168, cx = (i) => 34 + (i * (W - 68)) / Math.max(1, n - 1);
-  const candles = Array.from({ length: n }, (_, i) => `<g class="candle" data-slot="${i}" transform="translate(${n === 1 ? W / 2 : cx(i)},0)">
-      <rect x="-4" y="22" width="8" height="24" rx="2" fill="var(--c, #E4E0D8)" stroke="${INK}" stroke-width="1.8"/>
-      <path d="M0 22 v-4" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
-      <path class="flame" d="M0 3 C5 9 5 14 0 17 C-5 14 -5 9 0 3 z" fill="#FFD23F" stroke="#E8590C" stroke-width="1.4"/>
-      <path class="smoke" d="M0 14 c3 -3 -3 -6 0 -9 c3 -3 -3 -6 0 -9" fill="none" stroke="#9C958C" stroke-width="1.6" stroke-linecap="round"/>
-    </g>`).join('');
-  const studs = [0, 1, 2, 3, 4, 5].map((k) => `<rect x="${22 + k * 21}" y="41" width="14" height="7" rx="2" fill="#FFF1C9" stroke="${INK}" stroke-width="1.8"/>`).join('');
-  return `<svg viewBox="0 0 ${W} 104">${candles}${studs}
-    <rect x="14" y="47" width="${W - 28}" height="44" rx="8" fill="#FFF1C9" stroke="${INK}" stroke-width="2.2"/>
-    <path d="M15 63 h${W - 30}" stroke="#FF8A80" stroke-width="5"/>
-    <rect x="4" y="91" width="${W - 8}" height="9" rx="4.5" fill="#fff" stroke="${INK}" stroke-width="2"/></svg>`;
+  const xs = Array.from({ length: n }, (_, i) => (n === 1 ? 100 : 66 + (i * 68) / (n - 1)));
+  const candles = xs.map((x, i) => {
+    const y = 66 + 6 * Math.sin(Math.PI * (x - 50) / 100) - 4; // sit on the top tier's oval
+    return `<g class="candle" data-slot="${i}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+      <rect x="-3.5" y="-20" width="7" height="20" rx="3.5" fill="#7CC5EE"/>
+      <path class="flame" d="M0 -38 c6 7 7 11 0 15 c-7 -4 -6 -8 0 -15 z" fill="#FFD23F"/>
+      <path class="smoke" d="M0 -24 c3 -3 -3 -6 0 -9 c3 -3 -3 -6 0 -9" fill="none" stroke="#9C958C" stroke-width="1.6" stroke-linecap="round"/>
+    </g>`;
+  }).join('');
+  const band = (y1, y2, rx, ry, x0, x1, fill) => `<path d="M${x0} ${y1}A${rx} ${ry} 0 0 0 ${x1} ${y1}L${x1} ${y2}A${rx} ${ry} 0 0 1 ${x0} ${y2}Z" fill="${fill}"/><path d="M${x0} ${y1}A${rx} ${ry} 0 0 0 ${x1} ${y1}L${x1} ${y2}A${rx} ${ry} 0 0 1 ${x0} ${y2}Z" fill="url(#rcShade)"/>`;
+  return `<svg viewBox="0 16 200 206"><defs><linearGradient id="rcShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#3a1d0a" stop-opacity=".10"/><stop offset="1" stop-color="#3a1d0a" stop-opacity=".22"/></linearGradient><radialGradient id="rcGloss" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="100" cy="206" rx="78" ry="6" fill="#111" opacity=".12"/>
+    <g class="rc">
+      ${band(112, 126.4, 82, 22, 18, 182, '#7CC5EE')}${band(126.4, 169.6, 82, 22, 18, 182, '#fff')}${band(169.6, 184, 82, 22, 18, 182, '#7CC5EE')}
+      <ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="url(#rcGloss)"/>
+      <g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g>
+      ${band(66, 82.1, 50, 14, 50, 150, '#EE3B3B')}${band(82.1, 91.3, 50, 14, 50, 150, '#fff')}${band(91.3, 112, 50, 14, 50, 150, '#EE3B3B')}
+      <ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="url(#rcGloss)"/>
+      ${candles}
+    </g></svg>`;
 }
 function renderCake(stores) {
   state.slots = stores.map((s) => ({ store: s.store, state: 'unlit' }));
   $('#cake').innerHTML = cakeSvg(stores.length);
-  stores.forEach((s, i) => $(`#cake [data-slot="${i}"]`).style.setProperty('--c', STORES[s.store].color));
   cakeNote();
 }
 function candle(store, st) {
@@ -93,7 +102,12 @@ function candle(store, st) {
   const g = $(`#cake [data-slot="${i}"]`);
   if (!g) return;
   g.setAttribute('class', `candle ${st}`);
-  g.style.setProperty('--c', STORES[store].color);
+  if (st === 'lit' && !calm()) {
+    const k = $('#cake');
+    k.classList.remove('hop');
+    void k.offsetWidth;
+    k.classList.add('hop');
+  }
   cakeNote();
 }
 function cakeNote() {
