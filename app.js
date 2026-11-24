@@ -543,13 +543,16 @@ function spotlight(store, amount, step) {
 
 // The handoff: the agent stops for a stated reason, says what it did and what it suggests,
 // and says what happens next. You decide; the receipt records that you did.
-function handoff({ title, why, suggest, next, acts, link }) {
+function handoff({ title, why, suggest, items, next, acts, link }) {
   const paidN = Object.keys(state.paid).filter((s) => !state.paid[s].refunded).length;
   const spent = spentTotal();
   $('#hoTitle').textContent = title;
   $('#hoWhy').innerHTML = why;
   $('#hoSoFar').textContent = paidN ? `Paid ${paidN} store${paidN > 1 ? 's' : ''}, ${money(spent)} of ${money(budgetOf(state.cart))}.` : 'Nothing paid yet.';
-  $('#hoSuggest').textContent = suggest;
+  // At a check-with-me stop, show what's being bought, not commentary about it.
+  $('#hoSuggestLbl').textContent = items ? 'Buying' : 'My suggestion';
+  if (items) $('#hoSuggest').innerHTML = `<ul class="ho-items">${items.map(([name, amt, note]) => `<li><span>${esc(name)}${note ? ` <small>${esc(note)}</small>` : ''}</span><b>${amt}</b></li>`).join('')}</ul>`;
+  else $('#hoSuggest').textContent = suggest;
   $('#hoNext').textContent = next || '';
   $('#hoActs').innerHTML = acts.map(([v, label, cls]) => `<button class="${cls}" data-choice="${v}" type="button">${esc(label)}</button>`).join('') + (link ? `<a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">See the listing</a>` : '');
   mood($('#hoFace'), 'brow');
@@ -668,8 +671,11 @@ async function buy(store, amount, { approved = false } = {}) {
     const items = state.cart.items.filter((i) => i.store === store);
     const pick = await handoff({
       title: `Approve ${money(amount)} at ${STORES[store].name}?`,
-      why: `It's over your ${money(state.askOver)} check-with-me amount.`,
-      suggest: `Approve. ${items.map((i) => i.name).join(', ')}${items.some((i) => i.offTheme) && state.decided[items[0].id] === 'kept' ? ' (you already chose to keep it)' : ''}.`,
+      why: state.askOver === 0 ? 'You asked me to check before every purchase.' : `It's over your ${money(state.askOver)} check-with-me amount.`,
+      items: [
+        ...items.map((i) => [`${i.qty > 1 ? `${i.qty} × ` : ''}${i.name}`, money(i.amount), i.offTheme && state.decided[i.id] === 'kept' ? 'not brick-themed; you kept it' : '']),
+        ...(s && amount - s.items > 0 ? [['Delivery and tax (estimated)', money(amount - s.items), '']] : []),
+      ],
       next: `If you approve, I make a ${money(amount)} pass for ${STORES[store].name} only, good for 30 minutes, and the store charges it.`,
       acts: [['yes', `Approve ${money(amount)}`, 'go'], ['no', 'Skip this store', 'ghost-btn']],
       link: items[0]?.url,
