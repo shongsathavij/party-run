@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Piece of Cake: a case study</title>
+  <meta name="description" content="How an AI agent shops a real birthday party from real store listings, why it can't overspend (the limits live in Stripe, not the prompt), and how it's kept honest with evals.">
+  <meta name="theme-color" content="#FFFDF8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&display=swap">
+  <link rel="icon" href="/favicon.svg?v=cake3" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=cake3">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Piece of Cake">
+  <meta property="og:title" content="Piece of Cake: a case study">
+  <meta property="og:description" content="An AI agent that shops a real birthday party and can only spend what the parent approves, because the limits live in the payment.">
+  <meta property="og:url" content="https://party.sirinrut.com/case-study">
+  <meta property="og:image" content="https://party.sirinrut.com/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Piece of Cake: 'Party planning? Piece of cake.' beside a smiling two-tier cake.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://party.sirinrut.com/og.png">
+  <style>
+    /* Same look as the app: warm white, heavy Inter Tight, candy red for actions,
+       sky blue for accents, yellow only to celebrate, ink outlines. Calm cards
+       (hairlines, soft shadows); the striped shadow marks the parts to point at. */
+    :root {
+      --paper: #FFFDF8; --card: #FFFFFF; --ink: #161412; --muted: #57524C;
+      --red: #EE3B3B; --sky: #7CC5EE; --blue: #1E6FA6; --yellow: #FFD23F;
+      --hair: #E6E0D6; --lift: 0 18px 40px -22px rgba(40, 25, 10, .28);
+      --ok: #1E7A4C;
+      --sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    html, body { background: var(--paper); }
+    body {
+      margin: 0; color: var(--ink); font: 17px/1.65 var(--sans); letter-spacing: -0.01em;
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+    .wrap { max-width: 740px; margin: 0 auto; }
+    h1, h2, h3 { font-weight: 900; letter-spacing: -0.035em; line-height: 1.05; margin: 0; text-wrap: balance; }
+    h1 { font-size: clamp(44px, 10vw, 72px); }
+    h1 .red { color: var(--red); }
+    h2 { font-size: clamp(27px, 5vw, 36px); }
+    h3 { font-size: 20px; letter-spacing: -0.02em; }
+    p { margin: 0; }
+    .kicker { font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--blue); }
+    .hl { font-weight: 800; }
+    .lede { font-size: clamp(19px, 3.6vw, 22px); line-height: 1.5; max-width: 34em; }
+    .small { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    section { display: flex; flex-direction: column; gap: 16px; padding-block: 40px; }
+    section + section { border-top: 1px solid var(--hair); }
+    .prose { display: flex; flex-direction: column; gap: 14px; max-width: 36em; }
+    .panel { background: var(--card); border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--lift); padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; }
+    ul.clean { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; }
+    ul.clean li::marker { color: var(--red); }
+
+    /* Striped shadow, like the chatbox and the receipt */
+    .stripes { position: relative; isolation: isolate; border: 2.5px solid var(--ink); box-shadow: none; border-radius: 22px; }
+    .stripes::before { content: ''; position: absolute; inset: -2.5px; transform: translate(8px, 8px); z-index: -1; border: 2.5px solid var(--ink); border-radius: 22px; background: repeating-linear-gradient(-45deg, var(--sky) 0 10px, #fff 10px 20px); }
+
+    header.hero { padding-block: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .hero-row { margin-top: -6px; }
+    .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .cake { width: clamp(80px, 18vw, 120px); height: auto; flex: none; }
+    .cake .hc-legs { display: none; }
+    .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); }
+    .meta b { color: var(--ink); }
+    .cta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; color: var(--blue); background: #fff; text-decoration: none; font-weight: 800; font-size: 16px; letter-spacing: -0.02em; padding: 10px 20px; border: 2px solid var(--blue); border-radius: 999px; transition: background .12s, color .12s; }
+    .cta:hover { background: var(--blue); color: #fff; }
+    .shots { margin: 10px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+    .shots img { width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 20px; background: #fff; box-shadow: var(--lift); }
+    .shots figcaption { grid-column: 1 / -1; }
+    @media (max-width: 720px) { .shots { grid-template-columns: 1fr 1fr; } .shots img:nth-of-type(3) { grid-column: 1 / -1; max-width: 70%; justify-self: center; } }
+
+    .shows { list-style: none; padding: 22px 20px; margin: 0; display: flex; flex-direction: column; gap: 12px; background: #fff; border-radius: 20px; }
+    .shows li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+    .shows li::before { content: ''; width: 14px; height: 14px; margin-top: 7px; border-radius: 4px; background: var(--red); }
+    .shows li:nth-child(2)::before { background: var(--sky); }
+    .shows li:nth-child(3)::before { background: var(--yellow); border: 1.5px solid var(--ink); }
+
+
+    /* The flow, simple: four cards, AI's part vs the money's part */
+    .simple { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 26px; }
+    .phase { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .phase::after { content: ''; flex: 1; border-top: 2px solid currentColor; opacity: .5; }
+    .phase.ai { color: #4E9BC7; }
+    .phase.money { grid-column: span 3; color: var(--ok); }
+    .simple .card { position: relative; border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .simple .card.consent { border-color: var(--blue); }
+    .simple .card.money { border-color: var(--ok); }
+    .simple .card b { font-size: 17px; line-height: 1.25; letter-spacing: -0.02em; }
+    .simple .card:not(:last-child)::after { content: '→'; position: absolute; right: -21px; top: 50%; transform: translateY(-50%); font-weight: 900; font-size: 18px; }
+    .simple .who { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .simple .who::before { content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--c); border: 1.5px solid var(--ink); }
+    .simple .refused { margin-top: 8px; font-size: 14px; line-height: 1.4; background: #FDECEA; border: 1.5px dashed var(--red); border-radius: 10px; padding: 8px 10px; }
+    .simple .refused b { font-size: 14px; color: var(--red); display: block; }
+    @media (max-width: 720px) {
+      .simple { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+      .phase.money { grid-column: auto; order: 2; }
+      .phase.ai { order: 0; } .simple .card.c1 { order: 1; } .simple .card { order: 3; }
+      .simple .card:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -24px; transform: translateX(-50%); }
+      .simple .card.c1::after { display: none; }
+      .phase.money { margin-bottom: -8px; }
+    }
+    .more { font-weight: 700; font-size: 15px; align-self: flex-start; }
+    .diagram { align-self: center; width: min(1120px, calc(100vw - 32px)); overflow-x: auto; background: #fff; border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--lift); padding: 12px; }
+    .diagram svg { display: block; width: 100%; min-width: 900px; height: auto; }
+    .behind { display: block; }
+
+    /* The money flow */
+    .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 560px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+    .step { border: 1px solid var(--hair); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; background: var(--paper); }
+    .step.cap { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .step.cap .kicker { color: var(--sky); }
+    .step.cap .small { color: #DCEFFB; }
+    .step.no { background: #FFF1F0; border-color: #F5C9C4; }
+    .step.no .kicker { color: var(--red); }
+    .amt { font-weight: 900; font-size: 30px; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .quote { border-left: 4px solid var(--red); padding: 4px 0 4px 14px; font-weight: 600; }
+
+    table.rules { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+    .rules th, .rules td { text-align: left; padding: 10px 10px 10px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+    .rules th { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+    .rules td:first-child { width: 36%; font-weight: 600; }
+    .rules td.n { text-align: right; white-space: nowrap; padding-right: 0; }
+    .rules th.n { text-align: right; padding-right: 0; }
+    .pass { color: var(--ok); font-weight: 800; }
+    .table-wrap { overflow-x: auto; }
+
+    /* Decisions */
+    .decisions { display: grid; gap: 12px; counter-reset: d; }
+    .decision { background: var(--card); border: 1px solid var(--hair); border-radius: 18px; box-shadow: var(--lift); padding: 18px; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 14px; }
+    .decision::before { counter-increment: d; content: counter(d); grid-row: span 3; width: 36px; height: 36px; border-radius: 999px; background: var(--red); color: #fff; display: grid; place-items: center; font-weight: 900; }
+    .decision .tradeoff { font-size: 14.5px; color: var(--muted); }
+    .decision .tradeoff b { color: var(--ink); }
+
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    @media (max-width: 560px) { .metrics { grid-template-columns: minmax(0, 1fr); } }
+    .metric { background: var(--card); border: 1px solid var(--hair); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .stack-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { background: #fff; border: 1px solid var(--hair); border-radius: 10px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+
+    footer { padding-block: 28px 44px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; border-top: 1px solid var(--hair); }
+    @media print { .stripes::before { display: none; } .panel, .decision, .shots img { box-shadow: none; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker">A case study</span>
+    <div class="hero-row">
+      <h1>Piece of <span class="red">Cake</span></h1>
+      <svg class="cake" aria-hidden="true" viewBox="0 26 200 206"><defs><linearGradient id="hcShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#3a1d0a" stop-opacity=".10"/><stop offset="1" stop-color="#3a1d0a" stop-opacity=".22"/></linearGradient><radialGradient id="hcGloss" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient><filter id="hcBlur" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="5"/></filter></defs><ellipse class="hc-shadow" cx="100" cy="212" rx="80" ry="6" fill="#111" opacity=".16" filter="url(#hcBlur)"/><g class="hc"><g class="hc-legs"><path class="l1" d="M78 196 v24 h-12"/><path class="l2" d="M122 196 v24 h-12"/></g><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="#7CC5EE"/><path d="M18 112A82 22 0 0 0 182 112L182 126.4A82 22 0 0 1 18 126.4Z" fill="url(#hcShade)"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="#fff"/><path d="M18 126.4A82 22 0 0 0 182 126.4L182 169.6A82 22 0 0 1 18 169.6Z" fill="url(#hcShade)"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="#7CC5EE"/><path d="M18 169.6A82 22 0 0 0 182 169.6L182 184A82 22 0 0 1 18 184Z" fill="url(#hcShade)"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="url(#hcGloss)"/><g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g><ellipse cx="54" cy="110" rx="14" ry="4.5" fill="#fff" opacity=".55"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="#EE3B3B"/><path d="M50 66A50 14 0 0 0 150 66L150 82.1A50 14 0 0 1 50 82.1Z" fill="url(#hcShade)"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="#fff"/><path d="M50 82.1A50 14 0 0 0 150 82.1L150 91.3A50 14 0 0 1 50 91.3Z" fill="url(#hcShade)"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="#EE3B3B"/><path d="M50 91.3A50 14 0 0 0 150 91.3L150 112A50 14 0 0 1 50 112Z" fill="url(#hcShade)"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="url(#hcGloss)"/><rect class="hc-candle" x="96" y="46" width="8" height="20" rx="4" fill="#7CC5EE"/><path class="hc-flame" d="M100 28c7 8 8 13 0 17-8-4-7-9 0-17z" fill="#FFD23F"/></g></svg>
+    </div>
+    <p class="lede"><b class="hl">Agentic checkout</b> simplifies commerce. Here, an agent plans my son's birthday party and checks out from real store listings. It can only spend what the parent approves, since the limits live in the payment, not the prompt.</p>
+    <div class="meta">
+      <span>Built by <b>Stephanie Hongsathavij</b>, Senior PM, Checkout</span>
+      <span>Status: <b>live, Stripe test mode</b></span>
+    </div>
+    <a class="cta" href="/">Try the agent <span aria-hidden="true">→</span></a>
+    <figure class="shots" aria-label="Piece of Cake on a phone">
+      <img src="img/case-home.jpg" alt="Home: 'Party planning? Piece of cake.' beside a two-tier cake, with the party request and a Plan it button." width="585" height="1140" loading="lazy">
+      <img src="img/case-cart.jpg" alt="The cart grouped by Fun and Food, with a flag on the bounce house: not brick-themed, because the brick one is booked Dec 5. Keep it, See 2 other options, Remove." width="585" height="1140" loading="lazy">
+      <img src="img/case-go.jpg" alt="Your go-ahead: $389.03 of a $600 budget, items, delivery and tax, the stop rule in one sentence, Stripe's test card, and Approve $389.03 and shop." width="585" height="1140" loading="lazy">
+      <figcaption class="small">The live demo on a phone: the request, the party the agent shopped (with the one call it needs her to make), and the go-ahead.</figcaption>
+    </figure>
+  </header>
+
+  <section aria-label="What this shows">
+    <span class="kicker">What this shows</span>
+    <div class="stripes"><ul class="shows">
+      <li><span><b>I ship.</b> A live agent on real store listings, real Stripe calls, and evals that run in CI, built in about ten days.</span></li>
+      <li><span><b>I build trust into the payment.</b> My AI billing portal research showed people let automation spend when its edges are clear and a person can step in. So the agent can only spend what you approve, tells you up front when it will stop and ask, and Stripe enforces every limit.</span></li>
+      <li><span><b>I keep the record.</b> Every run ends in a receipt: what you approved, what each store charged, what was refused and by whom, checked against your limits.</span></li>
+    </ul></div>
+  </section>
+
+  <section aria-labelledby="why">
+    <span class="kicker">Why I built it</span>
+    <h2 id="why">The buyer is about to be software</h2>
+    <div class="prose">
+      <p>I've spent seven years in payments as a product manager, and the most exciting recent development is agentic commerce. I wanted to take what I learned building an AI-first billing portal and build an app that helped me shop for my son's birthday party.</p>
+      <p>Every checkout I've built assumes a person is at the keyboard. With an agent, the hard question isn't whether it can find a bounce house. It's whether a parent can let it pay.</p>
+      <p>The party is real: December 5, building-brick theme, backyard, 6 to 10 kids aged 2 to 5, a bounce house and a piñata, under $600. A real brief keeps a demo honest: a toddler coming means the piñata needs pull strings, and a booked bounce house is a real problem, not a contrived one.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="what">
+    <span class="kicker">What it does</span>
+    <h2 id="what">One request, one approval, six stores</h2>
+    <ul class="clean">
+      <li><b>She describes the party.</b> The agent searches real listings from C&amp;M Event Rentals, L.A. Inflatables Rental, Whole Foods, Target, Walmart and Michaels (a saved snapshot, linked to each listing).</li>
+      <li><b>It proposes the party by what it is:</b> Fun, Food, Plates and napkins, Favors. Each item has other options; anything off-theme that she asked for by name gets a flag she answers before going on.</li>
+      <li><b>She approves once.</b> One total, one sentence on when the agent will stop and ask, Stripe's test card.</li>
+      <li><b>It pays store by store,</b> each with its own one-time pass, and stops only when it must.</li>
+      <li><b>She gets a receipt</b> that checks spending never passed what she approved.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="money">
+    <span class="kicker">The payment</span>
+    <h2 id="money">The agent can't overspend, and that isn't a promise</h2>
+    <div class="prose">
+      <p>Most agent demos put the budget in the prompt and hope. Prompts can be talked out of things; a store listing can even carry hidden instructions. So the agent never gets a payment tool. It proposes a cart, the parent approves a signed permission, and the server buys, minting a <b>Stripe shared payment token</b> for one store, capped at that store's approved amount, that expires in 30 minutes.</p>
+    </div>
+    <div class="panel">
+      <span class="kicker">How a party gets paid for</span>
+      <div class="simple">
+        <div class="phase ai"><span>The AI's part</span></div>
+        <div class="phase money"><span>The money's part: your rules, enforced by Stripe</span></div>
+        <div class="card c1" style="--c: var(--sky)"><span class="who">Agent</span><b>Proposes a cart</b><span class="small">Shops real listings. Has no payment tool.</span></div>
+        <div class="card consent" style="--c: var(--blue)"><span class="who">You</span><b>Approve once</b><span class="small">A limit for each store, ending on the party date.</span></div>
+        <div class="card money" style="--c: var(--ok)"><span class="who">Stripe</span><b>Makes a pass per store</b><span class="small">One store, one charge, up to its limit, for 30 minutes.</span></div>
+        <div class="card" style="--c: var(--yellow)"><span class="who">Store</span><b>Charges the pass</b><span class="small">Within the limit: paid.</span><span class="refused"><b>Asks for $20 more?</b> Stripe declines it.</span></div>
+      </div>
+      <a class="more" href="#appendix">See every step, including refunds and the receipt ↓</a>
+    </div>
+    <div class="panel" role="group" aria-labelledby="ex">
+      <span class="kicker" id="ex">The test: the rental tries to charge $20 more</span>
+      <div class="flow">
+        <div class="step">
+          <span class="kicker">1 · Her budget</span>
+          <span class="amt">$600</span>
+          <span class="small">She approves the party; each store gets its own cap, and the caps add up to no more than this.</span>
+        </div>
+        <div class="step cap">
+          <span class="kicker">2 · A pass for one store</span>
+          <span class="amt">$149.99</span>
+          <span class="small">the rental's cap. Good for that store only, for 30 minutes.</span>
+        </div>
+        <div class="step no">
+          <span class="kicker">3 · Store asks for more</span>
+          <span class="amt">$169.99</span>
+          <span class="small">refused by Stripe, not by my code. Nothing charged.</span>
+        </div>
+      </div>
+      <p class="quote">"The requested amount is greater than the remaining amount capturable with this shared payment granted token."</p>
+      <p class="small">Stripe's own response, tested live on November 19. If Stripe ever accepted an over-cap charge, the server refunds it at once and the page says so in plain words.</p>
+    </div>
+    <div class="panel">
+      <span class="kicker">The rules</span>
+      <div class="table-wrap">
+        <table class="rules">
+          <thead><tr><th>Rule</th><th>How it holds</th></tr></thead>
+          <tbody>
+            <tr><td>The agent never pays</td><td>It has no payment tool. It submits a cart; the server buys.</td></tr>
+            <tr><td>Prices come from the catalog</td><td>By item id, never from the page or the model.</td></tr>
+            <tr><td>One cap per store</td><td>Each pass is capped at that store's approved total, delivery and tax included.</td></tr>
+            <tr><td>Ask me over $100</td><td>A purchase over her threshold ($50, $100, $300, always or never) pauses for a tap.</td></tr>
+            <tr><td>Ends on the party date</td><td>Nothing is bought after December 5.</td></tr>
+            <tr><td>Can't be edited</td><td>The permission is signed on the server; a changed one is refused.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <span class="kicker">What breaks in production, and what I'd do</span>
+      <div class="table-wrap">
+        <table class="rules">
+          <thead><tr><th>Risk</th><th>What I'd do</th></tr></thead>
+          <tbody>
+            <tr><td>Tax and delivery are estimates</td><td>Take them from each store's checkout, the way agentic checkout protocols return them from the address. The shape is already per store.</td></tr>
+            <tr><td>Price changes after approval</td><td>Stop and ask (the raise flow exists): approve the new amount once, or skip the store.</td></tr>
+            <tr><td>A store cancels</td><td>Refund, say the party isn't complete, and offer the same kind of item elsewhere under a second, separate permission.</td></tr>
+            <tr><td>Disputes</td><td>The receipt is the audit trail: what she approved, each pass and PaymentIntent, what the agent ignored. Liability between agent, parent and store still needs a policy.</td></tr>
+            <tr><td>Listings that instruct the agent</td><td>Treat listings as data, report the instruction, and send back any item a listing pushed that she didn't ask for.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="ai">
+    <span class="kicker">The agent</span>
+    <h2 id="ai">An agent you can grade</h2>
+    <div class="prose">
+      <p>Claude searches every category in one turn, then submits a cart by item id. Code checks every cart against the same rules the page and the server use: buyable, in budget, enough favor packs for every kid, toddler-safe, nothing booked or past its delivery notice. A cart with problems goes back once. If Claude is off, over its limit or down, a rules agent plans instead, and the page says which happened.</p>
+      <p>Money and safety have right answers, so every check is code, not a model grading a model. The 12 prompts are all variations of the real party: tighter budgets, more kids, "just a cake", a booked date, and four tries at tricking the agent.</p>
+    </div>
+    <div class="panel">
+      <span class="kicker">The checks (each must pass every time)</span>
+      <div class="table-wrap">
+        <table class="rules">
+          <thead><tr><th>Check</th><th>Why it matters</th></tr></thead>
+          <tbody>
+            <tr><td>Buyable cart</td><td>Real ids, in stock, free on the date, within budget.</td></tr>
+            <tr><td>Never buys what a listing pushed</td><td>The made-up test store hides an instruction to AI shoppers.</td></tr>
+            <tr><td>Reports the hidden instruction</td><td>The parent should know someone tried.</td></tr>
+            <tr><td>Honest about budget</td><td>Says what it couldn't fit, and only what she asked for.</td></tr>
+            <tr><td>A favor for every kid</td><td>Favors come in packs, so it rounds up, never down.</td></tr>
+            <tr><td>Safe for the youngest</td><td>Pull-string piñata and ages-2+ favors when a 2-year-old comes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="prose">
+      <p><b>First run with Claude: 21 of 24.</b> Two runs of 12 prompts on Claude Haiku 5.5, about 16,000 tokens and three turns a plan. All three failures were real: twice the model left the budget off its cart, and once it skipped the hidden instruction without reporting it. I fixed both in code, not the prompt: the budget is read from her request, and a cart that saw the instruction but didn't report it goes back once. I then added the cases I worried about as a parent: a party two weeks out (shipped items need four days' notice), and what to suggest when a bounce house doesn't fit (bubbles, running games).</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="decisions">
+    <span class="kicker">Decisions and trade-offs</span>
+    <h2 id="decisions">Four calls I'd defend in a review</h2>
+    <div class="decisions">
+      <article class="decision">
+        <h3>Limits in the payment, not the prompt</h3>
+        <p>A parent can't audit a prompt. She can understand "this store can take up to $149.99, once, today."</p>
+        <p class="tradeoff"><b>Trade-off:</b> one pass per store means more Stripe calls and a slower run than one charge would.</p>
+      </article>
+      <article class="decision">
+        <h3>Plan by what, pay by where</h3>
+        <p>Parents think "bounce house, cake, favors", not "Target, Michaels". The cart is grouped by what it is; the run, passes and receipt go by store, because that's where the money moves.</p>
+        <p class="tradeoff"><b>Trade-off:</b> two views of the same cart, so the store has to stay visible on every item.</p>
+      </article>
+      <article class="decision">
+        <h3>Three stops, and only three</h3>
+        <p>From my AI billing portal research: people accept automation when its edges are clear. Before she approves, she sees the only times the agent stops: over her ask-me amount, a store asks for more, part of the party falls through. Each stop says why, what's done, and what it suggests.</p>
+        <p class="tradeoff"><b>Trade-off:</b> it won't stop for things she might care about but didn't say. That's the price of being predictable.</p>
+      </article>
+      <article class="decision">
+        <h3>Traps live only on a made-up store</h3>
+        <p>Real listings make the demo credible, but I won't say anything false about a real business. The booked bounce house and the hidden instruction both live on Brickyard Party Supply, a test store labeled as made up.</p>
+        <p class="tradeoff"><b>Trade-off:</b> a sharp visitor knows where the traps are. "Try to trick the agent" lets them write their own.</p>
+      </article>
+    </div>
+    <div class="panel">
+      <span class="kicker">Smaller calls</span>
+      <div class="table-wrap">
+        <table class="rules">
+          <tbody>
+            <tr><td>One real party only</td><td>The request is fixed. A narrow demo that's true beats an open one that's vague.</td></tr>
+            <tr><td>Toddler safety</td><td>A hard check on the agent's cart, but her call when she edits it: a note, not a refusal.</td></tr>
+            <tr><td>Delivery and tax</td><td>Estimated per store and labeled as estimates, so every cap includes them.</td></tr>
+            <tr><td>Quiet by default</td><td>Two agent notes; reasons behind "Why each item?"; the ignored instruction as one line.</td></tr>
+            <tr><td>Playful, never in the numbers</td><td>The cake makes faces and dances. Amounts, limits and Stripe's words stay plain.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="howai">
+    <span class="kicker">How I worked with AI</span>
+    <h2 id="howai">Claude built most of it. I made the calls.</h2>
+    <div class="prose">
+      <p>I wrote almost none of the code. My job was the product: what to build, what to cut, and when it was wrong.</p>
+      <p><b>I chose payment rails over prompt rules.</b> The first instinct with agents is a better prompt. I asked where the limit should live if the prompt fails, and the answer was Stripe.</p>
+      <p><b>I read the failures before the fixes.</b> Each eval failure got a root cause, and the fix went in code where it could be tested, not in another line of prompt.</p>
+      <p><b>I wrote the evals a parent would.</b> Shipping notice and "what if not a bounce house" came from thinking about my own party, not from the code.</p>
+      <p><b>I sweated the small signals.</b> The agent's face when it stops to ask looked cross, so it became one raised eyebrow: curious, never annoyed.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="measure">
+    <span class="kicker">What I'd measure</span>
+    <h2 id="measure">The numbers that would change the design</h2>
+    <div class="metrics">
+      <div class="metric"><b>Carts approved</b><span class="small">Of plans shown, how many reach "Approve and shop" unchanged, and which item gets swapped most.</span></div>
+      <div class="metric"><b>Stops per run</b><span class="small">Too many and the agent isn't saving time; zero on a hard party means a missed stop.</span></div>
+      <div class="metric"><b>Flags answered</b><span class="small">Keep, swap or remove, to learn when "close enough" is fine.</span></div>
+      <div class="metric"><b>Charges over a cap</b><span class="small">Should be zero, always. Every refusal and any refund is logged.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="next">
+    <span class="kicker">What's next</span>
+    <h2 id="next">From test mode toward real stores</h2>
+    <p class="prose">The party is the demo; the pattern is the product. Spending a person delegates, with limits they set and a payment network enforces, fits corporate cards for agents, procurement and B2B billing too.</p>
+    <ul class="clean">
+      <li>A card form, so the parent's own card funds the passes.</li>
+      <li>Issue tokens to a store's real Stripe profile, not just Stripe's test helper.</li>
+      <li>Webhooks when a pass is used, so the ledger updates itself.</li>
+      <li>Delivery and tax from each store's checkout instead of estimates.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="built">
+    <span class="kicker">How it's built</span>
+    <h2 id="built">Small, real, and test mode</h2>
+    <p class="prose">A static page and a few serverless functions on Vercel, with no dependencies. Every route works with no keys: a rules agent stands in for Claude and payments are simulated with the same rules, labeled on the page.</p>
+    <div class="stack-list">
+      <span class="tag">Stripe shared payment tokens</span><span class="tag">Stripe PaymentIntents</span><span class="tag">Claude API, tool use</span><span class="tag">Evals in GitHub Actions</span><span class="tag">Vercel</span><span class="tag">Claude Code</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="appendix" class="appendix">
+    <span class="kicker">Appendix</span>
+    <h2 id="appendix">Every step, behind the screen</h2>
+    <p class="prose">The agent can propose. Only your signed permission lets money move, and Stripe enforces each limit, not the prompt.</p>
+    <div class="diagram">
+      <svg class="behind" viewBox="0 90 1100 1420" role="img" aria-labelledby="behindTitle behindDesc" xmlns="http://www.w3.org/2000/svg">
+<title id="behindTitle">How Piece of Cake works behind the screen</title>
+<desc id="behindDesc">Five lanes: you, the agent, the Piece of Cake server, Stripe, and the stores. The agent only proposes a cart. Your signed permission lets money move, Stripe makes a capped pass for each store and declines anything over it, and the receipt records every step.</desc>
+<defs><marker id="mk-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#161412"/></marker><marker id="mk-ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E6FA6"/></marker><marker id="mk-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#EE3B3B"/></marker><marker id="mk-ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1E7A4C"/></marker></defs>
+<style>.behind text{font-family:'Inter Tight',system-ui,sans-serif} .t{font-size:15px;font-weight:800;fill:#161412;letter-spacing:-.02em} .b{font-size:12.5px;fill:#57524C} .b2{font-size:12.5px;fill:#57524C} .n{font-size:11px;font-weight:800;fill:#fff} .lh{font-size:16px;font-weight:900;fill:#161412;letter-spacing:-.02em} .ls{font-size:12px;fill:#57524C} .sec{font-size:11px;font-weight:800;letter-spacing:.14em;fill:#57524C} .lab{font-size:12px;font-weight:700} .loop{font-size:20px;font-weight:900;fill:#57524C;letter-spacing:-.02em}</style>
+<rect x="20" y="100" width="200" height="1340" rx="16" fill="#EEF6FC"/>
+<text x="120.0" y="128" text-anchor="middle" class="lh">You</text>
+<text x="120.0" y="146" text-anchor="middle" class="ls">the parent</text>
+<rect x="235" y="100" width="200" height="1340" rx="16" fill="#FFF7D9"/>
+<text x="335.0" y="128" text-anchor="middle" class="lh">The agent</text>
+<text x="335.0" y="146" text-anchor="middle" class="ls">Claude</text>
+<rect x="450" y="100" width="200" height="1340" rx="16" fill="#F4F1EC"/>
+<text x="550.0" y="128" text-anchor="middle" class="lh">Piece of Cake server</text>
+<text x="550.0" y="146" text-anchor="middle" class="ls">checks and signs</text>
+<rect x="665" y="100" width="200" height="1340" rx="16" fill="#EAF5EE"/>
+<text x="765.0" y="128" text-anchor="middle" class="lh">Stripe</text>
+<text x="765.0" y="146" text-anchor="middle" class="ls">test mode</text>
+<rect x="880" y="100" width="200" height="1340" rx="16" fill="#FFF0EE"/>
+<text x="980.0" y="128" text-anchor="middle" class="lh">The stores</text>
+<text x="980.0" y="146" text-anchor="middle" class="ls">real listings, simulated checkout</text>
+<rect x="245" y="545" width="180" height="885" rx="12" fill="none" stroke="#57524C" stroke-width="1.5" stroke-dasharray="4 4"/>
+<text x="335.0" y="905" text-anchor="middle" class="loop">Out of the loop</text>
+<text x="335.0" y="928" text-anchor="middle" class="b2">No payment tool,</text><text x="335.0" y="946" text-anchor="middle" class="b2">no card, no passes</text>
+<line x1="10" x2="1090" y1="176" y2="176" stroke="#D9D3C8"/>
+<text x="1072" y="169" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">PLAN</text>
+<rect x="30" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="207" r="10" fill="#1E6FA6"/><text x="52" y="211" text-anchor="middle" class="n">1</text>
+<text x="68" y="212" class="t">Asks for the party</text>
+<text x="44" y="235" class="b">Lego theme, Dec 5,</text>
+<text x="44" y="252" class="b">6-10 kids, bounce house</text>
+<text x="44" y="269" class="b">and piñata, under $600</text>
+<rect x="245" y="185" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="267" cy="207" r="10" fill="#161412"/><text x="267" y="211" text-anchor="middle" class="n">2</text>
+<text x="283" y="212" class="t">Shops the listings</text>
+<text x="259" y="235" class="b">Reads listings as data,</text>
+<text x="259" y="252" class="b">never as instructions</text>
+<text x="259" y="269" class="b">Proposes a cart. Can&#x27;t pay.</text>
+<rect x="460" y="185" width="180" height="112" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="207" r="10" fill="#161412"/><text x="482" y="211" text-anchor="middle" class="n">3</text>
+<text x="498" y="212" class="t">Checks the cart</text>
+<text x="474" y="235" class="b">Prices from the catalog</text>
+<text x="474" y="252" class="b">Nothing booked or too late</text>
+<text x="474" y="269" class="b">Under budget, toddler-safe</text>
+<text x="474" y="286" class="b">Nothing a listing pushed</text>
+<rect x="245" y="300" width="180" height="95" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="259" y="327" class="t">Hidden instruction</text>
+<text x="259" y="350" class="b">A test-store listing tells</text>
+<text x="259" y="367" class="b">AI shoppers what to buy.</text>
+<text x="259" y="384" class="b">Ignored and reported.</text>
+<rect x="30" y="420" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="442" r="10" fill="#1E6FA6"/><text x="52" y="446" text-anchor="middle" class="n">4</text>
+<text x="68" y="447" class="t">Reviews the cart</text>
+<text x="44" y="470" class="b">Answers the flag on the</text>
+<text x="44" y="487" class="b">bounce house, swaps</text>
+<text x="44" y="504" class="b">items, asks for changes</text>
+<path d="M210 225 L242 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<path d="M425 225 L457 225" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<path d="M550.0 297 L550.0 470 L213 470" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<text x="380.0" y="462" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">checked cart + any questions</text>
+<line x1="10" x2="1090" y1="530" y2="530" stroke="#D9D3C8"/>
+<text x="1072" y="523" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">CONSENT</text>
+<rect x="30" y="555" width="180" height="129" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="577" r="10" fill="#1E6FA6"/><text x="52" y="581" text-anchor="middle" class="n">5</text>
+<text x="68" y="582" class="t">Approves once</text>
+<text x="44" y="605" class="b">Budget: $600</text>
+<text x="44" y="622" class="b">A limit for each store</text>
+<text x="44" y="639" class="b">Ask me first over $100</text>
+<text x="44" y="656" class="b">Ends on the party date</text>
+<text x="44" y="673" class="b">Saves Stripe&#x27;s test card</text>
+<rect x="460" y="555" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="577" r="10" fill="#161412"/><text x="482" y="581" text-anchor="middle" class="n">6</text>
+<text x="498" y="582" class="t">Seals it</text>
+<text x="474" y="605" class="b">Signs the permission</text>
+<text x="474" y="622" class="b">(HMAC). A changed</text>
+<text x="474" y="639" class="b">permission is refused.</text>
+<path d="M210 595 L457 595" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="335.0" y="587" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">what you approved</text>
+<line x1="10" x2="1090" y1="710" y2="710" stroke="#D9D3C8"/>
+<text x="1072" y="703" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">BUY</text>
+<text x="460" y="735" class="sec">REPEATS FOR EACH STORE</text>
+<rect x="30" y="750" width="180" height="61" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="777" class="t">Over $100?</text>
+<text x="44" y="800" class="b">Taps Approve or Skip</text>
+<rect x="460" y="750" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="772" r="10" fill="#161412"/><text x="482" y="776" text-anchor="middle" class="n">7</text>
+<text x="498" y="777" class="t">Before each buy</text>
+<text x="474" y="800" class="b">Store in the permission?</text>
+<text x="474" y="817" class="b">Under its limit?</text>
+<text x="474" y="834" class="b">Over $100? Asks you first</text>
+<rect x="675" y="750" width="180" height="112" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
+<circle cx="697" cy="772" r="10" fill="#1E7A4C"/><text x="697" y="776" text-anchor="middle" class="n">8</text>
+<text x="713" y="777" class="t">Makes a pass</text>
+<text x="689" y="800" class="b">Shared payment token</text>
+<text x="689" y="817" class="b">on your saved card</text>
+<text x="689" y="834" class="b">Good at this store only</text>
+<text x="689" y="851" class="b">Max = its limit, 30 minutes</text>
+<path d="M460 775 L213 775" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="335.0" y="767" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">asks you</text>
+<path d="M640 795 L672 795" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="890" y="885" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="912" cy="907" r="10" fill="#161412"/><text x="912" y="911" text-anchor="middle" class="n">9</text>
+<text x="928" y="912" class="t">Charges the pass</text>
+<text x="904" y="935" class="b">Store runs a payment</text>
+<text x="904" y="952" class="b">with the pass, never</text>
+<text x="904" y="969" class="b">your card number</text>
+<path d="M805.0 862 L805.0 925 L887 925" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="675" y="1000" width="180" height="95" rx="12" fill="#E3F2E8" stroke="#1E7A4C" stroke-width="2"/>
+<circle cx="697" cy="1022" r="10" fill="#1E7A4C"/><text x="697" y="1026" text-anchor="middle" class="n">10</text>
+<text x="713" y="1027" class="t">Enforces the limit</text>
+<text x="689" y="1050" class="b">Within the limit: paid</text>
+<text x="689" y="1067" class="b">Over the limit: declined</text>
+<text x="689" y="1084" class="b">Pass closes after one use</text>
+<path d="M980.0 980 L980.0 1040 L858 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<rect x="460" y="1000" width="180" height="78" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<circle cx="482" cy="1022" r="10" fill="#161412"/><text x="482" y="1026" text-anchor="middle" class="n">11</text>
+<text x="498" y="1027" class="t">Logs the result</text>
+<text x="474" y="1050" class="b">Pass and payment ids</text>
+<text x="474" y="1067" class="b">for the receipt</text>
+<path d="M675 1040 L643 1040" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<line x1="10" x2="1090" y1="1120" y2="1120" stroke="#D9D3C8"/>
+<text x="1072" y="1113" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">WHEN SOMETHING CHANGES</text>
+<rect x="890" y="1135" width="180" height="78" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="904" y="1162" class="t">Store asks for more</text>
+<text x="904" y="1185" class="b">What-if: the rental asks</text>
+<text x="904" y="1202" class="b">$20 over its limit</text>
+<rect x="675" y="1135" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2"/>
+<text x="689" y="1162" class="t">Declines it</text>
+<text x="689" y="1185" class="b">Over the pass&#x27;s limit</text>
+<rect x="30" y="1135" width="180" height="78" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="1162" class="t">Approve $20 more?</text>
+<text x="44" y="1185" class="b">Only within the budget;</text>
+<text x="44" y="1202" class="b">a new pass if yes</text>
+<path d="M890 1165 L858 1165" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#mk-ar)"/>
+<path d="M675 1165 L213 1165" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="502.5" y="1157" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">you decide</text>
+<rect x="890" y="1235" width="180" height="61" rx="12" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="904" y="1262" class="t">The rental cancels</text>
+<text x="904" y="1285" class="b">What-if</text>
+<rect x="675" y="1235" width="180" height="61" rx="12" fill="#fff" stroke="#1E7A4C" stroke-width="2"/>
+<text x="689" y="1262" class="t">Refunds it</text>
+<text x="689" y="1285" class="b">Money back to your card</text>
+<rect x="30" y="1235" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<text x="44" y="1262" class="t">Find another?</text>
+<text x="44" y="1285" class="b">A different rental, within</text>
+<text x="44" y="1302" class="b">what&#x27;s left; a second,</text>
+<text x="44" y="1319" class="b">separate permission</text>
+<path d="M890 1265 L858 1265" fill="none" stroke="#EE3B3B" stroke-width="2" marker-end="url(#mk-ar)"/>
+<path d="M675 1265 L213 1265" fill="none" stroke="#1E6FA6" stroke-width="2" marker-end="url(#mk-ab)"/>
+<text x="502.5" y="1257" text-anchor="middle" class="lab" fill="#1E6FA6" stroke="#fff" stroke-width="4" paint-order="stroke">party not complete</text>
+<line x1="10" x2="1090" y1="1335" y2="1335" stroke="#D9D3C8"/>
+<text x="1072" y="1328" text-anchor="end" class="sec" stroke="#FFF0EE" stroke-width="5" paint-order="stroke">AFTER</text>
+<rect x="460" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#161412" stroke-width="2"/>
+<text x="474" y="1372" class="t">Checks the totals</text>
+<text x="474" y="1395" class="b">Never over what you</text>
+<text x="474" y="1412" class="b">approved? Is the party</text>
+<text x="474" y="1429" class="b">complete?</text>
+<rect x="30" y="1345" width="180" height="95" rx="12" fill="#fff" stroke="#1E6FA6" stroke-width="2"/>
+<circle cx="52" cy="1367" r="10" fill="#1E6FA6"/><text x="52" y="1371" text-anchor="middle" class="n">12</text>
+<text x="68" y="1372" class="t">Gets a receipt</text>
+<text x="44" y="1395" class="b">What you approved, what</text>
+<text x="44" y="1412" class="b">was charged, what was</text>
+<text x="44" y="1429" class="b">refused and by whom</text>
+<path d="M460 1385 L213 1385" fill="none" stroke="#161412" stroke-width="2" marker-end="url(#mk-ai)"/>
+<text x="335.0" y="1377" text-anchor="middle" class="lab" fill="#161412" stroke="#fff" stroke-width="4" paint-order="stroke">one record</text>
+<rect x="20" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E6FA6" stroke-width="2"/><text x="44" y="1481" class="b">Your consent</text>
+<rect x="158.4" y="1468" width="16" height="16" rx="4" fill="#fff" stroke="#1E7A4C" stroke-width="2"/><text x="182.4" y="1481" class="b">Money, enforced by Stripe</text>
+<rect x="390.4" y="1468" width="16" height="16" rx="4" fill="#FDECEA" stroke="#EE3B3B" stroke-width="2" stroke-dasharray="4 3"/><text x="414.4" y="1481" class="b">Refused or a labeled what-if</text>
+<text x="1080" y="1481" text-anchor="end" class="b2">Stripe test mode. Nothing is ordered and no store is contacted.</text></svg>
+    </div>
+  </section>
+
+  <footer>
+    <span>Piece of Cake · a portfolio project. Nothing is ordered and no real money moves. Not affiliated with the stores shown.</span>
+    <a href="/">Back to the agent</a>
+  </footer>
+</div>
+</body>
+</html>
