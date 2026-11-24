@@ -866,3 +866,22 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 @keyframes rc-hop { 0% { transform: translateY(0) scale(1, 1); } 25% { transform: translateY(0) scale(1.06, .92); } 55% { transform: translateY(-14px) scale(.97, 1.04); } 80% { transform: translateY(0) scale(1.03, .97); } 100% { transform: none; } }
 .cake .candle.out rect { fill: #CFC8BE; filter: none; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .cake.hop .rc { animation: none; } }
+
+/* The go-ahead, simplified: total, one cost line, the check-with-me control in view,
+   a one-line card, the button, one fold for the details. */
+.ask-me { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--hair); border-radius: 16px; background: #fff; }
+.ask-me .lbl { margin: 0; }
+.seg { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1.5px solid var(--ink); border-radius: 12px; overflow: hidden; }
+.seg button { font: inherit; font-weight: 700; font-size: 14px; letter-spacing: -0.02em; padding: 9px 4px; border: 0; border-left: 1.5px solid var(--ink); background: #fff; color: var(--ink); cursor: pointer; }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-checked="true"] { background: var(--ink); color: #fff; }
+.seg button:focus-visible { outline: 3px solid var(--teal-ink); outline-offset: -3px; }
+.ask-me .permit-line { font-size: 15px; color: var(--ink); }
+.permit-break span { display: inline; font-weight: 500; font-size: inherit; margin: 0; text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.card-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid var(--hair); border-radius: 14px; background: #fff; flex-wrap: wrap; }
+.card-mark { font-weight: 900; font-style: normal; font-size: 12px; letter-spacing: .04em; color: #fff; background: #1A1F71; border-radius: 4px; padding: 2px 6px; }
+.card-row b { font-variant-numeric: tabular-nums; }
+.card-meta { margin-left: auto; font-size: 13px; color: var(--muted); }
+#whenNote { margin-top: -4px; }
+@media (max-width: 420px) { .seg button { font-size: 13px; padding: 9px 2px; } .card-meta { margin-left: 0; width: 100%; } }
+#cardNote a { white-space: nowrap; }
