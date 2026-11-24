@@ -123,10 +123,8 @@ function bookedLine() {
   return `${list[0].toUpperCase()}${list.slice(1)} ${names.length > 1 ? 'are' : 'is'} booked. `;
 }
 
-const brick = (store) => {
-  const c = STORES[store]?.color || '#DDD';
-  return `<svg class="brick" viewBox="0 0 26 20" aria-hidden="true"><rect x="1" y="7" width="24" height="12" rx="2" fill="${c}" stroke="#161412" stroke-width="1.6"/><rect x="4.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/><rect x="15.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/></svg>`;
-};
+// Store badges were little building bricks; they're gone (the store's name says enough).
+const brick = () => '';
 
 // ---------- asking ----------
 

@@ -855,3 +855,6 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 
 /* Footer link: dark blue, like every other link. */
 .foot a { color: var(--teal-ink); font-weight: 600; text-underline-offset: 3px; }
+
+/* No brick badges: the queue chips keep their padding even. */
+.queue li { padding: 4px 10px; }
