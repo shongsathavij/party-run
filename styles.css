@@ -885,3 +885,27 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 #whenNote { margin-top: -4px; }
 @media (max-width: 420px) { .seg button { font-size: 13px; padding: 9px 2px; } .card-meta { margin-left: 0; width: 100%; } }
 #cardNote a { white-space: nowrap; }
+
+/* Card details, on request: the full test card, read-only for now. */
+.card-row .link-btn { margin-left: 4px; font-size: 14px; color: var(--teal-ink); }
+.card-fields { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; }
+.card-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.card-fields input { font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); padding: 9px 10px; border: 1px solid var(--hair); border-radius: 10px; background: var(--soft, #FAF7F1); font-variant-numeric: tabular-nums; min-width: 0; }
+.card-fields .note { grid-column: 1 / -1; margin: 0; }
+@media (max-width: 520px) { .card-fields { grid-template-columns: 1fr 1fr 1fr; } .card-fields label:first-child { grid-column: 1 / -1; } }
+
+/* Phones: amount picker · Always ask · Never. */
+.seg-amt { display: none; position: relative; border-left: 0; }
+.seg-amt select { appearance: none; -webkit-appearance: none; width: 100%; height: 100%; font: inherit; font-weight: 700; font-size: 14px; border: 0; background: #fff; color: var(--ink); padding: 9px 22px 9px 10px; text-align: center; cursor: pointer; }
+.seg-amt::after { content: ''; position: absolute; right: 10px; top: 50%; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.seg-amt.on select { background: var(--ink); color: #fff; }
+.seg-amt.on::after { color: #fff; }
+@media (max-width: 520px) {
+  .seg { grid-template-columns: 1fr 1fr 1fr; }
+  .seg .amt { display: none; }
+  .seg-amt { display: block; }
+  .seg button:not(.amt) { border-left: 1.5px solid var(--ink); }
+}
+.card-fields label { min-width: 0; }
+.card-fields input { width: 100%; box-sizing: border-box; }
+@media (max-width: 520px) { .card-row .link-btn { margin-left: auto; } }

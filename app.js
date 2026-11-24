@@ -454,7 +454,11 @@ function renderPermit() {
   $('#caps').innerHTML = c.stores
     .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}<small>${money(s.items)} + ${s.delivery ? `${money(s.delivery)} ${s.how === 'delivery' ? 'delivery' : 'shipping'}` : 'pickup'} + ${money(s.tax)} tax</small></span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
     .join('');
-  $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
+  // On phones the three amounts fold into one picker, so the control reads: amount · Always ask · Never.
+  const amounts = ASK_CHOICES.filter((o) => o.v > 0);
+  const isAmt = amounts.some((o) => o.v === state.askOver);
+  $('#askChips').innerHTML = `<label class="seg-amt${isAmt ? ' on' : ''}"><span class="sr-only">Amount</span><select data-amt>${amounts.map((o) => `<option value="${o.v}"${o.v === (isAmt ? state.askOver : DEFAULT_ASK_OVER) ? ' selected' : ''}>${o.label}</option>`).join('')}</select></label>`
+    + ASK_CHOICES.map((o) => `<button type="button" role="radio" class="${o.v > 0 ? 'amt' : ''}" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
   $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Delivery and tax to ${DEMO_ZIP} are our estimates; each store's checkout has the final word, and its pass covers it.`;
   $('#whenNote').textContent = `Nothing is charged until you approve, and nothing after ${prettyDate(c.partyDate)}.`;
   $('#startOver').hidden = false;
@@ -1064,6 +1068,18 @@ function bind() {
     d.open = true;
     d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     d.querySelector('summary')?.focus({ preventScroll: true });
+  });
+  $('#askChips').addEventListener('change', (e) => {
+    if (!e.target.matches('[data-amt]')) return;
+    state.askOver = Number(e.target.value);
+    renderPermit();
+    $('#askChips [data-amt]')?.focus();
+  });
+  $('#cardEdit').addEventListener('click', () => {
+    const f = $('#cardFields'), open = f.hidden;
+    f.hidden = !open;
+    $('#cardEdit').setAttribute('aria-expanded', String(open));
+    $('#cardEdit').textContent = open ? 'Hide details' : 'Card details';
   });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
