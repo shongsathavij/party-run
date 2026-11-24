@@ -146,40 +146,35 @@
           <span class="note" id="permitOf"></span>
         </div>
         <p class="permit-break" id="permitBreak"></p>
-        <p class="permit-line" id="permitLine"></p>
+        <div class="ask-me">
+          <span class="lbl" id="askLbl">Check with me before paying more than</span>
+          <div class="seg" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
+          <p class="permit-line" id="permitLine" aria-live="polite"></p>
+        </div>
         <div class="pay-with" id="payWith">
           <span class="lbl">Pay with</span>
-          <div class="cardbox" aria-label="Stripe test card">
-            <div class="cb-f wide"><span class="cb-lbl">Card number</span><span class="cb-val">4242 4242 4242 4242</span></div>
-            <div class="cb-f"><span class="cb-lbl">Exp</span><span class="cb-val">12/34</span></div>
-            <div class="cb-f"><span class="cb-lbl">CVC</span><span class="cb-val">123</span></div>
-            <div class="cb-f"><span class="cb-lbl">ZIP</span><span class="cb-val">90210</span></div>
+          <div class="card-row" aria-label="Stripe test card">
+            <b>Visa •••• 4242</b><span class="card-meta">Stripe test card</span>
+            <button class="link-btn sm" id="cardEdit" type="button" aria-haspopup="dialog">Card details</button>
           </div>
-          <p class="note" id="cardNote">Stripe's test card. Stripe keeps it, so Piece of Cake never sees it. Each store gets a one-time pass instead, like a gift card for just that store and amount. <a href="#faqPay" id="toFaqPay">What's a pass? ↓</a></p>
+          <p class="note" id="cardNote">Stores never see your card. Each gets a one-time pass, like a gift card for just its amount. <a href="#faqPay" id="toFaqPay">What's a pass? ↓</a></p>
         </div>
         <p class="wait-note" id="waitNote" hidden>Answer the flagged item above first.</p>
         <button class="pay-btn" id="shopBtn" type="button">Approve and shop</button>
         <p class="err" id="permitErr" role="alert" hidden></p>
+        <p class="note center" id="whenNote"></p>
         <details class="fold" id="limitsFold">
-          <summary>Change limits</summary>
-          <div class="stack">
-            <span class="lbl" id="askLbl">Ask me before any purchase over</span>
-            <div class="chips" id="askChips" role="radiogroup" aria-labelledby="askLbl"></div>
-          </div>
-          <span class="lbl">Each store's pass</span>
+          <summary>Each store's limit, and when I'll stop</summary>
           <ul class="caps" id="caps"></ul>
           <p class="note" id="passNote"></p>
-        </details>
-        <details class="fold">
-          <summary>When I'll stop and ask you</summary>
+          <span class="lbl">I only stop when</span>
           <ul class="stops-list">
-            <li>A purchase is over your ask-me amount</li>
+            <li>A purchase is over your check-with-me amount</li>
             <li>A store asks for more than you approved</li>
             <li>Part of the party falls through</li>
           </ul>
-          <p class="note">Everything else I handle, and you can watch each step.</p>
         </details>
-        <p class="note center" id="testNote">Test mode. No real money moves.</p>
+        <p class="note center" id="testNote">Stripe test mode. No real money moves.</p>
         <button class="link-btn center" id="startOver" type="button" hidden>Start over</button>
       </section>
 
@@ -317,5 +312,18 @@
   </footer>
 
   <script type="module" src="app.js"></script>
+  <dialog class="card-dialog" id="cardDialog" aria-labelledby="cardDialogTitle">
+    <form method="dialog">
+      <h2 class="h" id="cardDialogTitle">Your card</h2>
+      <div class="card-fields">
+        <label>Card number<input value="4242 4242 4242 4242" readonly autocomplete="off"></label>
+        <label>Expires<input value="12/34" readonly autocomplete="off"></label>
+        <label>CVC<input value="123" readonly autocomplete="off"></label>
+        <label>Billing ZIP<input value="90210" readonly autocomplete="off"></label>
+      </div>
+      <p class="note">This demo always pays with Stripe's test card, so these can't be changed yet. A real card form is next on the list. Stripe keeps the card; stores only ever get a one-time pass.</p>
+      <button class="go" value="done" autofocus>Done</button>
+    </form>
+  </dialog>
 </body>
 </html>

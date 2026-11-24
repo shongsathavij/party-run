@@ -18,11 +18,9 @@ const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const REAL = "Lego-themed 5th birthday, a backyard party in 90210 on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
 
 const ASK_CHOICES = [
-  { v: 5000, label: '$50' },
   { v: 10000, label: '$100' },
-  { v: 30000, label: '$300' },
-  { v: 0, label: 'Ask every time' },
-  { v: null, label: 'Never ask' },
+  { v: 0, label: 'Always ask' },
+  { v: null, label: 'Never' },
 ];
 
 const state = { opts: null, config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
@@ -450,13 +448,14 @@ function renderPermit() {
   const budget = budgetOf(c);
   $('#permitTotal').textContent = money(c.total);
   $('#permitOf').textContent = c.budget ? `of your ${money(c.budget)} budget` : 'No budget given, so the cart is the limit.';
-  $('#permitBreak').innerHTML = `Items ${money(c.itemsTotal)} · delivery ${money(c.delivery)} · tax ${money(c.tax)}<span>Delivery and tax to ${DEMO_ZIP} are estimates; each store's checkout has the final word, and its pass covers it.</span>`;
+  $('#permitBreak').innerHTML = `Items ${money(c.itemsTotal)} · delivery ${money(c.delivery)} · tax ${money(c.tax)} <span title="Delivery and tax to ${DEMO_ZIP} are our estimates; each store's checkout has the final word, and its pass covers it.">(estimated)</span>`;
   $('#permitLine').textContent = permitLine(c);
   $('#caps').innerHTML = c.stores
     .map((s) => `<li>${brick(s.store)}<span>${esc(s.name)}<small>${money(s.items)} + ${s.delivery ? `${money(s.delivery)} ${s.how === 'delivery' ? 'delivery' : 'shipping'}` : 'pickup'} + ${money(s.tax)} tax</small></span>${asksAt(s.amount) ? '<span class="ask-tag">asks you</span>' : ''}<span class="cap">up to ${money(s.amount)}</span></li>`)
     .join('');
-  $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" class="chip" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
-  $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Nothing can be bought after ${prettyDate(c.partyDate)}.`;
+  $('#askChips').innerHTML = ASK_CHOICES.map((o) => `<button type="button" role="radio" aria-checked="${o.v === state.askOver}" data-v="${o.v}">${o.label}</button>`).join('');
+  $('#passNote').textContent = `Each pass works at one store only, up to its amount, for 30 minutes. Delivery and tax to ${DEMO_ZIP} are our estimates; each store's checkout has the final word, and its pass covers it.`;
+  $('#whenNote').textContent = `Nothing is charged until you approve, and nothing after ${prettyDate(c.partyDate)}.`;
   $('#startOver').hidden = false;
   document.body.classList.add('reviewing');
   $('#permitErr').hidden = true;
@@ -469,12 +468,11 @@ function renderPermit() {
 // The whole permission in one plain sentence. The details are one tap away.
 function permitLine(c) {
   const askers = c.stores.filter((s) => asksAt(s.amount));
-  const when = `Nothing is charged until you say go, and nothing after ${prettyDate(c.partyDate)}.`;
-  if (state.askOver === 0) return `I'll check with you before paying each store. ${when}`;
-  if (state.askOver == null) return `I won't stop to ask, unless a store wants more than you approved. ${when}`;
-  if (!askers.length) return `Every store is under ${money(state.askOver)}, so I won't need to stop unless something changes. ${when}`;
+  if (state.askOver === 0) return `I'll check with you before paying each store.`;
+  if (state.askOver == null) return `I won't stop to ask, unless a store wants more than you approved.`;
+  if (!askers.length) return `Every store is under ${money(state.askOver)}, so I won't need to stop unless something changes.`;
   const names = askers.map((s) => `${s.name} (${money(s.amount)})`).join(' and ');
-  return `I'll check with you before ${names}, since ${askers.length > 1 ? "they're" : "it's"} over ${money(state.askOver)}. ${when}`;
+  return `I'll check with you before ${names}.`;
 }
 
 // ---------- the shopping run ----------
@@ -667,7 +665,7 @@ async function buy(store, amount, { approved = false } = {}) {
     const items = state.cart.items.filter((i) => i.store === store);
     const pick = await handoff({
       title: `Approve ${money(amount)} at ${STORES[store].name}?`,
-      why: `It's over your ${money(state.askOver)} ask-me amount.`,
+      why: `It's over your ${money(state.askOver)} check-with-me amount.`,
       suggest: `Approve. ${items.map((i) => i.name).join(', ')}${items.some((i) => i.offTheme) && state.decided[items[0].id] === 'kept' ? ' (you already chose to keep it)' : ''}.`,
       next: `If you approve, I make a ${money(amount)} pass for ${STORES[store].name} only, good for 30 minutes, and the store charges it.`,
       acts: [['yes', `Approve ${money(amount)}`, 'go'], ['no', 'Skip this store', 'ghost-btn']],
@@ -680,7 +678,7 @@ async function buy(store, amount, { approved = false } = {}) {
     }
     queueSet(store, 'skipped');
     candle(store, 'out');
-    logEvent(store, { kind: 'skipped', why: 'You chose Skip at the ask-me step.' });
+    logEvent(store, { kind: 'skipped', why: 'You chose Skip when I checked with you.' });
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
   }
@@ -945,7 +943,7 @@ function storeStory(store) {
       lines.push(`Checkout came to ${money(e.amount)}, ${money(e.amount - e.cap)} over the pass. ${WHO[e.hood?.decidedBy] || 'Refused'}${code ? ` (${code})` : ''}.`);
     }
     if (e.kind === 'raised') lines.push(`You approved ${money(e.to - e.from)} more. New limit ${money(e.to)}.`);
-    if (e.kind === 'asked') lines.push(`${money(e.amount)} is over your ask-me rule, so it asked you first. You said yes.`);
+    if (e.kind === 'asked') lines.push(`${money(e.amount)} is over your check-with-me amount, so it asked you first. You said yes.`);
     if (e.kind === 'paid') lines.push(`Paid ${money(e.amount)}.`);
     if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (test: the rental cancelled).`);
     if (e.kind === 'tested') lines.push(`Stress test: a new ${money(e.cap)} pass, and the store tried ${money(e.amount)}. ${WHO[e.hood?.decidedBy] || 'Refused'}.`);
@@ -1066,6 +1064,9 @@ function bind() {
     d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     d.querySelector('summary')?.focus({ preventScroll: true });
   });
+  $('#cardEdit').addEventListener('click', () => $('#cardDialog').showModal());
+  // A tap on the backdrop closes it too.
+  $('#cardDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
     if (!b) return;
@@ -1126,7 +1127,7 @@ function bind() {
 function showWallet() {
   const w = state.wallet;
   if (!w) return;
-  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees it. Each store gets a one-time pass instead, like a gift card for just that store and amount. <a href="#faqPay">What's a pass? ↓</a>`;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Stores never see it. Each gets a one-time pass, like a gift card for just its amount. <a href="#faqPay">What's a pass? ↓</a>`;
 }
 // Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
 async function ensureWallet() {
