@@ -325,12 +325,15 @@ function renderAskedMissing() {
 const pending = () => (state.cart?.items || []).filter((i) => i.needsOk && !state.decided[i.id]);
 
 // The party by what it is, the way a parent thinks about it. Stores are a label on each item.
+// Each group wears one of the FAQ's shapes, so the page speaks one visual language.
 const GROUPS = [
-  { title: 'Fun', cats: ['bounce', 'pinata'] },
-  { title: 'Food', cats: ['cake', 'food'] },
-  { title: 'Plates and napkins', cats: ['decor'] },
-  { title: 'Favors', cats: ['favors'] },
+  { title: 'Fun', cats: ['bounce', 'pinata'], icon: 'diamond' },
+  { title: 'Food', cats: ['cake', 'food'], icon: 'dot' },
+  { title: 'Plates and napkins', cats: ['decor'], icon: 'box' },
+  { title: 'Favors', cats: ['favors'], icon: 'square' },
 ];
+// How it gets there, said with the only address we have: the ZIP. The street address comes at checkout.
+const GETS_THERE = { delivery: `delivers and sets up in ${DEMO_ZIP}`, pickup: 'in-store pickup', ship: `ships to ${DEMO_ZIP}` };
 const link = (i) => (i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)}</a>` : esc(i.name));
 const signed = (n) => (n === 0 ? 'same price' : `${n > 0 ? '+' : '−'}${money(Math.abs(n))}`);
 
@@ -347,7 +350,7 @@ function renderGroups() {
     const items = c.items.filter((i) => g.cats.includes(i.category));
     if (!items.length) return '';
     const sub = items.reduce((a, i) => a + i.amount, 0);
-    return `<section class="grp"><header class="grp-head"><h3>${g.title}</h3><span>${money(sub)}</span></header>
+    return `<section class="grp"><header class="grp-head"><h3><i class="gi gi-${g.icon}" aria-hidden="true"></i>${g.title}</h3><span>${money(sub)}</span></header>
       <ul class="grp-items">${items.map((i) => itemRow(i, theme)).join('')}</ul></section>`;
   }).join('');
 }
@@ -378,7 +381,7 @@ function itemRow(i, theme) {
     </div>`;
   const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
   return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
-      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${i.category === 'bounce' && !STORES[i.store].test ? ` · ${esc(byId[i.id]?.term || 'rental hours on the listing')}` : ''}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(GETS_THERE[STORES[i.store].fulfill.how])}${i.category === 'bounce' && !STORES[i.store].test ? ` · ${esc(byId[i.id]?.term || 'rental hours on the listing')}` : ''}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
       <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
       ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
     </li>`;
@@ -540,13 +543,16 @@ function spotlight(store, amount, step) {
 
 // The handoff: the agent stops for a stated reason, says what it did and what it suggests,
 // and says what happens next. You decide; the receipt records that you did.
-function handoff({ title, why, suggest, next, acts, link }) {
+function handoff({ title, why, suggest, items, next, acts, link }) {
   const paidN = Object.keys(state.paid).filter((s) => !state.paid[s].refunded).length;
   const spent = spentTotal();
   $('#hoTitle').textContent = title;
   $('#hoWhy').innerHTML = why;
   $('#hoSoFar').textContent = paidN ? `Paid ${paidN} store${paidN > 1 ? 's' : ''}, ${money(spent)} of ${money(budgetOf(state.cart))}.` : 'Nothing paid yet.';
-  $('#hoSuggest').textContent = suggest;
+  // At a check-with-me stop, show what's being bought, not commentary about it.
+  $('#hoSuggestLbl').textContent = items ? 'Buying' : 'My suggestion';
+  if (items) $('#hoSuggest').innerHTML = `<ul class="ho-items">${items.map(([name, amt, note]) => `<li><span>${esc(name)}${note ? ` <small>${esc(note)}</small>` : ''}</span><b>${amt}</b></li>`).join('')}</ul>`;
+  else $('#hoSuggest').textContent = suggest;
   $('#hoNext').textContent = next || '';
   $('#hoActs').innerHTML = acts.map(([v, label, cls]) => `<button class="${cls}" data-choice="${v}" type="button">${esc(label)}</button>`).join('') + (link ? `<a class="link-btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">See the listing</a>` : '');
   mood($('#hoFace'), 'brow');
@@ -665,8 +671,11 @@ async function buy(store, amount, { approved = false } = {}) {
     const items = state.cart.items.filter((i) => i.store === store);
     const pick = await handoff({
       title: `Approve ${money(amount)} at ${STORES[store].name}?`,
-      why: `It's over your ${money(state.askOver)} check-with-me amount.`,
-      suggest: `Approve. ${items.map((i) => i.name).join(', ')}${items.some((i) => i.offTheme) && state.decided[items[0].id] === 'kept' ? ' (you already chose to keep it)' : ''}.`,
+      why: state.askOver === 0 ? 'You asked me to check before every purchase.' : `It's over your ${money(state.askOver)} check-with-me amount.`,
+      items: [
+        ...items.map((i) => [`${i.qty > 1 ? `${i.qty} × ` : ''}${i.name}`, money(i.amount), i.offTheme && state.decided[i.id] === 'kept' ? 'not brick-themed; you kept it' : '']),
+        ...(s && amount - s.items > 0 ? [['Delivery and tax (estimated)', money(amount - s.items), '']] : []),
+      ],
       next: `If you approve, I make a ${money(amount)} pass for ${STORES[store].name} only, good for 30 minutes, and the store charges it.`,
       acts: [['yes', `Approve ${money(amount)}`, 'go'], ['no', 'Skip this store', 'ghost-btn']],
       link: items[0]?.url,
@@ -915,13 +924,15 @@ function openSuccess() {
   const complete = !miss.length && held;
   // A complete party gets a dance from the cake up top (one of four, at random). Nothing else moves.
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
-  $('#successSub').textContent = `${miss.length ? '' : bookedLine()}${money(net)} spent of your ${money(budget)} budget${held ? ', never more than you approved' : ''}.${miss.length ? ` Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : ''}`;
+  // One short line; the numbers live in the receipt right below.
+  $('#successSub').textContent = miss.length ? `Still missing: ${miss.map((m) => WHAT[m]).join(', ')}.` : `See you on ${prettyDate(state.cart.partyDate)}.`;
+  $('#successCake').classList.toggle('lit', complete);
   $('#successActs').innerHTML = miss.length ? (state.noneLeft[miss[0]] ? '' : `<button class="go" id="goFind" data-cat="${miss[0]}" type="button">Find another ${esc(WHAT[miss[0]])}</button>`) : '';
   $('main.layout').hidden = true;
   $('#success').hidden = false;
   window.scrollTo(0, 0);
   $('#successTitle').focus({ preventScroll: true });
-  if (complete) setTimeout(randomDance, 450);
+  if (complete) setTimeout(() => heroDance($('#successCake')), 450);
 }
 
 function closeSuccess() {
@@ -984,7 +995,7 @@ function renderReceipt() {
   $('#rcptApproved').innerHTML = [
     ['Budget', `${money(budget)}${c.budget ? '' : ' (the cart total; no budget given)'}`],
     ['Agent may spend', `${money(perm.total)} across ${Object.keys(perm.stores).length} stores, each with its own limit`],
-    ['Ask me before', ask],
+    ['Check with me before', ask],
     ['Ends', `${prettyDate(perm.ends)}. Nothing can be bought after the party.`],
     ['Paid with', state.wallet ? `${cap1(state.wallet.brand)} •••• ${state.wallet.last4}, saved with Stripe when you approved${state.wallet.sample ? ' (simulated)' : ' (test mode)'}` : 'Stripe test Visa'],
     ['Delivering to', `ZIP ${DEMO_ZIP} (demo). Delivery and tax were estimates inside each store's limit.`],
@@ -1184,8 +1195,8 @@ function dance(move = 'walk') {
 const moonwalk = () => dance('walk');
 const randomDance = () => dance(DANCES[Math.floor(Math.random() * DANCES.length)]);
 // The big cake on the home page: one random dance on arrival, another each time it's tapped.
-function heroDance() {
-  const c = $('#heroCake');
+function heroDance(el) {
+  const c = el instanceof Element ? el : $('#heroCake');
   if (!c || calm()) return;
   // Prefixed so they never collide with other classes (.spin is the loading spinner).
   const move = `go-${DANCES[Math.floor(Math.random() * DANCES.length)]}`;
