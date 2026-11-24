@@ -928,7 +928,7 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 
 /* Party's on: the big cake, candle lit, dances above the title; "on." in candy red. */
 .success-head { flex-direction: column; gap: 6px; }
-.success-cake { width: clamp(120px, 26vw, 180px); margin: 0; cursor: default; }
+.success-cake { width: clamp(60px, 13vw, 90px); margin: 0; cursor: default; }
 .success-cake:not(.lit) .hc-flame { display: none; }
 .success-title i { color: var(--coral); }
 .success-sub { max-width: none; text-align: center; font-size: 18px; }
