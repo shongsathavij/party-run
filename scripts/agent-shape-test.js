@@ -164,4 +164,20 @@ assert.ok(k.cart.items.some((i) => i.id === 'mi-pinata') && !k.cart.items.some((
   assert.ok(h.cart.unmet.some((x) => /tomorrow/.test(x)));
 }
 
+// 11. The table set from the store whose listing tried to give orders goes back; the second cart has a real store's set.
+{
+  const sent = [];
+  const t = await claudeAgent(REAL, today, {
+    call: async (body) => {
+      sent.push(body);
+      const n = sent.length;
+      const items = n === 1 ? good.map((i) => (i.category === 'decor' || /tableware|blockbash|swirls/.test(i.product_id) ? { ...i, product_id: 'cf-table' } : i)) : good;
+      return { content: [{ type: 'tool_use', id: `u${n}`, name: 'submit_cart', input: cart(items) }], usage: {} };
+    },
+  });
+  assert.equal(t.mode, 'claude');
+  assert.ok(t.retried, 'a cart with the untrusted store is sent back');
+  assert.ok(!t.cart.items.some((i) => i.store === 'brickyard'));
+}
+
 console.log('Agent tool-loop checks passed.');
