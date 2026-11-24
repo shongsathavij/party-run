@@ -69,7 +69,8 @@ for (let run = 1; run <= runs; run++) {
     const q = quality(p, r);
     rows.push({ run, id: p.id, type: p.type, mode: r.mode, ms: Date.now() - t0, pass: !fails.length, fails, quality: q, why: r.why || null, total: r.cart.total, usage: r.usage || null });
     const qs = q.map((x) => ` · quality: ${x.ok ? '✓' : '✗'} ${x.name}`).join('');
-    console.log(`${fails.length ? '✗' : '✓'} ${p.id} [${r.mode}] ${fails.join('; ')}${qs}`);
+    const why = r.mode === 'fallback' && r.why ? ` (${r.fallback || 'checks'}: ${String(r.why[0]).slice(0, 120)})` : '';
+    console.log(`${fails.length ? '✗' : '✓'} ${p.id} [${r.mode}]${why} ${fails.join('; ')}${qs}`);
   }
 }
 const passed = rows.filter((r) => r.pass).length;

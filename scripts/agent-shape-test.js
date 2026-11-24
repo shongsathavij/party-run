@@ -14,7 +14,7 @@ const good = [
   { product_id: 'tg-playdoh', qty: 1, reason: 'Ages 2 and up; one pack of 15 covers 10 kids.' },
   { product_id: 'wm-tableware', qty: 1, reason: 'Building-block plates and cups for 16.' },
 ];
-const cart = (items, extra = {}) => ({ summary: 'A brick party for 10 kids.', party_date: '2026-12-05', kids: 10, budget_dollars: 600, items, notes: [], unmet: [], ignored: [], ...extra });
+const cart = (items, extra = {}) => ({ summary: 'A brick party for 10 kids.', party_date: '2026-12-05', kids: 10, budget_dollars: 600, items, notes: ['The building-brick bounce house is booked Dec 5, so I picked a module jumper.'], unmet: [], ignored: [], ...extra });
 
 function script(turns) {
   let i = 0;
@@ -137,6 +137,33 @@ const k = await claudeAgent(REAL, today, {
 });
 assert.match(fb2, /needs a bat/);
 assert.ok(k.cart.items.some((i) => i.id === 'mi-pinata') && !k.cart.items.some((i) => i.id === 'wm-pinata-5'));
+// 9. Swapping the booked themed bounce house without saying why is sent back once; the reminder never reaches the parent.
+{
+  const calls = [];
+  const g = await claudeAgent(REAL, today, {
+    call: async (body) => {
+      calls.push(body);
+      const n = calls.length;
+      if (n === 1) return { content: [{ type: 'tool_use', id: 'w1', name: 'search_catalog', input: { category: 'bounce' } }], usage: {} };
+      return { content: [{ type: 'tool_use', id: `w${n}`, name: 'submit_cart', input: cart(good, n === 2 ? { notes: [] } : {}) }], usage: {} };
+    },
+  });
+  assert.equal(g.mode, 'claude');
+  assert.ok(g.retried, 'an unexplained swap is sent back once');
+  assert.ok(JSON.stringify(calls[2].messages.at(-1).content).includes('booked'));
+  assert.ok(!g.cart.unmet.some((x) => /Say so in notes/.test(x)), 'the reminder is for the model only');
+}
+
+// 10. Nothing can arrive in time: an empty cart that says why is an honest answer, not a fallback.
+{
+  const h = await claudeAgent('Lego party tomorrow for 10 kids with a bounce house.', today, {
+    call: async () => ({ content: [{ type: 'tool_use', id: 'e1', name: 'submit_cart', input: cart([], { party_date: null, unmet: ['Nothing can be delivered by tomorrow, including a bounce house.'], notes: [] }) }], usage: {} }),
+  });
+  assert.equal(h.mode, 'claude');
+  assert.equal(h.cart.items.length, 0);
+  assert.ok(h.cart.unmet.some((x) => /tomorrow/.test(x)));
+}
+
 // 11. The table set from the store whose listing tried to give orders goes back; the second cart has a real store's set.
 {
   const sent = [];

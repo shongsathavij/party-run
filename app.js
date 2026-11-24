@@ -1,7 +1,7 @@
 // Piece of Cake: ask → the agent's cart → what it may spend → the shopping run → the ledger.
 // The page never decides what money moves: the server prices everything from the catalog,
 // signs the parent's permission, and mints one capped pass per store.
-import { STORES, SNAPSHOT, byId } from './lib/catalog.js';
+import { STORES, SNAPSHOT, byId, PRODUCTS } from './lib/catalog.js';
 import { DEFAULT_ASK_OVER, totals, DEMO_ZIP } from './lib/rules.js';
 import { optionsFor, qtyFor } from './lib/options.js';
 import { offTheme, FULFILL_WORDS } from './lib/catalog.js';
@@ -64,24 +64,33 @@ function mood(el, m) {
 // ---------- the candles ----------
 // One candle per store (this party has five). Paid lights it; refused, skipped or
 // cancelled leaves it out. A replacement relights the candle it stands in for.
+// The run's cake is the logo cake from the home page, with one candle per store.
+// Paid lights a candle (and the cake does a little hop); refused, skipped or cancelled puts it out.
 function cakeSvg(n) {
-  const W = 168, cx = (i) => 34 + (i * (W - 68)) / Math.max(1, n - 1);
-  const candles = Array.from({ length: n }, (_, i) => `<g class="candle" data-slot="${i}" transform="translate(${n === 1 ? W / 2 : cx(i)},0)">
-      <rect x="-4" y="22" width="8" height="24" rx="2" fill="var(--c, #E4E0D8)" stroke="${INK}" stroke-width="1.8"/>
-      <path d="M0 22 v-4" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>
-      <path class="flame" d="M0 3 C5 9 5 14 0 17 C-5 14 -5 9 0 3 z" fill="#FFD23F" stroke="#E8590C" stroke-width="1.4"/>
-      <path class="smoke" d="M0 14 c3 -3 -3 -6 0 -9 c3 -3 -3 -6 0 -9" fill="none" stroke="#9C958C" stroke-width="1.6" stroke-linecap="round"/>
-    </g>`).join('');
-  const studs = [0, 1, 2, 3, 4, 5].map((k) => `<rect x="${22 + k * 21}" y="41" width="14" height="7" rx="2" fill="#FFF1C9" stroke="${INK}" stroke-width="1.8"/>`).join('');
-  return `<svg viewBox="0 0 ${W} 104">${candles}${studs}
-    <rect x="14" y="47" width="${W - 28}" height="44" rx="8" fill="#FFF1C9" stroke="${INK}" stroke-width="2.2"/>
-    <path d="M15 63 h${W - 30}" stroke="#FF8A80" stroke-width="5"/>
-    <rect x="4" y="91" width="${W - 8}" height="9" rx="4.5" fill="#fff" stroke="${INK}" stroke-width="2"/></svg>`;
+  const xs = Array.from({ length: n }, (_, i) => (n === 1 ? 100 : 66 + (i * 68) / (n - 1)));
+  const candles = xs.map((x, i) => {
+    const y = 66 + 6 * Math.sin(Math.PI * (x - 50) / 100) - 4; // sit on the top tier's oval
+    return `<g class="candle" data-slot="${i}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+      <rect x="-3.5" y="-20" width="7" height="20" rx="3.5" fill="#7CC5EE"/>
+      <path class="flame" d="M0 -38 c6 7 7 11 0 15 c-7 -4 -6 -8 0 -15 z" fill="#FFD23F"/>
+      <path class="smoke" d="M0 -24 c3 -3 -3 -6 0 -9 c3 -3 -3 -6 0 -9" fill="none" stroke="#9C958C" stroke-width="1.6" stroke-linecap="round"/>
+    </g>`;
+  }).join('');
+  const band = (y1, y2, rx, ry, x0, x1, fill) => `<path d="M${x0} ${y1}A${rx} ${ry} 0 0 0 ${x1} ${y1}L${x1} ${y2}A${rx} ${ry} 0 0 1 ${x0} ${y2}Z" fill="${fill}"/><path d="M${x0} ${y1}A${rx} ${ry} 0 0 0 ${x1} ${y1}L${x1} ${y2}A${rx} ${ry} 0 0 1 ${x0} ${y2}Z" fill="url(#rcShade)"/>`;
+  return `<svg viewBox="0 16 200 206"><defs><linearGradient id="rcShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#3a1d0a" stop-opacity=".10"/><stop offset="1" stop-color="#3a1d0a" stop-opacity=".22"/></linearGradient><radialGradient id="rcGloss" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <ellipse cx="100" cy="206" rx="78" ry="6" fill="#111" opacity=".12"/>
+    <g class="rc">
+      ${band(112, 126.4, 82, 22, 18, 182, '#7CC5EE')}${band(126.4, 169.6, 82, 22, 18, 182, '#fff')}${band(169.6, 184, 82, 22, 18, 182, '#7CC5EE')}
+      <ellipse cx="100" cy="112" rx="82" ry="22" fill="#A9D9F5"/><ellipse cx="100" cy="112" rx="82" ry="22" fill="url(#rcGloss)"/>
+      <g transform="translate(100 154) scale(1.6)"><circle cx="-8" cy="0" r="3" fill="#111"/><circle cx="8" cy="0" r="3" fill="#111"/><path d="M-3.5 5q3.5 3 7 0" stroke="#111" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/><ellipse cx="14" cy="6" rx="4" ry="2.4" fill="#FF9DB4"/></g>
+      ${band(66, 82.1, 50, 14, 50, 150, '#EE3B3B')}${band(82.1, 91.3, 50, 14, 50, 150, '#fff')}${band(91.3, 112, 50, 14, 50, 150, '#EE3B3B')}
+      <ellipse cx="100" cy="66" rx="50" ry="14" fill="#FF8A8A"/><ellipse cx="100" cy="66" rx="50" ry="14" fill="url(#rcGloss)"/>
+      ${candles}
+    </g></svg>`;
 }
 function renderCake(stores) {
   state.slots = stores.map((s) => ({ store: s.store, state: 'unlit' }));
   $('#cake').innerHTML = cakeSvg(stores.length);
-  stores.forEach((s, i) => $(`#cake [data-slot="${i}"]`).style.setProperty('--c', STORES[s.store].color));
   cakeNote();
 }
 function candle(store, st) {
@@ -93,7 +102,12 @@ function candle(store, st) {
   const g = $(`#cake [data-slot="${i}"]`);
   if (!g) return;
   g.setAttribute('class', `candle ${st}`);
-  g.style.setProperty('--c', STORES[store].color);
+  if (st === 'lit' && !calm()) {
+    const k = $('#cake');
+    k.classList.remove('hop');
+    void k.offsetWidth;
+    k.classList.add('hop');
+  }
   cakeNote();
 }
 function cakeNote() {
@@ -123,10 +137,8 @@ function bookedLine() {
   return `${list[0].toUpperCase()}${list.slice(1)} ${names.length > 1 ? 'are' : 'is'} booked. `;
 }
 
-const brick = (store) => {
-  const c = STORES[store]?.color || '#DDD';
-  return `<svg class="brick" viewBox="0 0 26 20" aria-hidden="true"><rect x="1" y="7" width="24" height="12" rx="2" fill="${c}" stroke="#161412" stroke-width="1.6"/><rect x="4.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/><rect x="15.5" y="2.5" width="6" height="4.5" rx="1.2" fill="${c}" stroke="#161412" stroke-width="1.4"/></svg>`;
-};
+// Store badges were little building bricks; they're gone (the store's name says enough).
+const brick = () => '';
 
 // ---------- asking ----------
 
@@ -348,10 +360,11 @@ function itemRow(i, theme) {
   const opts = live ? optionsOf(i) : [];
   const open = state.opts === i.id;
   const asking = live && i.needsOk && !state.decided[i.id];
-  const booked = c.notes.some((n) => /booked/i.test(n)) && i.category === 'bounce';
+  // From the catalog, not the agent's notes: the themed one really is booked that day.
+  const booked = i.category === 'bounce' && PRODUCTS.some((p) => p.category === 'bounce' && p.themes.length && p.booked.includes(c.partyDate));
   const flag = asking
     ? `<div class="flag" role="group" aria-label="Needs your OK">
-        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked Dec 5, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
+        <p><b>Not ${esc(theme)}-themed.</b> ${booked ? `The ${esc(theme)}-themed one is booked ${esc(prettyDate(c.partyDate).replace(/^\w+, /, ''))}, so I picked this instead.` : `You asked for a ${esc(theme)}-themed party.`}</p>
         <div class="acts"><button class="go sm" data-keep="${esc(i.id)}">Keep it</button>${opts.length ? `<button class="ghost-btn sm" data-opts="${esc(i.id)}" aria-expanded="${open}">See ${opts.length} other option${opts.length > 1 ? 's' : ''}</button>` : ''}<button class="link-btn sm" data-drop="${esc(i.id)}">Remove</button></div>
       </div>`
     : i.offTheme && c.theme ? `<span class="tag">Not ${esc(theme)}-themed${state.decided[i.id] === 'kept' ? ' · you OK’d it' : ''}</span>` : '';
@@ -367,7 +380,7 @@ function itemRow(i, theme) {
     </div>`;
   const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
   return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
-      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${i.category === 'bounce' && !STORES[i.store].test ? ` · ${esc(byId[i.id]?.term || 'rental hours on the listing')}` : ''}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
       <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
       ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
     </li>`;
@@ -1043,6 +1056,16 @@ function startOver() {
 
 function bind() {
   $('#askForm').addEventListener('submit', plan);
+  // "What's a pass?" opens that answer, not just the FAQ.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href="#faqPay"]');
+    if (!a) return;
+    e.preventDefault();
+    const d = $('#faqPay');
+    d.open = true;
+    d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    d.querySelector('summary')?.focus({ preventScroll: true });
+  });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
     if (!b) return;
@@ -1103,7 +1126,7 @@ function bind() {
 function showWallet() {
   const w = state.wallet;
   if (!w) return;
-  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees it. Each store gets a one-time pass instead, like a gift card for just that store and amount. <a href="#faqPay">What's a pass? ↓</a>`;
 }
 // Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
 async function ensureWallet() {

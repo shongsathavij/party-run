@@ -155,7 +155,7 @@
             <div class="cb-f"><span class="cb-lbl">CVC</span><span class="cb-val">123</span></div>
             <div class="cb-f"><span class="cb-lbl">ZIP</span><span class="cb-val">90210</span></div>
           </div>
-          <p class="note" id="cardNote">Stripe's test card. Piece of Cake never sees your card: Stripe keeps it, and each store only gets a one-time pass for its amount. <a href="#faqPay" id="toFaqPay">How passes work ↓</a></p>
+          <p class="note" id="cardNote">Stripe's test card. Stripe keeps it, so Piece of Cake never sees it. Each store gets a one-time pass instead, like a gift card for just that store and amount. <a href="#faqPay" id="toFaqPay">What's a pass? ↓</a></p>
         </div>
         <p class="wait-note" id="waitNote" hidden>Answer the flagged item above first.</p>
         <button class="pay-btn" id="shopBtn" type="button">Approve and shop</button>
@@ -282,8 +282,9 @@
       </ol>
     </details>
     <details id="faqPay">
-      <summary><i></i>How does it pay without my card?</summary>
-      <p>When you approve the cart, your card is saved with Stripe. Then, for each store, Piece of Cake makes a one-time pass: that store only, up to its amount, for 30 minutes. The store charges the pass. Neither the agent nor the store ever sees your card.</p>
+      <summary><i></i>How does it pay without my card? (What's a pass?)</summary>
+      <p>Think of a pass as a single-use gift card. When you approve the cart, Stripe, the payment company, keeps your card. Then for each store, Stripe makes a pass that works only at that store, only up to that store's amount, only once, and only for the next 30 minutes. The store charges the pass, and Stripe charges your card for exactly that.</p>
+      <p>If a store tries to charge more, the pass doesn't cover it, and Stripe says no. Neither the agent nor the store ever sees your card number.</p>
       <div class="faq-flow" aria-hidden="true">
         <span class="ff-card">Your card<small>kept by Stripe</small></span><span class="ff-arrow"></span>
         <span class="ff-pass"><small>Pass · after you approve</small>C&amp;M Event Rentals<br><b>Up to $209.14 · one charge · 30 min</b></span>
