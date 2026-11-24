@@ -906,3 +906,6 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .card-row b { grid-column: 1; }
 .card-row .card-meta { grid-column: 1; margin: 0; }
 .card-row .link-btn { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+
+/* While the party is incomplete, the receipt button is a quiet outline so the fix leads. */
+.ledger .receipt-quiet { align-self: center; font-size: 16px; padding: 10px 22px; }

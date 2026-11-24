@@ -749,6 +749,10 @@ function finishRun() {
   const rental = Object.keys(state.paid).find((s) => /rental/i.test(STORES[s].kind) && !state.paid[s].refunded);
   $('#cancelRental').hidden = !rental || state.cancelUsed;
   renderMissing();
+  // One loud button at a time: while the party is missing something, fixing it leads and the receipt steps back.
+  const incomplete = missingList.length > 0;
+  $('#seeReceipt').className = incomplete ? 'ghost-btn receipt-quiet' : 'go';
+  $('#seeReceipt').textContent = incomplete ? 'See the receipt so far' : 'See your receipt';
   $('#cancelRental').dataset.store = rental || '';
   // The overcharge test needs a paid store that's in the current permission; the rental if there is one.
   const target = [rental, ...Object.keys(state.paid)].find((s) => s && state.perm?.stores[s] && !state.paid[s].refunded);
