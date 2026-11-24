@@ -1166,7 +1166,15 @@ function heroDance() {
 
 async function init() {
   bind();
-  $('#logo').addEventListener('click', moonwalk);
+  // The wordmark and the cake both go back to the start (the cake dances on its way). Not mid-payment.
+  const home = (e) => {
+    e.preventDefault();
+    if (state.busy) return;
+    startOver();
+    scrollTo({ top: 0, behavior: calm() ? 'auto' : 'smooth' });
+  };
+  $('#homeLink').addEventListener('click', home);
+  $('#logo').addEventListener('click', (e) => { moonwalk(); home(e); });
   $('#heroCake')?.addEventListener('click', heroDance);
   setTimeout(heroDance, 700);
   try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
