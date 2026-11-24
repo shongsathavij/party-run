@@ -852,3 +852,6 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .success .receipt { position: relative; border: 2.5px solid var(--ink); border-radius: 22px; box-shadow: none; }
 .success .receipt::before { content: ''; position: absolute; inset: -2.5px; transform: translate(9px, 9px); z-index: -1; border: 2.5px solid var(--ink); border-radius: 22px; background: repeating-linear-gradient(-45deg, var(--teal) 0 10px, #fff 10px 20px); }
 @media print { .success .receipt::before { display: none; } }
+
+/* Footer link: dark blue, like every other link. */
+.foot a { color: var(--teal-ink); font-weight: 600; text-underline-offset: 3px; }

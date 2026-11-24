@@ -367,7 +367,7 @@ function itemRow(i, theme) {
     </div>`;
   const n = (state.locked || !countable(i)) && i.qty > 1 ? `${i.qty} × ` : '';
   return `<li class="it${asking ? ' asking' : ''}" data-id="${esc(i.id)}">
-      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
+      <div class="it-main"><div class="it-name">${n}${link(i)}</div><div class="it-store">${brick(i.store)}${esc(i.storeName)} · ${esc(FULFILL_WORDS[STORES[i.store].fulfill.how])}${i.category === 'bounce' && !STORES[i.store].test ? ` · ${esc(byId[i.id]?.term || 'rental hours on the listing')}` : ''}${STORES[i.store].test ? ' · not a real business' : ''}</div>${asking ? '' : flag}</div>
       <div class="it-amt">${money(i.amount)}${live && countable(i) ? stepper(i) : ''}</div>
       ${(asking && flag) || more || panel ? `<div class="it-more">${asking ? flag : ''}${more}${panel}</div>` : ''}
     </li>`;
@@ -1043,6 +1043,16 @@ function startOver() {
 
 function bind() {
   $('#askForm').addEventListener('submit', plan);
+  // "What's a pass?" opens that answer, not just the FAQ.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href="#faqPay"]');
+    if (!a) return;
+    e.preventDefault();
+    const d = $('#faqPay');
+    d.open = true;
+    d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    d.querySelector('summary')?.focus({ preventScroll: true });
+  });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
     if (!b) return;
@@ -1103,7 +1113,7 @@ function bind() {
 function showWallet() {
   const w = state.wallet;
   if (!w) return;
-  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees your card: each store only gets a one-time pass for its amount. <a href="#faqPay">How passes work ↓</a>`;
+  $('#cardNote').innerHTML = `${esc(cap1(w.brand))} •••• ${esc(w.last4)} is saved with Stripe${w.sample ? ' (simulated)' : ', test mode'}. Piece of Cake never sees it. Each store gets a one-time pass instead, like a gift card for just that store and amount. <a href="#faqPay">What's a pass? ↓</a>`;
 }
 // Saving the card is part of approving: Stripe keeps it, and every pass draws on it.
 async function ensureWallet() {
