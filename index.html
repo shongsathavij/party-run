@@ -154,15 +154,8 @@
         <div class="pay-with" id="payWith">
           <span class="lbl">Pay with</span>
           <div class="card-row" aria-label="Stripe test card">
-            <b>Visa •••• 4242</b><span class="card-meta">Stripe test card · ZIP 90210</span>
-            <button class="link-btn sm" id="cardEdit" type="button" aria-expanded="false" aria-controls="cardFields">Card details</button>
-          </div>
-          <div class="card-fields" id="cardFields" hidden>
-            <label>Card number<input value="4242 4242 4242 4242" readonly inputmode="numeric" autocomplete="off"></label>
-            <label>Expires<input value="12/34" readonly autocomplete="off"></label>
-            <label>CVC<input value="123" readonly autocomplete="off"></label>
-            <label>ZIP<input value="90210" readonly autocomplete="off"></label>
-            <p class="note">This demo always pays with Stripe's test card, so these can't be changed yet. A real card form is next on the list.</p>
+            <b>Visa •••• 4242</b><span class="card-meta">Stripe test card</span>
+            <button class="link-btn sm" id="cardEdit" type="button" aria-haspopup="dialog">Card details</button>
           </div>
           <p class="note" id="cardNote">Stores never see your card. Each gets a one-time pass, like a gift card for just its amount. <a href="#faqPay" id="toFaqPay">What's a pass? ↓</a></p>
         </div>
@@ -319,5 +312,17 @@
   </footer>
 
   <script type="module" src="app.js"></script>
+  <dialog class="card-dialog" id="cardDialog" aria-labelledby="cardDialogTitle">
+    <form method="dialog">
+      <h2 class="h" id="cardDialogTitle">Your card</h2>
+      <div class="card-fields">
+        <label>Card number<input value="4242 4242 4242 4242" readonly autocomplete="off"></label>
+        <label>Expires<input value="12/34" readonly autocomplete="off"></label>
+        <label>CVC<input value="123" readonly autocomplete="off"></label>
+      </div>
+      <p class="note">This demo always pays with Stripe's test card, so these can't be changed yet. A real card form is next on the list. Stripe keeps the card; stores only ever get a one-time pass.</p>
+      <button class="go" value="done" autofocus>Done</button>
+    </form>
+  </dialog>
 </body>
 </html>

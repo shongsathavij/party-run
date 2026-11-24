@@ -883,15 +883,26 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 .card-row b { font-variant-numeric: tabular-nums; }
 .card-meta { margin-left: auto; font-size: 13px; color: var(--muted); }
 #whenNote { margin-top: -4px; }
-@media (max-width: 420px) { .card-meta { margin-left: 0; width: 100%; } }
+
 #cardNote a { white-space: nowrap; }
 
-/* Card details, on request: the full test card, read-only for now. */
+/* Card details, in a modal: the test card, read-only for now. */
 .card-row .link-btn { margin-left: 4px; font-size: 14px; color: var(--teal-ink); }
-.card-fields { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; }
-.card-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
-.card-fields input { font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); padding: 9px 10px; border: 1px solid var(--hair); border-radius: 10px; background: var(--soft, #FAF7F1); font-variant-numeric: tabular-nums; min-width: 0; }
-.card-fields .note { grid-column: 1 / -1; margin: 0; }
-@media (max-width: 520px) { .card-fields { grid-template-columns: 1fr 1fr 1fr; } .card-fields label:first-child { grid-column: 1 / -1; } }
+.card-dialog { border: 0; border-radius: 22px; padding: 24px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 30px 80px -20px rgba(20,12,4,.45); background: #fff; color: var(--ink); }
+.card-dialog::backdrop { background: rgba(22, 20, 18, .45); }
+.card-dialog form { display: flex; flex-direction: column; gap: 14px; }
+.card-dialog .h { margin: 0; }
+.card-dialog .note { margin: 0; }
+.card-dialog .go { align-self: stretch; }
+.card-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--muted); min-width: 0; }
+.card-fields label:first-child { grid-column: 1 / -1; }
+.card-fields input { font: inherit; font-size: 16px; font-weight: 600; color: var(--ink); padding: 10px 12px; border: 1px solid var(--hair); border-radius: 10px; background: #FAF7F1; font-variant-numeric: tabular-nums; width: 100%; box-sizing: border-box; min-width: 0; }
 
 
+
+/* The card row: card and "Stripe test card" on the left, Card details on the right, on every screen. */
+.card-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 0; align-items: center; }
+.card-row b { grid-column: 1; }
+.card-row .card-meta { grid-column: 1; margin: 0; }
+.card-row .link-btn { grid-column: 2; grid-row: 1 / span 2; margin: 0; }

@@ -1063,12 +1063,9 @@ function bind() {
     d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     d.querySelector('summary')?.focus({ preventScroll: true });
   });
-  $('#cardEdit').addEventListener('click', () => {
-    const f = $('#cardFields'), open = f.hidden;
-    f.hidden = !open;
-    $('#cardEdit').setAttribute('aria-expanded', String(open));
-    $('#cardEdit').textContent = open ? 'Hide details' : 'Card details';
-  });
+  $('#cardEdit').addEventListener('click', () => $('#cardDialog').showModal());
+  // A tap on the backdrop closes it too.
+  $('#cardDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#askChips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-v]');
     if (!b) return;
