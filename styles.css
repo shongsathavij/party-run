@@ -909,3 +909,7 @@ body:has(#ask:not([hidden])) .ask-box textarea { min-height: 0; }
 
 /* While the party is incomplete, the receipt button is a quiet outline so the fix leads. */
 .ledger .receipt-quiet { align-self: center; font-size: 16px; padding: 10px 22px; }
+
+/* The wordmark is a link home; it keeps its look. */
+a.wordmark { color: inherit; text-decoration: none; }
+a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
