@@ -73,6 +73,17 @@
     .cake .hc-legs { display: none; }
     .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: var(--muted); }
     .meta b { color: var(--ink); }
+    .facts { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--hair); border-radius: 14px; background: #fff; }
+    .facts li { padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+    .facts li + li { border-left: 1px solid var(--hair); }
+    .facts b { font-size: 18px; font-weight: 900; letter-spacing: -0.03em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .facts span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+    .facts li:last-child b { color: var(--red); }
+    @media (max-width: 640px) {
+      .facts { grid-template-columns: 1fr 1fr; }
+      .facts li:nth-child(3) { border-left: 0; }
+      .facts li:nth-child(n+3) { border-top: 1px solid var(--hair); }
+    }
     .cta { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; margin-top: 4px; color: var(--blue); background: #fff; text-decoration: none; font-weight: 800; font-size: 16px; letter-spacing: -0.02em; padding: 10px 20px; border: 2px solid var(--blue); border-radius: 999px; transition: background .12s, color .12s; }
     .cta:hover { background: var(--blue); color: #fff; }
     .shots { margin: 10px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
@@ -167,6 +178,12 @@
       <span>Built by <b>Stephanie Hongsathavij</b>, Senior PM, Checkout</span>
       <span>Status: <b>live, Stripe test mode</b></span>
     </div>
+    <ul class="facts" aria-label="At a glance">
+      <li><b>10 days to ship</b><span>from idea to live</span></li>
+      <li><b>Real stores and products</b><span>6 stores, every item linked</span></li>
+      <li><b>13 eval prompts</b><span>graded in code, run in CI</span></li>
+      <li><b>Over-limit charges</b><span>refused by Stripe, not the prompt</span></li>
+    </ul>
     <a class="cta" href="/">Try the agent <span aria-hidden="true">→</span></a>
     <figure class="shots" aria-label="Piece of Cake on a phone">
       <img src="img/case-home.jpg" alt="Home: 'Party planning? Piece of cake.' beside a two-tier cake, with the party request and a Plan it button." width="585" height="1140" loading="lazy">
@@ -285,7 +302,7 @@
     <h2 id="ai">An agent you can grade</h2>
     <div class="prose">
       <p>Claude searches every category in one turn, then submits a cart by item id. Code checks every cart against the same rules the page and the server use: buyable, in budget, enough favor packs for every kid, toddler-safe, nothing booked or past its delivery notice. A cart with problems goes back once. If Claude is off, over its limit or down, a rules agent plans instead, and the page says which happened.</p>
-      <p>Money and safety have right answers, so every check is code, not a model grading a model. The 12 prompts are all variations of the real party: tighter budgets, more kids, "just a cake", a booked date, and four tries at tricking the agent.</p>
+      <p>Money and safety have right answers, so every check is code, not a model grading a model. The 13 prompts are all variations of the real party: tighter budgets, more kids, "just a cake", a booked date, and four tries at tricking the agent.</p>
     </div>
     <div class="panel">
       <span class="kicker">The checks (each must pass every time)</span>
@@ -304,7 +321,8 @@
       </div>
     </div>
     <div class="prose">
-      <p><b>First run with Claude: 21 of 24.</b> Two runs of 12 prompts on Claude Haiku 5.5, about 16,000 tokens and three turns a plan. All three failures were real: twice the model left the budget off its cart, and once it skipped the hidden instruction without reporting it. I fixed both in code, not the prompt: the budget is read from her request, and a cart that saw the instruction but didn't report it goes back once. I then added the cases I worried about as a parent: a party two weeks out (shipped items need four days' notice), and what to suggest when a bounce house doesn't fit (bubbles, running games).</p>
+      <p><b>Claude Haiku 5.5, two runs each: 21 of 24, then 25 of 26.</b> Every failure was real, and every fix went in code, not the prompt. First run: twice the model left the budget off its cart, and once it skipped the hidden instruction without reporting it. Now the budget is read from her request, and a cart that saw the instruction but didn't report it goes back once. Then I added the cases I worried about as a parent: a party two days out (shipped items need four days' notice), and what to suggest when a bounce house doesn't fit (bubbles, running games).</p>
+      <p>Second run: once, the agent swapped the booked bounce house without saying why, so a cart like that now goes back to explain. And "a party tomorrow" fell back to the rules agent, because an empty cart counted as a failure even when it said nothing could arrive in time. That's an honest answer, so now it's accepted. About 16,000 tokens and three turns a plan.</p>
     </div>
   </section>
 
@@ -353,7 +371,7 @@
     <span class="kicker">How I worked with AI</span>
     <h2 id="howai">Claude built most of it. I made the calls.</h2>
     <div class="prose">
-      <p>I wrote almost none of the code. My job was the product: what to build, what to cut, and when it was wrong.</p>
+      <p>Claude wrote the code. I owned the decisions, the evals, and every call on what shipped: what to build, what to cut, and when it was wrong.</p>
       <p><b>I chose payment rails over prompt rules.</b> The first instinct with agents is a better prompt. I asked where the limit should live if the prompt fails, and the answer was Stripe.</p>
       <p><b>I read the failures before the fixes.</b> Each eval failure got a root cause, and the fix went in code where it could be tested, not in another line of prompt.</p>
       <p><b>I wrote the evals a parent would.</b> Shipping notice and "what if not a bounce house" came from thinking about my own party, not from the code.</p>
@@ -363,12 +381,10 @@
 
   <section aria-labelledby="measure">
     <span class="kicker">What I'd measure</span>
-    <h2 id="measure">The numbers that would change the design</h2>
+    <h2 id="measure">Two numbers that matter</h2>
     <div class="metrics">
-      <div class="metric"><b>Carts approved</b><span class="small">Of plans shown, how many reach "Approve and shop" unchanged, and which item gets swapped most.</span></div>
-      <div class="metric"><b>Stops per run</b><span class="small">Too many and the agent isn't saving time; zero on a hard party means a missed stop.</span></div>
-      <div class="metric"><b>Flags answered</b><span class="small">Keep, swap or remove, to learn when "close enough" is fine.</span></div>
-      <div class="metric"><b>Charges over a cap</b><span class="small">Should be zero, always. Every refusal and any refund is logged.</span></div>
+      <div class="metric"><b>Charges over a limit</b><span class="small">Should be zero, always. Every refusal and any refund is logged on the receipt.</span></div>
+      <div class="metric"><b>Carts approved unchanged</b><span class="small">How often a parent says go to the agent's first cart, and which item gets swapped when they don't.</span></div>
     </div>
   </section>
 
