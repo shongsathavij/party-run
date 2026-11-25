@@ -70,12 +70,19 @@ const CM = c.stores.find((s) => s.store === 'cm-events');
 assert.equal(CM.amount, 14500 + 5000 + Math.round(14500 * 0.0975), 'the rental: item, delivery estimate and tax');
 assert.equal(yes.amount, CM.amount);
 
-// 4. The price-hike curveball is refused by the pass; the parent raises the cap; it goes through
-const hike = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
+// 3b. One charge per store per permission: the same store can't be paid twice, even with her OK.
+const twice = await run('buy', { permission: p.permission, signature: p.signature, store: 'cm-events', approved: true });
+assert.equal(twice.status, 'refused');
+assert.match(twice.why, /already paid/);
+
+// 4. The price-hike curveball is refused by the pass; the parent raises the cap; it goes through.
+// (A fresh permission, since the rental was already paid under the first one.)
+const p4 = await run('permit', { items, budget: c.budget, askOver: 10000, partyDate: c.partyDate });
+const hike = await run('buy', { permission: p4.permission, signature: p4.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(hike.status, 'blocked');
 assert.equal(hike.asked, CM.amount + 2000);
 assert.match(hike.why, /made-up fee/);
-const r = await run('raise', { permission: p.permission, signature: p.signature, store: 'cm-events', newCap: hike.asked });
+const r = await run('raise', { permission: p4.permission, signature: p4.signature, store: 'cm-events', newCap: hike.asked });
 assert.equal(r.code, 200, r.error);
 const again = await run('buy', { permission: r.permission, signature: r.signature, store: 'cm-events', approved: true, curveball: 'price_up' });
 assert.equal(again.status, 'paid');
@@ -183,4 +190,21 @@ assert.equal(tested.status, 'blocked');
 assert.equal(tested.test, true);
 assert.equal(tested.asked - tested.cap, 2000);
 assert.equal(tested.hood.decidedBy, 'simulator');
+// A test never uses a store up, so the store it tested can still be paid once.
+const p15 = await run('permit', { items, budget: c.budget, askOver: null, partyDate: c.partyDate });
+assert.equal((await run('buy', { permission: p15.permission, signature: p15.signature, store: 'target', test: true })).status, 'blocked');
+assert.equal((await run('buy', { permission: p15.permission, signature: p15.signature, store: 'target' })).status, 'paid');
+
+// 15. Turning off the permission: no new pass at any store, a raise is refused, and only the holder of a signed permission can do it.
+const off = await run('revoke', { permits: [{ permission: p15.permission, signature: p15.signature }] });
+assert.equal(off.code, 200, off.error);
+assert.deepEqual(off.ids, [p15.perm.id]);
+const after = await run('buy', { permission: p15.permission, signature: p15.signature, store: 'walmart' });
+assert.equal(after.status, 'refused');
+assert.match(after.why, /turned off/);
+assert.equal((await run('raise', { permission: p15.permission, signature: p15.signature, store: 'walmart', newCap: 100 })).code, 400);
+assert.equal((await run('revoke', { permits: [{ permission: p15.permission, signature: 'nope' }] })).code, 400, 'a forged permission can’t be turned off');
+assert.equal((await run('revoke', {})).code, 400);
+// Another permission is untouched.
+assert.equal((await run('buy', { permission: p4.permission, signature: p4.signature, store: 'walmart' })).status, 'paid');
 console.log('All Party Run checks passed in sample mode.');

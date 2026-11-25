@@ -263,6 +263,7 @@
           <div class="rcpt-totals" id="rcptTotals"></div>
           <p class="rcpt-verdict" id="rcptVerdict"></p>
           <p class="rcpt-complete" id="rcptComplete"></p>
+          <section class="perm-live" id="permCard" aria-label="Your permission" hidden></section>
           <div class="rcpt-acts">
             <button class="ghost-btn" id="rcptPrint" type="button">Print or save as PDF</button>
             <button class="link-btn" id="rcptCopy" type="button">Copy as text</button>
@@ -297,6 +298,7 @@
         <li><b>Locked to one store.</b> One store, one amount, 30 minutes.</li>
         <li><b>Your limit, enforced by Stripe.</b> A charge over the pass is declined by the payment itself, not by the agent.</li>
         <li><b>What you see is what you pay.</b> You approve the exact cart, and you get a signed receipt.</li>
+        <li><b>Yours to turn off.</b> Each store can be paid once. From the receipt you can turn off your permission anytime, and no new pass can be made.</li>
       </ul>
       <p class="faq-proof"><b>We tested it.</b> A store asked for $169.99 on a $149.99 pass, and Stripe refused: “The requested amount is greater than the remaining amount capturable with this shared payment granted token.”</p>
     </details>

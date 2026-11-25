@@ -40,6 +40,7 @@ export default async function handler(req, res) {
     ['Party complete / incomplete', `${t.party_complete} / ${t.party_incomplete}`],
     ['Tested $20 over / Stripe refused', `${t.test_over_limit} / ${t.stripe_refused}`],
     ['Tested a cancellation', t.test_cancel],
+    ['Turned off the permission', t.permission_off],
     ['Receipt opened / copied / printed', [t.receipt_opened, t.receipt_copied, t.receipt_printed].join(' / ')],
   ];
   const head = ['Day', 'visit', 'plan', 'approved', 'approved_unchanged', 'store_paid', 'trick_tried', 'mode_fallback', 'over_limit_through'];

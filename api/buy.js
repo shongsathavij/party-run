@@ -7,6 +7,7 @@ import { totals, decide, dollars } from '../lib/rules.js';
 import { STORES } from '../lib/catalog.js';
 import { open } from './_lib/permit.js';
 import { mint, charge } from './_lib/stripe.js';
+import { isRevoked, claim, release } from './_lib/ledger.js';
 import { post, fail, serverToday } from './_lib/http.js';
 
 const PRICE_UP = 2000; // the what-if: a made-up $20 added at the rental's checkout. Simulated; no real store did this.
@@ -15,6 +16,7 @@ export default post(async ({ permission, signature, store, approved = false, cur
   const perm = open(permission, signature);
   const s = perm.stores[store];
   if (!s) throw fail(`${STORES[store]?.name || 'That store'} isn't in what you approved.`);
+  if (await isRevoked(perm.id)) return { status: 'refused', why: 'You turned off this permission, so no new pass can be made.', amount: 0 };
   const quoted = totals(s.lines).total; // prices from the catalog, not the page
   // A stress test asks for more than the pass on purpose, so the ask-me step doesn't apply.
   const d = decide(perm, store, quoted, { approved: approved === true || test === true, today: serverToday() });
@@ -24,8 +26,17 @@ export default post(async ({ permission, signature, store, approved = false, cur
   const isRental = /rental/i.test(STORES[store].kind);
   const asked = test === true ? s.cap + PRICE_UP : curveball === 'price_up' && isRental ? quoted + PRICE_UP : quoted;
 
-  const token = await mint({ store, cap: s.cap, ref: perm.id, wallet: perm.wallet });
-  const r = await charge({ token, amount: asked, store, permId: perm.id, description: `Piece of Cake test, simulated order: ${STORES[store].name}` });
+  // One charge per store per permission (a test never charges, so it doesn't use the store up).
+  if (test !== true && !(await claim(perm.id, store))) return { status: 'refused', why: `${STORES[store].name} was already paid under this permission. Each store gets one charge.`, amount: quoted };
+  let token, r;
+  try {
+    token = await mint({ store, cap: s.cap, ref: perm.id, wallet: perm.wallet });
+    r = await charge({ token, amount: asked, store, permId: perm.id, description: `Piece of Cake test, simulated order: ${STORES[store].name}` });
+  } catch (e) {
+    if (test !== true) await release(perm.id, store);
+    throw e;
+  }
+  if (r.blocked && test !== true) await release(perm.id, store);
   const pass = { id: token.id, cap: token.cap, expiresAt: token.expiresAt, sample: token.sample };
   // "Under the hood": the real objects behind this row, so the claim can be checked.
   const hood = {

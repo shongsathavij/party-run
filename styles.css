@@ -939,3 +939,28 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 .ho-items li { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; }
 .ho-items b { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ho-items small { display: block; color: var(--muted); font-size: 13px; }
+
+/* The permission, live (in the receipt): what it still allows, and an off switch. The full card only
+   when a store is still allowed; otherwise one quiet line. The button is an outline, never red. */
+.perm-live { margin: 4px 0 0; padding: 18px; border: 1px solid var(--hair, #E6E1DA); border-radius: 18px; background: #fff; box-shadow: var(--lift, 0 6px 18px rgba(22, 20, 18, .07)); }
+.perm-live[hidden] { display: none; }
+.perm-live.quiet, .perm-live.off:has(.perm-quiet) { padding: 12px 16px; box-shadow: none; }
+.perm-live h3 { font: 800 22px/1.15 var(--sans); letter-spacing: -0.02em; margin: 8px 0 4px; display: flex; align-items: center; gap: 10px; }
+.perm-live .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px #DDF2E6; display: inline-block; }
+.perm-live.off .dot { background: #9A948D; box-shadow: 0 0 0 4px #EFECE8; }
+.perm-live p { margin: 6px 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.perm-live .perm-left { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 14px; margin: 10px 0 6px; border-radius: 12px; background: #F7F5F2; }
+.perm-live .perm-left b { font-size: 16px; }
+.perm-live .perm-left small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+.perm-live .perm-left .amt { font: 800 18px var(--sans); font-variant-numeric: tabular-nums; }
+.perm-live.off .perm-left { opacity: .55; }
+.perm-live.off .perm-left .amt { text-decoration: line-through; }
+.perm-live .perm-used, .perm-live .perm-fine { font-size: 13.5px; }
+.perm-live .perm-off { margin-top: 12px; width: 100%; padding: 13px; border-radius: 12px; border: 2px solid var(--ink); background: #fff; font: 700 16px var(--sans); letter-spacing: -0.02em; color: var(--ink); cursor: pointer; }
+.perm-live .perm-off:hover { background: #F7F5F2; }
+.perm-live .perm-when { font-size: 13px; color: var(--ink); background: #F7F5F2; border-radius: 10px; padding: 8px 12px; margin-top: 10px; }
+.perm-live .perm-quiet { margin: 0; display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; font-size: 14.5px; }
+.perm-live .perm-quiet > span:not(.dot) { flex: 1 1 0; min-width: 0; }
+.perm-live .perm-quiet .dot { transform: translateY(-1px); }
+.perm-live .perm-quiet .link-btn { flex-basis: 100%; text-align: left; padding-left: 20px; }
+@media print { .perm-live .perm-off, .perm-live .perm-fine, .perm-live [data-perm-off] { display: none; } }

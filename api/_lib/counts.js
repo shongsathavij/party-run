@@ -15,6 +15,7 @@ export const EVENTS = [
   'party_complete', 'party_incomplete', // when she opens the receipt
   'test_over_limit', 'stripe_refused', 'over_limit_through', 'test_cancel', // "Test the limits"
   'receipt_opened', 'receipt_copied', 'receipt_printed',
+  'permission_off', // she turned off her permission from the receipt
 ];
 
 const DAYS_KEPT = 180;
@@ -26,7 +27,7 @@ function store() {
   return url && token ? { url: url.replace(/\/$/, ''), token } : null;
 }
 
-async function pipeline(cmds) {
+export async function pipeline(cmds) {
   const s = store();
   if (!s) return null;
   const r = await fetch(`${s.url}/pipeline`, {
