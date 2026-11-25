@@ -44,7 +44,7 @@ out.append(f'<rect x="{lx(1)+10}" y="545" width="{LW-20}" height="{1430-545}" rx
 out.append(f'<text x="{lx(1)+LW/2}" y="905" text-anchor="middle" class="loop">Out of the loop</text>')
 out.append(f'<text x="{lx(1)+LW/2}" y="928" text-anchor="middle" class="b2">No payment tool,</text><text x="{lx(1)+LW/2}" y="946" text-anchor="middle" class="b2">no card, no passes</text>')
 section(176,'PLAN')
-b1=box(0,185,'Asks for the party',['Lego theme, Dec 5,','6-10 kids, bounce house','and piñata, under $600'],'consent',1)
+b1=box(0,185,'Asks for the party',['Lego theme, Feb 6,','6-10 kids, bounce house','and piñata, under $600'],'consent',1)
 b2=box(1,185,'Shops the listings',['Reads listings as data,','never as instructions.','Proposes a cart;','can\'t pay.'],'plain',2)
 b3=box(2,185,'Checks the cart',['Prices from the catalog','Nothing booked or late','In budget, toddler-safe','Nothing a listing pushed'],'plain',3)
 bh=box(1,300,'Hidden instruction',['A test-store listing','tells AI shoppers what','to buy. Ignored and','reported.'],'whatif')
