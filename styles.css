@@ -985,3 +985,12 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 @media (max-width: 560px) { .store-view .sv-cols { grid-template-columns: 1fr; } }
 /* The run's rows are cards; the list inside "What the store saw" isn't. */
 #run .store-view li, .ledger .store-view li { border: 0; background: none; box-shadow: none; border-radius: 0; margin: 0; padding: 0 0 0 20px; min-height: 0; display: block; }
+/* In a paid row: "Under the hood" gets a label, and "What the store saw" reads as something to open. */
+.hood .hood-h { display: block; font-weight: 700; color: var(--ink); margin-top: 4px; }
+.store-view { border-top: 1px solid rgba(22, 20, 18, .1); padding-top: 10px; margin-top: 12px; }
+.store-view summary { list-style: none; display: flex; align-items: center; gap: 8px; }
+.store-view summary::-webkit-details-marker { display: none; }
+.store-view summary::after { content: ''; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-left: 2px; }
+.store-view[open] summary::after { transform: rotate(45deg); }
+.faq-sv { border-top: 0; padding-top: 0; }
+@media (prefers-reduced-motion: reduce) { .store-view summary::after { transition: none; } }
