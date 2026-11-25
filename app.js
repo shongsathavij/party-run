@@ -627,7 +627,7 @@ async function shop() {
   try {
     await ensureWallet();
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
-    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
+    Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false, permits: [{ permission: p.permission, signature: p.signature }], revokedAt: null, skipped: {} });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
     track('approved');
     if (!state.touched) track('approved_unchanged');
@@ -747,6 +747,7 @@ async function buy(store, amount, { approved = false } = {}) {
       try {
         const up = await api('/api/raise', { permission: state.permission, signature: state.signature, store, newCap: r.asked });
         Object.assign(state, { permission: up.permission, signature: up.signature, perm: up.perm });
+        state.permits.push({ permission: up.permission, signature: up.signature });
         logEvent(store, { kind: 'raised', from: r.cap, to: r.asked });
         track('raised');
         if (state.caps[store]) state.caps[store].final = r.asked;
@@ -935,6 +936,7 @@ async function findAnother(e) {
     // A second, separate permission: this store only, this amount only, within what's left.
     const p = await api('/api/permit', { items: [{ id: it.id, qty: 1 }], budget: room, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm });
+    state.permits.push({ permission: p.permission, signature: p.signature });
     state.caps[it.store] = { approved: q.total, final: q.total };
     state.extraPermits.push({ id: p.perm.id, amount: q.total, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
     c.items.push(it);
@@ -1079,6 +1081,70 @@ function renderReceipt() {
   const miss = missingNow();
   $('#rcptComplete').className = `rcpt-complete ${miss.length ? 'bad' : 'ok'}`;
   $('#rcptComplete').textContent = miss.length ? `The party isn't complete: no ${miss.map((m) => WHAT[m]).join(', no ')}.` : `The party is complete: every part of it is paid for.`;
+  renderPermCard();
+}
+
+// ---------- the permission, live: what it still allows, and an off switch ----------
+// The full card only when a store is still allowed (one she skipped, or one never reached);
+// otherwise one quiet line. Turning it off stops every new pass on the server, at any store.
+
+const clock = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(' ', '').toLowerCase();
+
+function stillAllowed() {
+  return Object.keys(state.caps || {})
+    .filter((s) => !state.paid[s])
+    .map((s) => ({ store: s, amount: state.skipped?.[s] ?? state.caps[s].final, why: state.skipped?.[s] != null ? "You skipped it, so it's still allowed" : 'Not paid yet, so it’s still allowed' }));
+}
+
+function renderPermCard() {
+  const box = $('#permCard');
+  const open = stillAllowed();
+  const ends = prettyDate((state.approvedPerm || state.perm).ends);
+  const used = Object.keys(state.paid).map((s) => STORES[s].name);
+  const rows = (crossed) => open.map((o) => `<div class="perm-left"><div><b>${esc(STORES[o.store].name)}</b><small>${crossed ? 'No longer allowed' : esc(o.why)}</small></div><span class="amt">${money(o.amount)}</span></div>`).join('');
+  box.hidden = false;
+  if (state.revokedAt) {
+    box.className = 'perm-live off';
+    box.innerHTML = open.length
+      ? `<span class="lbl">Your permission</span><h3><span class="dot" aria-hidden="true"></span>Off</h3>
+        <p>No new passes can be made, at any store. Paying ${esc(STORES[open[0].store].name)} now would need a new approval from you.</p>${rows(true)}
+        <p class="perm-when">${clock(state.revokedAt)} · You turned off the permission.</p>`
+      : `<p class="perm-quiet"><span class="dot" aria-hidden="true"></span><span>Your permission is off (${clock(state.revokedAt)}). No new passes can be made.</span></p>`;
+    return;
+  }
+  if (!open.length) {
+    box.className = 'perm-live quiet';
+    box.innerHTML = `<p class="perm-quiet"><span class="dot" aria-hidden="true"></span><span>Nothing left to spend. Your permission ends after ${ends}.</span><button class="link-btn sm" type="button" data-perm-off>Turn it off now</button></p>`;
+    return;
+  }
+  box.className = 'perm-live';
+  box.innerHTML = `<span class="lbl">Your permission</span><h3><span class="dot" aria-hidden="true"></span>On until ${ends}</h3>
+    <p>I can still make ${open.length === 1 ? 'one new pass, and only here' : `${open.length} new passes, and only here`}:</p>${rows(false)}
+    ${used.length ? `<p class="perm-used">${esc(used.join(', '))}: used. Each store gets one charge, and each pass worked once and is closed.</p>` : ''}
+    <button class="perm-off" type="button" data-perm-off>Turn off my permission</button>
+    <p class="perm-fine">After this I can't make any new pass. Nothing already paid changes.</p>`;
+}
+
+async function turnOff(btn) {
+  if (state.busy || state.revokedAt) return;
+  state.busy = true;
+  btn.setAttribute('aria-busy', 'true');
+  try {
+    const r = await api('/api/revoke', { permits: state.permits });
+    state.revokedAt = r.at;
+    track('permission_off');
+    // What used to be one tap away now needs a new approval.
+    state.skipped = {};
+    document.querySelectorAll('[data-unskip]').forEach((b) => b.remove());
+    $('#overcharge').hidden = true;
+    renderMissing();
+    renderReceipt();
+  } catch (ex) {
+    btn.insertAdjacentHTML('afterend', `<p class="err">${esc(ex.message)}</p>`);
+  } finally {
+    state.busy = false;
+    btn.removeAttribute('aria-busy');
+  }
 }
 
 function copyReceipt() {
@@ -1091,6 +1157,7 @@ function copyReceipt() {
     '',
     `Charged ${money(charged)}${refunded ? `, refunded ${money(refunded)}` : ''}, spent ${money(net)}.`,
     $('#rcptVerdict').textContent,
+    state.revokedAt ? `You turned off the permission at ${clock(state.revokedAt)}. No new passes can be made.` : `Permission on until ${prettyDate(perm.ends)}.`,
   ].join('\n');
   navigator.clipboard?.writeText(out).then(() => ($('#rcptCopy').textContent = 'Copied'), () => {});
 }
@@ -1105,7 +1172,7 @@ function startOver() {
   document.body.classList.remove('reviewing');
   $('#changeForm').hidden = true;
   state.opts = null;
-  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {}, counted: new Set(), touched: false });
+  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {}, counted: new Set(), touched: false, permits: [], revokedAt: null, skipped: {} });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -1200,6 +1267,7 @@ function bind() {
     finishRun();
   });
   $('#rcptCopy').addEventListener('click', () => { track('receipt_copied'); copyReceipt(); });
+  $('#permCard').addEventListener('click', (e) => { const b = e.target.closest('[data-perm-off]'); if (b) turnOff(b); });
 }
 
 // ---------- the card: asked for at the go-ahead, saved when she approves ----------

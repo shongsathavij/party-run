@@ -10,6 +10,9 @@ globalThis.fetch = async (url, opts) => {
   const out = cmds.map(([op, ...args]) => {
     if (op === 'INCR') { db.set(args[0], (Number(db.get(args[0])) || 0) + 1); return { result: db.get(args[0]) }; }
     if (op === 'EXPIRE') return { result: 1 };
+    if (op === 'EXISTS') return { result: db.has(args[0]) ? 1 : 0 };
+    if (op === 'SET') { if (args.includes('NX') && db.has(args[0])) return { result: null }; db.set(args[0], args[1]); return { result: 'OK' }; }
+    if (op === 'DEL') { db.delete(args[0]); return { result: 1 }; }
     if (op === 'MGET') return { result: args.map((k) => (db.has(k) ? String(db.get(k)) : null)) };
     throw new Error(op);
   });
@@ -53,4 +56,16 @@ const json = await call(stats, { query: { key: 'secret-stats', format: 'json' } 
 assert.equal(json.body.totals.trick_tried, 1);
 assert.equal(json.body.byDay.length, 14);
 assert.equal(json.body.byDay[0].visit, 2);
-console.log('Usage-count checks passed.');
+
+// The permission ledger uses the same store, so every server instance agrees.
+const ledger = await import('../api/_lib/ledger.js');
+assert.equal(ledger.durable(), true);
+assert.equal(await ledger.claim('perm_1', 'target'), true);
+assert.equal(await ledger.claim('perm_1', 'target'), false, 'a store is paid once per permission');
+await ledger.release('perm_1', 'target');
+assert.equal(await ledger.claim('perm_1', 'target'), true, 'released when the store didn’t charge');
+assert.equal(await ledger.isRevoked('perm_1'), false);
+await ledger.revoke(['perm_1']);
+assert.equal(await ledger.isRevoked('perm_1'), true);
+assert.ok(db.has('pc:revoked:perm_1') && db.has('pc:used:perm_1:target'));
+console.log('Usage-count and ledger checks passed.');

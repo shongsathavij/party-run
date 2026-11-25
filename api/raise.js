@@ -3,9 +3,11 @@
 import { raise } from '../lib/rules.js';
 import { open, seal } from './_lib/permit.js';
 import { post, fail } from './_lib/http.js';
+import { isRevoked } from './_lib/ledger.js';
 
 export default post(async ({ permission, signature, store, newCap }) => {
   const perm = open(permission, signature);
+  if (await isRevoked(perm.id)) throw fail('You turned off this permission, so it can’t be raised.');
   if (!Number.isInteger(newCap) || newCap <= 0) throw fail('Missing the new amount.');
   const cur = perm.stores[store]?.cap || 0;
   if (newCap > Math.round(cur * 1.5)) throw fail('That is more than half again what you approved. Start a new cart instead.');
