@@ -984,7 +984,7 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 .store-view .sv-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); }
 @media (max-width: 560px) { .store-view .sv-cols { grid-template-columns: 1fr; } }
 /* The run's rows are cards; the list inside "What the store saw" isn't. */
-#run .store-view li, .ledger .store-view li { border: 0; background: none; box-shadow: none; border-radius: 0; margin: 0; padding: 0 0 0 20px; min-height: 0; display: block; }
+#run .store-view li, .ledger .store-view li { border: 0; background: none; box-shadow: none; border-radius: 0; margin: 0; padding: 0 0 0 20px; min-height: 0; display: block; animation: none; opacity: 1; transform: none; }
 /* In a paid row: "Under the hood" gets a label, and "What the store saw" reads as something to open. */
 .hood .hood-h { display: block; font-weight: 700; color: var(--ink); margin-top: 4px; }
 .store-view { border-top: 1px solid rgba(22, 20, 18, .1); padding-top: 10px; margin-top: 12px; }
