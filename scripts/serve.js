@@ -19,6 +19,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 
 function wrap(res) {
   res.status = (c) => ((res.statusCode = c), res);
+  res.send = (b) => (typeof b === 'object' ? res.json(b) : res.end(String(b)));
   res.json = (b) => {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(b));
