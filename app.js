@@ -15,7 +15,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Our real party: a building-brick 5th birthday in the backyard.
-const REAL = "Lego-themed 5th birthday, a backyard party in 90210 on Dec 5, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
+const REAL = "Lego-themed 5th birthday, a backyard party in 90210 on Feb 6, 10am to noon, for 6-10 kids ages 2 to 5. We'd love a bounce house and a piñata. Under $600.";
 
 const ASK_CHOICES = [
   { v: 10000, label: '$100' },
