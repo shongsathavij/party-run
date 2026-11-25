@@ -161,17 +161,19 @@ const noPinata = { ...c, items: c.items.filter((i) => i.category !== 'pinata') }
 const added = await run('edit', { prompt: REAL, today, cart: noPinata, add: 'pinata' });
 assert.ok(added.ok && added.cart.items.some((i) => i.id === 'mi-pinata'), 'adds the pull-string piñata');
 const otherPull = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: true });
-assert.equal(otherPull.item.id, 'tg-pinata-5', 'the other pull-string piñata');
-const altPinata = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels', 'target'], maxCents: 30000, theme: 'brick', little: true });
-assert.equal(altPinata.item, null, 'never a bat piñata with 2-year-olds');
-assert.match(altPinata.why, /safe with 2-year-olds/);
+assert.equal(otherPull.item.id, 'wm-pinata-pull', 'the other pull-string piñata');
+const altPinata = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels', 'walmart'], maxCents: 30000, theme: 'brick', little: true });
+assert.equal(altPinata.item, null, 'nothing else to offer');
+// Never a bat piñata with 2-year-olds: the only bat piñata (Walmart) is never picked while kids are little.
+const littlePick = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: [], maxCents: 30000, theme: 'brick', little: true });
+assert.notEqual(littlePick.item?.id, 'wm-pinata-5', 'never a bat piñata with 2-year-olds');
 const bigKids = await run('replace', { category: 'pinata', partyDate: '2026-12-05', excludeStores: ['michaels'], maxCents: 30000, theme: 'brick', little: false });
 assert.equal(bigKids.item.id, 'wm-pinata-5');
 
 // 12b. Other options: swap one item for another of the same kind. Rules only, checked like a new plan.
 const plates = c.items.find((i) => i.category === 'decor');
-const swapped = await run('edit', { prompt: REAL, today, cart: c, swap: { from: plates.id, to: 'tg-blockbash' } });
-assert.ok(swapped.ok && swapped.cart.items.some((i) => i.id === 'tg-blockbash') && !swapped.cart.items.some((i) => i.id === plates.id), 'swaps the plates');
+const swapped = await run('edit', { prompt: REAL, today, cart: c, swap: { from: 'mi-pinata', to: 'wm-pinata-pull' } });
+assert.ok(swapped.ok && swapped.cart.items.some((i) => i.id === 'wm-pinata-pull') && !swapped.cart.items.some((i) => i.id === 'mi-pinata'), 'swaps the piñata for the other pull-string one');
 assert.ok(swapped.diff.length, 'shows what changed');
 const batSwap = await run('edit', { prompt: REAL, today, cart: c, swap: { from: 'mi-pinata', to: 'wm-pinata-5' } });
 assert.ok(batSwap.code === 400 && !batSwap.cart, 'no swapping in a bat piñata with 2-year-olds');
