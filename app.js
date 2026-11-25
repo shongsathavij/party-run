@@ -1037,12 +1037,112 @@ function storeStory(store) {
     if (e.kind === 'raised') lines.push(`You approved ${money(e.to - e.from)} more. New limit ${money(e.to)}.`);
     if (e.kind === 'asked') lines.push(`${money(e.amount)} is over your check-with-me amount, so it asked you first. You said yes.`);
     if (e.kind === 'paid') lines.push(`Paid ${money(e.amount)}.`);
-    if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (test: the rental cancelled).`);
+    if (e.kind === 'refunded') lines.push(`Refunded ${money(e.amount)} (${e.why || 'test: the rental cancelled'}).`);
     if (e.kind === 'tested') lines.push(`Stress test: a new ${money(e.cap)} pass, and the store tried ${money(e.amount)}. ${WHO[e.hood?.decidedBy] || 'Refused'}.`);
     if (e.kind === 'skipped') lines.push(`Skipped. ${e.why}`);
   }
   const ids = ev.filter((e) => e.hood).map((e) => [e.hood.token && `pass ${shortId(e.hood.token)}`, e.hood.paymentIntent && `${shortId(e.hood.paymentIntent)}`].filter(Boolean).join(' · '));
   return { lines, ids: [...new Set(ids)].filter(Boolean) };
+}
+
+// ---------- after the party: a problem with an order ----------
+// One quiet link under the receipt, never a row per store (that would assume something goes wrong).
+// Pick the order, then what happened. "Didn't arrive" and "Not what I ordered" send a refund request to
+// that store with the receipt as evidence; "I didn't approve this" shows the signed permission first.
+// The stores are simulated, so they say yes at once; a real store could say no, and then it's a card dispute.
+
+const REASONS = {
+  late: { label: "It didn't arrive", why: "you reported it didn't arrive", ask: "it didn't arrive" },
+  wrong: { label: "It's not what I ordered", why: "you reported it wasn't what you ordered", ask: "it isn't what you ordered" },
+  unauth: { label: "I didn't approve this charge", why: 'you asked for a refund', ask: '' },
+};
+const issue = { store: null, reason: null, done: null };
+
+function issueStores() {
+  return Object.keys(state.paid).filter((s) => !state.paid[s].refunded);
+}
+
+function approvedFor(store) {
+  const fromFirst = state.approvedPerm?.stores?.[store];
+  const extra = (state.extraPermits || []).find((x) => x.storeName === STORES[store].name);
+  const cap = state.caps?.[store]?.final ?? fromFirst?.cap ?? extra?.amount;
+  const asked = (state.log[store] || []).find((e) => e.kind === 'paid');
+  return { cap, at: asked?.at };
+}
+
+function renderIssue() {
+  const body = $('#issueBody');
+  const list = issueStores();
+  const party = (state.approvedPerm || state.perm)?.ends;
+  const before = party && localISO() < party;
+  if (issue.done) {
+    body.innerHTML = issue.done;
+    return;
+  }
+  if (!list.length) {
+    body.innerHTML = `<p class="issue-note">Every order is already refunded, so there's nothing to report.</p>`;
+    return;
+  }
+  const storeOpts = list.map((s) => `<label class="issue-opt"><input type="radio" name="issueStore" value="${s}" ${issue.store === s ? 'checked' : ''}><span><b>${esc(STORES[s].name)}</b><small>${money(state.paid[s].amount)}</small></span></label>`).join('');
+  const reasonOpts = Object.entries(REASONS).map(([k, r]) => {
+    const off = k === 'late' && before;
+    return `<label class="issue-opt${off ? ' off' : ''}"><input type="radio" name="issueReason" value="${k}" ${issue.reason === k ? 'checked' : ''} ${off ? 'disabled' : ''}><span><b>${r.label}</b>${off ? `<small>Not due until ${prettyDate(party)}</small>` : ''}</span></label>`;
+  }).join('');
+  let next = '';
+  if (issue.store && issue.reason) {
+    const name = esc(STORES[issue.store].name);
+    const amt = money(state.paid[issue.store].amount);
+    if (issue.reason === 'unauth') {
+      const a = approvedFor(issue.store);
+      const when = a.at ? new Date(a.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'before shopping';
+      const fits = a.cap != null && state.paid[issue.store].amount <= a.cap;
+      next = `<div class="issue-next"><p><b>${fits ? 'This charge matches what you approved.' : 'This charge is over what you approved.'}</b> You approved up to ${money(a.cap)} at ${name} on ${when}, and ${name} charged ${amt} with a pass made only for that amount. Anything over it, Stripe refuses.</p>
+        <p class="issue-note">So it isn't an unauthorized charge. If something's wrong with the order itself, you can still ask ${name} for a refund.</p>
+        <button class="go" type="button" data-issue-send>Ask ${name} for a refund</button></div>`;
+    } else {
+      next = `<div class="issue-next"><p>I'll ask ${name} to refund ${amt} because ${REASONS[issue.reason].ask}, and attach your receipt as evidence: the items, the amount, the payment, your approval and the delivery ZIP.</p>
+        <button class="go" type="button" data-issue-send>Send the refund request</button></div>`;
+    }
+  }
+  body.innerHTML = `<fieldset class="issue-step"><legend>Which order?</legend>${storeOpts}</fieldset>
+    ${issue.store ? `<fieldset class="issue-step"><legend>What happened?</legend>${reasonOpts}</fieldset>` : ''}${next}`;
+}
+
+function openIssue() {
+  Object.assign(issue, { store: issueStores().length === 1 ? issueStores()[0] : null, reason: null, done: null });
+  renderIssue();
+  $('#issueDialog').showModal();
+  track('issue_opened');
+}
+
+async function sendIssue(btn) {
+  const store = issue.store;
+  const p = state.paid[store];
+  if (!p || p.refunded || state.busy) return;
+  state.busy = true;
+  btn.setAttribute('aria-busy', 'true');
+  try {
+    const r = await api('/api/refund', { permission: state.permission, signature: state.signature, payment: p.payment });
+    p.refunded = true;
+    const why = REASONS[issue.reason].why;
+    logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id, why });
+    track(`issue_${issue.reason}`);
+    candle(store, 'out');
+    paint(store, { cls: 'refunded', amount: p.amount, status: `Refunded ${money(p.amount)}: ${why}.` });
+    renderSpent();
+    renderReceipt();
+    renderMissing();
+    const name = esc(STORES[store].name);
+    issue.done = `<div class="issue-next done"><p><b>${name} refunded ${money(p.amount)} to your card.</b> It's on your receipt with the reason.</p>
+      <p class="issue-note">In this demo the store is simulated, so it said yes right away${r.sample ? ' (and the refund is simulated too)' : ''}. A real store could say no. Then you'd dispute the charge with your card company, and this receipt is the evidence: what you approved, what each store charged, and the pass that capped it.</p>
+      <button class="ghost-btn" value="close">Done</button></div>`;
+    renderIssue();
+  } catch (ex) {
+    btn.insertAdjacentHTML('afterend', `<p class="err">${esc(ex.message)}</p>`);
+  } finally {
+    state.busy = false;
+    btn.removeAttribute('aria-busy');
+  }
 }
 
 function receiptData() {
@@ -1299,6 +1399,16 @@ function bind() {
   $('#rcptCopy').addEventListener('click', () => { track('receipt_copied'); copyReceipt(); });
   // toggle doesn't bubble, so listen in the capture phase.
   $('#run').addEventListener('toggle', (e) => { if (e.target.matches?.('.store-view') && e.target.open) once('store_view_opened'); }, true);
+  $('#issueOpen').addEventListener('click', openIssue);
+  $('#issueBody').addEventListener('change', (e) => {
+    if (e.target.name === 'issueStore') Object.assign(issue, { store: e.target.value, reason: null });
+    if (e.target.name === 'issueReason') issue.reason = e.target.value;
+    renderIssue();
+    // Keep focus where it was after the re-render.
+    $(`#issueBody input[name="${e.target.name}"][value="${e.target.value}"]`)?.focus();
+  });
+  $('#issueBody').addEventListener('click', (e) => { const b = e.target.closest('[data-issue-send]'); if (b) sendIssue(b); });
+  $('#issueDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#permCard').addEventListener('click', (e) => { const b = e.target.closest('[data-perm-off]'); if (b) turnOff(b); });
 }
 
