@@ -17,6 +17,7 @@ export const EVENTS = [
   'receipt_opened', 'receipt_copied', 'receipt_printed',
   'permission_off', // she turned off her permission from the receipt
   'store_view_opened', // opened "What the store saw" (once per run)
+  'issue_opened', 'issue_late', 'issue_wrong', 'issue_unauth', // "Problem with an order?" opened, and refunds by reason
 ];
 
 const DAYS_KEPT = 180;

@@ -268,6 +268,7 @@
             <button class="ghost-btn" id="rcptPrint" type="button">Print or save as PDF</button>
             <button class="link-btn" id="rcptCopy" type="button">Copy as text</button>
           </div>
+          <p class="rcpt-issue"><button class="link-btn" id="issueOpen" type="button">Problem with an order?</button></p>
         </section>
   </section>
 
@@ -337,6 +338,16 @@
   </footer>
 
   <script type="module" src="app.js"></script>
+  <dialog class="card-dialog issue-dialog" id="issueDialog" aria-labelledby="issueTitle">
+    <form method="dialog">
+      <div class="dialog-head">
+        <h2 class="h" id="issueTitle">Problem with an order?</h2>
+        <button class="dialog-x" value="close" aria-label="Close"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      </div>
+      <div id="issueBody"></div>
+    </form>
+  </dialog>
+
   <dialog class="card-dialog" id="cardDialog" aria-labelledby="cardDialogTitle">
     <form method="dialog">
       <div class="dialog-head">

@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     ['Tested a cancellation', t.test_cancel],
     ['Turned off the permission', t.permission_off],
     ['Opened "What the store saw"', t.store_view_opened],
+    ['Problem with an order: opened / didn\u2019t arrive / not as ordered / didn\u2019t approve', [t.issue_opened, t.issue_late, t.issue_wrong, t.issue_unauth].join(' / ')],
     ['Receipt opened / copied / printed', [t.receipt_opened, t.receipt_copied, t.receipt_printed].join(' / ')],
   ];
   const head = ['Day', 'visit', 'plan', 'approved', 'approved_unchanged', 'store_paid', 'trick_tried', 'mode_fallback', 'over_limit_through'];
