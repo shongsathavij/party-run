@@ -1363,6 +1363,8 @@ async function init() {
   // The request is fixed, so the box is exactly as tall as the words.
   const fit = () => { const t = $('#askText'); t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 4}px`; };
   fit();
+  // Measure again once the web font is in: the fallback font is narrower, so the first fit can come up a line short.
+  document.fonts?.ready.then(fit);
   addEventListener('resize', fit);
   $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {

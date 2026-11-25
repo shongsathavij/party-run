@@ -994,3 +994,21 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 .store-view[open] summary::after { transform: rotate(45deg); }
 .faq-sv { border-top: 0; padding-top: 0; }
 @media (prefers-reduced-motion: reduce) { .store-view summary::after { transition: none; } }
+
+/* Design pass, Nov 25. */
+/* The chatbox: room under the last line, and a slimmer demo row. */
+.ask-box textarea { padding: 20px 22px 24px; }
+.ask-row { padding: 8px 8px 8px 22px; }
+.ask-row .note { font-size: 14px; }
+.ask-row .go { padding: 9px 18px; font-size: 17px; }
+
+/* The off-theme flag: three choices on one line, the same height, centered. */
+.flag .acts { align-items: center; gap: 10px; }
+.flag .acts .go.sm, .flag .acts .ghost-btn.sm { min-height: 44px; padding: 10px 18px; font-size: 16px; line-height: 1; }
+.flag .acts .link-btn.sm { min-height: 44px; display: inline-flex; align-items: center; padding: 0 8px; font-size: 15px; }
+
+/* The card dialog closes with an x in its corner, not a big Done button. */
+.card-dialog .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-dialog .dialog-x { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--hair, #E6E1DA); background: #fff; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin: -6px -6px 0 0; }
+.card-dialog .dialog-x:hover { background: #F7F5F2; }
+.card-dialog .dialog-x svg { width: 16px; height: 16px; }

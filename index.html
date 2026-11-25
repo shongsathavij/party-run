@@ -339,7 +339,10 @@
   <script type="module" src="app.js"></script>
   <dialog class="card-dialog" id="cardDialog" aria-labelledby="cardDialogTitle">
     <form method="dialog">
-      <h2 class="h" id="cardDialogTitle">Your card</h2>
+      <div class="dialog-head">
+        <h2 class="h" id="cardDialogTitle">Your card</h2>
+        <button class="dialog-x" value="close" aria-label="Close" autofocus><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      </div>
       <div class="card-fields">
         <label>Card number<input value="4242 4242 4242 4242" readonly autocomplete="off"></label>
         <label>Expires<input value="12/34" readonly autocomplete="off"></label>
@@ -347,7 +350,6 @@
         <label>Billing ZIP<input value="90210" readonly autocomplete="off"></label>
       </div>
       <p class="note">This demo always pays with Stripe's test card, so these can't be changed yet. A real card form is next on the list. Stripe keeps the card; stores only ever get a one-time pass.</p>
-      <button class="go" value="done" autofocus>Done</button>
     </form>
   </dialog>
 </body>
