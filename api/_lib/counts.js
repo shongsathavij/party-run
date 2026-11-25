@@ -16,6 +16,7 @@ export const EVENTS = [
   'test_over_limit', 'stripe_refused', 'over_limit_through', 'test_cancel', // "Test the limits"
   'receipt_opened', 'receipt_copied', 'receipt_printed',
   'permission_off', // she turned off her permission from the receipt
+  'store_view_opened', // opened "What the store saw" (once per run)
 ];
 
 const DAYS_KEPT = 180;

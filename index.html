@@ -304,7 +304,24 @@
     </details>
     <details>
       <summary><i></i>What do stores see?</summary>
-      <p>Only what they need to fill the order: the items, the delivery ZIP, and a pass for their amount. In this demo nothing is sent to any store; Stripe runs in test mode.</p>
+      <p>Only what they need to fill their part of the order. Here's the bounce house rental, for example:</p>
+      <div class="store-view faq-sv">
+        <div class="sv-cols">
+          <div class="sv-saw"><span class="sv-h">The store sees</span><dl>
+            <dt>Order</dt><dd>Its own items</dd>
+            <dt>Pass</dt><dd>Up to $209.14 · one use · 30 minutes</dd>
+            <dt>Card</dt><dd>Visa ending 4242, brand and last four only</dd>
+            <dt>Deliver to</dt><dd>The address, for setup</dd>
+          </dl></div>
+          <div class="sv-never"><span class="sv-h">Never sees</span><ul>
+            <li>Your card number, expiry or CVC</li>
+            <li>What you bought at the other stores</li>
+            <li>Your budget, or any other limit</li>
+            <li>What you asked the agent</li>
+          </ul></div>
+        </div>
+      </div>
+      <p>After your run, open “What the store saw” on any paid store to see it with that charge's real ids. In this demo nothing is sent to any store; Stripe runs in test mode.</p>
     </details>
     <details>
       <summary><i></i>Is this real?</summary>

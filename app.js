@@ -520,7 +520,7 @@ function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }
     // If the pass refused something first, that stays visible: it's the point of the demo.
     const refused = (state.log?.[store] || []).filter((e) => e.kind === 'refused');
     const story = refused.length ? `<span class="status refused-note">The pass refused ${money(refused[0].amount)} first. You approved ${money(refused[0].amount - refused[0].cap)} more.</span>` : '';
-    li.innerHTML = `<details class="paid-row"><summary>${head}<span class="status">✓ ${status}</span>${story}</summary>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? hoodHtml(store, hood, true) : ''}</details>`;
+    li.innerHTML = `<details class="paid-row"><summary>${head}<span class="status">✓ ${status}</span>${story}</summary>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? storeView(store, hood) + hoodHtml(store, hood, true) : ''}</details>`;
     return li;
   }
   li.innerHTML = `${head}
@@ -608,6 +608,36 @@ function hoodHtml(store, h, flat = false) {
   ].filter(Boolean);
   const dl = `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
   return flat ? `<div class="hood">${dl}</div>` : `<details class="hood"><summary>Under the hood</summary>${dl}</details>`;
+}
+
+// The same charge from the store's side, built from this run's real ids. What a seller gets with a
+// Stripe shared payment token: the pass (its limit and expiry), the charge, and the card's brand and
+// last four, never the number. Everything else about the party stays with the parent.
+function storeView(store, h) {
+  const time = new Date(h.expiresAt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(' ', '').toLowerCase();
+  const w = state.wallet;
+  const mine = state.cart.items.filter((i) => i.store === store);
+  const others = new Set(state.cart.items.map((i) => i.store).filter((s) => s !== store)).size;
+  const saw = [
+    ['Order', mine.map((i) => `${i.qty > 1 ? `${i.qty} × ` : ''}${esc(i.name)}`).join('<br>')],
+    ['Charge', `${money(h.asked)} · <code>${esc(shortId(h.paymentIntent))}</code>`],
+    ['Pass', `<code>${esc(shortId(h.token))}</code> · up to ${money(h.cap)} · one use · until ${time}`],
+    ['Card', `${w ? `${cap1(w.brand)} ending ${esc(w.last4)}` : 'Visa ending 4242'}, brand and last four only`],
+    ['Deliver to', `${DEMO_ZIP} (a real checkout sends the street address)`],
+  ];
+  const never = [
+    'Your card number, expiry or CVC',
+    others ? `What you bought at the other ${others} store${others > 1 ? 's' : ''}` : 'Anything about other stores',
+    `Your ${money(budgetOf(state.cart))} budget, or any other limit`,
+    'What you asked the agent',
+  ];
+  return `<details class="store-view"><summary>What the store saw</summary>
+    <div class="sv-cols">
+      <div class="sv-saw"><span class="sv-h">${esc(STORES[store].name)} saw</span><dl>${saw.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>
+      <div class="sv-never"><span class="sv-h">Never saw</span><ul>${never.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>
+    </div>
+    <p class="sv-note">${h.sample ? 'Simulated, with the same shape as a real charge.' : 'Built from this charge’s real Stripe ids, in test mode.'} In this demo our server plays the store; nothing reached ${esc(STORES[store].name)}.</p>
+  </details>`;
 }
 
 const passLine = (p, used) => `Pass ${p.id.slice(0, 18)}… · limit ${money(p.cap)} · ${used}`;
@@ -1267,6 +1297,8 @@ function bind() {
     finishRun();
   });
   $('#rcptCopy').addEventListener('click', () => { track('receipt_copied'); copyReceipt(); });
+  // toggle doesn't bubble, so listen in the capture phase.
+  $('#run').addEventListener('toggle', (e) => { if (e.target.matches?.('.store-view') && e.target.open) once('store_view_opened'); }, true);
   $('#permCard').addEventListener('click', (e) => { const b = e.target.closest('[data-perm-off]'); if (b) turnOff(b); });
 }
 
