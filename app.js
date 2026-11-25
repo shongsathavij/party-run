@@ -1083,7 +1083,10 @@ function renderIssue() {
     body.innerHTML = `<p class="issue-note">Every order is already refunded, so there's nothing to report.</p>`;
     return;
   }
-  const storeOpts = list.map((s) => `<label class="issue-opt"><input type="radio" name="issueStore" value="${s}" ${issue.store === s ? 'checked' : ''}><span><b>${esc(STORES[s].name)}</b><small>${money(state.paid[s].amount)}</small></span></label>`).join('');
+  const picked = issue.store && list.includes(issue.store)
+    ? `<div class="issue-picked"><span><b>${esc(STORES[issue.store].name)}</b><small>${money(state.paid[issue.store].amount)}</small></span><button class="link-btn" type="button" data-issue-change>Change</button></div>`
+    : '';
+  const storeOpts = picked || list.map((s) => `<label class="issue-opt"><input type="radio" name="issueStore" value="${s}" ${issue.store === s ? 'checked' : ''}><span><b>${esc(STORES[s].name)}</b><small>${money(state.paid[s].amount)}</small></span></label>`).join('');
   const reasonOpts = Object.entries(REASONS).map(([k, r]) => {
     const off = k === 'late' && before;
     return `<label class="issue-opt${off ? ' off' : ''}"><input type="radio" name="issueReason" value="${k}" ${issue.reason === k ? 'checked' : ''} ${off ? 'disabled' : ''}><span><b>${r.label}</b>${off ? `<small>Not due until ${prettyDate(party)}</small>` : ''}</span></label>`;
@@ -1294,6 +1297,15 @@ function copyReceipt() {
 
 // ---------- wiring ----------
 
+// The request is fixed, so the box is exactly as tall as the words. Only measure while it's on screen:
+// a hidden box measures 0, which used to squash it to one line after a resize mid-flow.
+function fitAsk() {
+  const t = $('#askText');
+  if (!t || !t.offsetParent) return;
+  t.style.height = 'auto';
+  t.style.height = `${t.scrollHeight + 4}px`;
+}
+
 function startOver() {
   if (state.busy) return;
   $('#success').hidden = true;
@@ -1306,6 +1318,7 @@ function startOver() {
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
+  fitAsk();
   $('#askBtn').focus();
 }
 
@@ -1407,7 +1420,15 @@ function bind() {
     // Keep focus where it was after the re-render.
     $(`#issueBody input[name="${e.target.name}"][value="${e.target.value}"]`)?.focus();
   });
-  $('#issueBody').addEventListener('click', (e) => { const b = e.target.closest('[data-issue-send]'); if (b) sendIssue(b); });
+  $('#issueBody').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-issue-send]');
+    if (b) sendIssue(b);
+    if (e.target.closest('[data-issue-change]')) {
+      Object.assign(issue, { store: null, reason: null });
+      renderIssue();
+      $('#issueBody input[name="issueStore"]')?.focus();
+    }
+  });
   $('#issueDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#permCard').addEventListener('click', (e) => { const b = e.target.closest('[data-perm-off]'); if (b) turnOff(b); });
 }
@@ -1471,11 +1492,10 @@ async function init() {
   try { const w = JSON.parse(sessionStorage.getItem('partyRunWallet') || 'null'); if (w?.customer) { state.wallet = w; showWallet(); } } catch {}
   $('#askText').value = REAL;
   // The request is fixed, so the box is exactly as tall as the words.
-  const fit = () => { const t = $('#askText'); t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 4}px`; };
-  fit();
+  fitAsk();
   // Measure again once the web font is in: the fallback font is narrower, so the first fit can come up a line short.
-  document.fonts?.ready.then(fit);
-  addEventListener('resize', fit);
+  document.fonts?.ready.then(fitAsk);
+  addEventListener('resize', fitAsk);
   $('#footDate').textContent = prettyDate(SNAPSHOT);
   try {
     state.config = await api('/api/config');

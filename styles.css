@@ -1032,3 +1032,7 @@ a.wordmark:hover { text-decoration: underline; text-decoration-thickness: 2px; t
 .issue-next.done { background: #EAF6EF; }
 @media print { .rcpt-issue { display: none; } }
 .issue-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+.issue-picked { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--ink); border-radius: 12px; background: #fff; }
+.issue-picked span { display: flex; flex: 1; justify-content: space-between; align-items: baseline; gap: 10px; }
+.issue-picked small { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.issue-picked .link-btn { font-size: 14px; }
