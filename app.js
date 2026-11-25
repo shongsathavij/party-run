@@ -520,7 +520,7 @@ function paint(store, { cls = '', amount, status, pass, acts = '', hood = null }
     // If the pass refused something first, that stays visible: it's the point of the demo.
     const refused = (state.log?.[store] || []).filter((e) => e.kind === 'refused');
     const story = refused.length ? `<span class="status refused-note">The pass refused ${money(refused[0].amount)} first. You approved ${money(refused[0].amount - refused[0].cap)} more.</span>` : '';
-    li.innerHTML = `<details class="paid-row"><summary>${head}<span class="status">✓ ${status}</span>${story}</summary>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? storeView(store, hood) + hoodHtml(store, hood, true) : ''}</details>`;
+    li.innerHTML = `<details class="paid-row"><summary>${head}<span class="status">✓ ${status}</span>${story}</summary>${pass ? `<span class="pass">${esc(pass)}</span>` : ''}${hood ? hoodHtml(store, hood, true) + storeView(store, hood) : ''}</details>`;
     return li;
   }
   li.innerHTML = `${head}
@@ -607,7 +607,7 @@ function hoodHtml(store, h, flat = false) {
     (h.code || h.declineCode) && ['Stripe code', `<code>${esc([h.code, h.declineCode].filter(Boolean).join(' / '))}</code>`],
   ].filter(Boolean);
   const dl = `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
-  return flat ? `<div class="hood">${dl}</div>` : `<details class="hood"><summary>Under the hood</summary>${dl}</details>`;
+  return flat ? `<div class="hood"><span class="hood-h">Under the hood</span>${dl}</div>` : `<details class="hood"><summary>Under the hood</summary>${dl}</details>`;
 }
 
 // The same charge from the store's side, built from this run's real ids. What a seller gets with a
