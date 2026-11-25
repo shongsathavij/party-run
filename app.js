@@ -25,6 +25,18 @@ const ASK_CHOICES = [
 
 const state = { opts: null, config: null, cart: null, mode: null, trick: null, declined: new Set(), noneLeft: {}, changes: [], locked: false, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, askOver: DEFAULT_ASK_OVER, permission: null, signature: null, perm: null, rows: {}, busy: false };
 
+// Anonymous counts: only an event name from api/_lib/counts.js EVENTS. Never what anyone typed.
+function track(e) {
+  try {
+    const body = JSON.stringify({ e });
+    if (!(navigator.sendBeacon && navigator.sendBeacon('/api/track', new Blob([body], { type: 'text/plain' })))) {
+      fetch('/api/track', { method: 'POST', body, keepalive: true }).catch(() => {});
+    }
+  } catch {}
+}
+// Once per run (cleared by Start over), for events that can fire from more than one place.
+const once = (e) => { if (!(state.counted ||= new Set()).has(e)) { state.counted.add(e); track(e); } };
+
 async function api(path, body) {
   const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
   const data = await r.json().catch(() => ({}));
@@ -178,10 +190,15 @@ async function plan(e) {
     state.mode = r.mode;
     state.trick = r.trick || null;
     state.fallback = r.fallback || null;
+    state.touched = false;
+    track('plan');
+    track(`mode_${r.mode}`);
+    if (r.trick) { track('trick_tried'); if (r.trick.reported) track('trick_caught'); }
     renderCart();
     renderPermit();
   } catch (ex) {
     thinking(false);
+    track('plan_error');
     $('#chat').hidden = true;
     $('#ask').hidden = false;
     err.textContent = /fetch|network|load failed/i.test(ex.message) ? "Couldn't reach the agent. Try again?" : ex.message;
@@ -259,6 +276,8 @@ async function changeCart(body, said) {
     // Anything the parent took out on purpose isn't "missing" later.
     for (const cat of new Set(before.items.map((i) => i.category))) if (!r.cart.items.some((i) => i.category === cat)) state.declined.add(cat);
     state.cart = { ...r.cart, notes: r.cart.notes, theme: r.cart.theme };
+    state.touched = true;
+    track(body.swap ? 'swapped' : body.set ? 'qty_changed' : body.add ? 'added' : 'edited');
     if (body.swap) { state.decided[body.swap.to] = 'kept'; state.opts = null; }
     const lines = body.swap
       ? [`Swapped in ${byId[body.swap.to].name} from ${STORES[byId[body.swap.to].store].name} (${signed(r.cart.total - before.total)})`]
@@ -392,10 +411,12 @@ function decide(e) {
   const drop = e.target.closest('[data-drop]')?.dataset.drop;
   if (!keep && !drop) return;
   const c = state.cart;
-  if (keep) state.decided[keep] = 'kept';
+  if (keep) { state.decided[keep] = 'kept'; track('kept_off_theme'); }
   if (drop) {
     const gone = c.items.find((i) => i.id === drop);
     state.decided[drop] = 'dropped';
+    state.touched = true;
+    track('dropped_off_theme');
     state.declined.add(gone.category);
     c.items = c.items.filter((i) => i.id !== drop);
     c.notes.push(`You chose no ${WHAT[gone.category]} rather than one that isn't ${themeWord(c.theme)}-themed.`);
@@ -608,6 +629,9 @@ async function shop() {
     const p = await api('/api/permit', { items: c.items.map((i) => ({ id: i.id, qty: i.qty })), budget: c.budget, askOver: state.askOver, partyDate: c.partyDate, wallet: state.wallet });
     Object.assign(state, { permission: p.permission, signature: p.signature, perm: p.perm, approvedPerm: p.perm, rows: {}, paid: {}, log: {}, extraPermits: [], cancelUsed: false, priceUpStore: null, overchargeUsed: false });
     state.caps = Object.fromEntries(Object.entries(p.perm.stores).map(([k, v]) => [k, { approved: v.cap, final: v.cap }]));
+    track('approved');
+    if (!state.touched) track('approved_unchanged');
+    track(state.askOver === 0 ? 'limit_always' : state.askOver == null ? 'limit_never' : 'limit_100');
   } catch (ex) {
     $('#permitErr').textContent = ex.message;
     $('#permitErr').hidden = false;
@@ -655,6 +679,7 @@ async function buy(store, amount, { approved = false } = {}) {
 
   if (r.status === 'paid') {
     state.paid[store] = { amount: r.amount, payment: r.payment };
+    track('store_paid');
     queueSet(store, 'paid');
     logEvent(store, { kind: 'paid', amount: r.amount, hood: r.hood });
     candle(store, 'lit');
@@ -665,6 +690,7 @@ async function buy(store, amount, { approved = false } = {}) {
   }
 
   if (r.status === 'ask') {
+    track('stopped_to_check');
     queueSet(store, 'asking');
     paint(store, { cls: 'asking', amount, status: 'Waiting for you.' });
     const s = state.cart.stores.find((x) => x.store === store);
@@ -688,6 +714,7 @@ async function buy(store, amount, { approved = false } = {}) {
     queueSet(store, 'skipped');
     candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: 'You chose Skip when I checked with you.' });
+    track('skipped');
     // She can change her mind later: her approval still covers this store, so paying it is one tap.
     (state.skipped ||= {})[store] = amount;
     paint(store, { amount: null, status: `Skipped. Nothing charged. <button class="link-btn sm" data-unskip="${esc(store)}">Pay ${esc(STORES[store].name)} after all</button>` });
@@ -697,6 +724,7 @@ async function buy(store, amount, { approved = false } = {}) {
   if (r.status === 'blocked') {
     const more = r.asked - r.cap;
     logEvent(store, { kind: 'refused', amount: r.asked, cap: r.cap, hood: r.hood, railsMissed: r.railsMissed });
+    if (r.railsMissed) track('over_limit_through');
     // The what-if happens at one rental only, not again at a replacement.
     if (more > 0) state.priceUpStore ||= store;
     queueSet(store, 'blocked');
@@ -720,6 +748,7 @@ async function buy(store, amount, { approved = false } = {}) {
         const up = await api('/api/raise', { permission: state.permission, signature: state.signature, store, newCap: r.asked });
         Object.assign(state, { permission: up.permission, signature: up.signature, perm: up.perm });
         logEvent(store, { kind: 'raised', from: r.cap, to: r.asked });
+        track('raised');
         if (state.caps[store]) state.caps[store].final = r.asked;
         return buy(store, r.asked, { approved: true });
       } catch (ex) {
@@ -730,6 +759,7 @@ async function buy(store, amount, { approved = false } = {}) {
     queueSet(store, 'skipped');
     candle(store, 'out');
     logEvent(store, { kind: 'skipped', why: 'You chose not to approve the higher price.' });
+    track('skipped');
     paint(store, { amount: null, status: 'Skipped. Nothing charged.' });
     return;
   }
@@ -789,6 +819,7 @@ async function cancelRental() {
     state.cancelUsed = true;
     candle(store, 'out');
     logEvent(store, { kind: 'refunded', amount: p.amount, refund: r.id });
+    track('test_cancel');
     renderReceipt();
     paint(store, { cls: 'refunded', amount: p.amount, status: `Test: the rental cancelled. ${money(p.amount)} refunded to your card${r.sample ? ' (sample)' : ''}.` });
     renderSpent();
@@ -817,6 +848,9 @@ async function overcharge() {
     const h = r.hood;
     const who = h?.decidedBy === 'stripe' ? 'Stripe refused it' : h?.decidedBy === 'simulator' ? 'Our simulator refused it (no Stripe key)' : 'Stripe let it through, so our code refunded it at once';
     logEvent(store, { kind: 'tested', amount: r.asked, cap: r.cap, hood: h, railsMissed: r.railsMissed });
+    track('test_over_limit');
+    if (h?.decidedBy === 'stripe') track('stripe_refused');
+    if (r.railsMissed) track('over_limit_through');
     li.className = r.railsMissed ? 'blocked' : 'tested';
     li.innerHTML = `<div class="row">${brick(store)}<b>Test: ${esc(STORES[store].name)}</b><span class="amt">${money(r.asked)}</span></div>
       <span class="status">A new pass for ${money(r.cap)}, and the store tried ${money(r.asked)}. ${who}.${h?.message && h.decidedBy === 'stripe' ? ` <q>${esc(h.message)}</q>` : ''}</span>
@@ -905,6 +939,7 @@ async function findAnother(e) {
     state.extraPermits.push({ id: p.perm.id, amount: q.total, storeName: it.storeName, reason: tried.some((s) => state.paid[s]?.refunded) ? 'rental cancelled' : `${WHAT[cat]} fell through` });
     c.items.push(it);
     regroup(c);
+    track('found_another');
     await buy(it.store, q.total, { approved: true });
   } catch (ex) {
     li.className = 'blocked';
@@ -922,6 +957,8 @@ function openSuccess() {
   const { held, net, miss } = verdict();
   const budget = budgetOf(state.cart);
   const complete = !miss.length && held;
+  track('receipt_opened');
+  once(complete ? 'party_complete' : 'party_incomplete');
   // A complete party gets a dance from the cake up top (one of four, at random). Nothing else moves.
   $('#successTitle').innerHTML = miss.length ? 'Almost <i>there.</i>' : 'Party’s <i>on.</i>';
   // One short line; the numbers live in the receipt right below.
@@ -1068,7 +1105,7 @@ function startOver() {
   document.body.classList.remove('reviewing');
   $('#changeForm').hidden = true;
   state.opts = null;
-  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {} });
+  Object.assign(state, { overchargeUsed: false, noneLeft: {}, declined: new Set(), changes: [], locked: false, priceUpStore: null, decided: {}, caps: {}, extraPermits: [], cancelUsed: false, log: {}, approvedPerm: null, cart: null, trick: null, permission: null, signature: null, perm: null, rows: {}, paid: {}, counted: new Set(), touched: false });
   $('#chat').hidden = true;
   $('#moneyCol').hidden = true;
   $('#ask').hidden = false;
@@ -1101,7 +1138,7 @@ function bind() {
   $('#overcharge').addEventListener('click', overcharge);
   $('#startOver').addEventListener('click', startOver);
   $('#again').addEventListener('click', startOver);
-  $('#rcptPrint').addEventListener('click', () => window.print());
+  $('#rcptPrint').addEventListener('click', () => { track('receipt_printed'); window.print(); });
   $('#seeReceipt').addEventListener('click', openSuccess);
   $('#backToRun').addEventListener('click', closeSuccess);
   // Straight to the search: back to the run and start looking, in one tap.
@@ -1158,10 +1195,11 @@ function bind() {
       delete state.rows[k];
     }
     logEvent(store, { kind: 'asked', amount });
+    track('paid_after_all');
     try { await buy(store, amount, { approved: true }); } finally { state.busy = false; }
     finishRun();
   });
-  $('#rcptCopy').addEventListener('click', copyReceipt);
+  $('#rcptCopy').addEventListener('click', () => { track('receipt_copied'); copyReceipt(); });
 }
 
 // ---------- the card: asked for at the go-ahead, saved when she approves ----------
@@ -1208,6 +1246,7 @@ function heroDance(el) {
 
 async function init() {
   bind();
+  track('visit');
   // The wordmark and the cake both go back to the start (the cake dances on its way). Not mid-payment.
   const home = (e) => {
     e.preventDefault();
