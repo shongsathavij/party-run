@@ -194,7 +194,7 @@
   <section aria-label="What this shows">
     <span class="kicker">What this shows</span>
     <div class="stripes"><ul class="shows">
-      <li><span><b>I ship.</b> I'm a product manager who loves building, especially trying new things. Piece of Cake is a live agent on real store listings, with real Stripe calls and evals that run in CI, built in about ten days.</span></li>
+      <li><span><b>I ship.</b> When something new lands in payments, I build with it. Piece of Cake went from idea to a live agent on real store listings in about ten days, with real Stripe calls and evals that run in CI.</span></li>
       <li><span><b>I build trust into the payment.</b> My work in AI showed people trust automation with money when its limits are clear and a person can step in. So the agent can only spend what you approve, tells you up front when it will stop and ask, and Stripe enforces every limit.</span></li>
       <li><span><b>I understand the user.</b> I built it as the parent it's for, and my UX research on AI said the same thing: people hand an agent their money only when they can see the plan, set the limit, and check afterward exactly what it did. So every step is visible, and every run ends in a receipt.</span></li>
     </ul></div>
@@ -230,7 +230,7 @@
 
   <section aria-labelledby="money">
     <span class="kicker">The payment</span>
-    <h2 id="money">The agent can't overspend, and that isn't a promise</h2>
+    <h2 id="money">The agent can't overspend. Stripe won't let it.</h2>
     <div class="prose">
       <p>Most agent demos put the budget in the prompt and hope. Prompts can be talked out of things; a store listing can even carry hidden instructions. So the agent never gets a payment tool. It proposes a cart, the parent approves a signed permission, and the server buys, minting a <b>Stripe shared payment token</b> for one store, capped at that store's approved amount, that expires in 30 minutes.</p>
     </div>
@@ -332,17 +332,12 @@
 
   <section aria-labelledby="decisions">
     <span class="kicker">Decisions and trade-offs</span>
-    <h2 id="decisions">Four calls I'd defend in a review</h2>
+    <h2 id="decisions">Three calls I'd defend in a review</h2>
     <div class="decisions">
       <article class="decision">
         <h3>Limits in the payment, not the prompt</h3>
         <p>A parent can't check what an AI's instructions will make it do. She can understand "this store can charge up to $149.99, once, in the next 30 minutes."</p>
         <p class="tradeoff"><b>Trade-off:</b> each store gets its own pass, so the card statement shows five charges instead of one.</p>
-      </article>
-      <article class="decision">
-        <h3>Plan by what, pay by where</h3>
-        <p>Parents think "bounce house, cake, favors", not "Target, Michaels". The cart is grouped by what it is; the run, passes and receipt go by store, because that's where the money moves.</p>
-        <p class="tradeoff"><b>Trade-off:</b> two views of the same cart, so the store has to stay visible on every item.</p>
       </article>
       <article class="decision">
         <h3>Three stops, and only three</h3>
@@ -356,10 +351,11 @@
       </article>
     </div>
     <details class="panel smaller">
-      <summary>Smaller calls (7)</summary>
+      <summary>Smaller calls (8)</summary>
       <div class="table-wrap">
         <table class="rules">
           <tbody>
+            <tr><td>Plan by what, pay by where</td><td>Parents think "bounce house, cake, favors", not "Target, Michaels". The cart is grouped by what it is; the run, passes and receipt go by store, because that's where the money moves.</td></tr>
             <tr><td>Traps only on a made-up store</td><td>Real listings make it credible, but nothing false about a real business: the booked bounce house and the hidden instruction live on a test store labeled as made up.</td></tr>
             <tr><td>One real party only</td><td>The request is fixed. A narrow demo that's true beats an open one that's vague.</td></tr>
             <tr><td>Distrust the store, not just the text</td><td>In a live run, Claude ignored the hidden instruction but still bought that store's $16 table set. Now nothing from that store goes in the cart, even an item the parent names; the cart says why instead.</td></tr>
