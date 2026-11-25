@@ -91,6 +91,10 @@
     .shots { margin: 18px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .shots img { width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 20px; background: #fff; box-shadow: var(--lift); }
     .shots figcaption { grid-column: 1 / -1; }
+    .store-side { display: grid; grid-template-columns: minmax(0, 260px) 1fr; gap: 22px; align-items: center; }
+    .store-side img { width: 100%; height: auto; border: 1px solid var(--hair); border-radius: 18px; }
+    .store-side p { margin: 8px 0 0; }
+    @media (max-width: 640px) { .store-side { grid-template-columns: 1fr; } .store-side img { max-width: 300px; justify-self: center; } }
     @media (max-width: 720px) { .shots { grid-template-columns: 1fr 1fr; } .shots img:nth-of-type(3) { grid-column: 1 / -1; max-width: 70%; justify-self: center; } }
 
     .shows { list-style: none; padding: 22px 20px; margin: 0; display: flex; flex-direction: column; gap: 12px; background: #fff; border-radius: 20px; }
@@ -267,6 +271,14 @@
       </div>
       <p class="quote">"The requested amount is greater than the remaining amount capturable with this shared payment granted token."</p>
       <p class="small">Stripe's own response, tested live on November 19. If Stripe ever accepted an over-cap charge, the server refunds it at once and the page says so in plain words.</p>
+    </div>
+    <div class="panel store-side">
+      <img src="img/case-store.jpg" width="585" height="947" alt="On a phone, under the bounce house rental: what the store saw (its order, a $209.14 charge, a pass good for one use, Visa ending 4242) and what it never saw (the card number, the other 4 stores, the $600 budget, the request).">
+      <div>
+        <span class="kicker">The same charge, from the store's side</span>
+        <p>After a run, every paid store shows what that store saw. The rental got its own order, a $209.14 pass good for one use, and the card's brand and last four. It never saw the card number, the other four stores, the $600 budget, or what I asked the agent.</p>
+        <p class="small">So a leaked pass is worth one charge, at one store, for 30 minutes. Real test-mode Stripe ids, from the live demo.</p>
+      </div>
     </div>
     <div class="panel">
       <span class="kicker">The rules</span>
