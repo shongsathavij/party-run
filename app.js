@@ -1052,9 +1052,10 @@ function storeStory(store) {
 // The stores are simulated, so they say yes at once; a real store could say no, and then it's a card dispute.
 
 const REASONS = {
-  late: { label: "It didn't arrive", why: "you reported it didn't arrive", ask: "it didn't arrive" },
   wrong: { label: "It's not what I ordered", why: "you reported it wasn't what you ordered", ask: "it isn't what you ordered" },
   unauth: { label: "I didn't approve this charge", why: 'you asked for a refund', ask: '' },
+  // Last, since before the party it's greyed out ("Not due until …").
+  late: { label: "It didn't arrive", why: "you reported it didn't arrive", ask: "it didn't arrive" },
 };
 const issue = { store: null, reason: null, done: null };
 
